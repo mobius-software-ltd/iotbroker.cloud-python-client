@@ -115,10 +115,10 @@ class MQTTclient(IoTClient):
         self.timers.goMessageTimer(subscribe)
 
     def pingreq(self):
-        self.clientFactory.send(MQPingreq())
+        self.send(MQPingreq())
 
-    def disconnectWith(self, period):
-        self.clientFactory.send(MQDisconnect())
+    def disconnectWith(self):
+        self.send(MQDisconnect())
         self.timers.stopAllTimers()
 
     def timeoutMethod(self):

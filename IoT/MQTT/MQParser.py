@@ -333,7 +333,6 @@ def MQ_DISCONNECT(self,message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
-
     return data
 
 switcherEncode = {

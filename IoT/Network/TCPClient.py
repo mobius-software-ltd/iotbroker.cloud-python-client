@@ -17,7 +17,7 @@ class TCPClient(Protocol):
             pass
 
     def dataReceived(self, data):
-        print("Server said:", data)
+        #print("Server said:", data)
         parser = MQParser(None)
         message = parser.decode(data)
         self.client.dataReceived(data)
@@ -25,7 +25,7 @@ class TCPClient(Protocol):
     def sendMessage(self, message):
         self.message = message
         self.transport.write(self.message)
-        print("was sended: " + str(self.message))
+        #print("was sended: " + str(self.message))
 
     def connectionLost(self, reason):
         # connector.connect()
