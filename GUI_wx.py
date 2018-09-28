@@ -19,6 +19,7 @@ wxreactor.install()
 from twisted.internet import reactor
 
 from venv.IoT.MQTT.MQTTclient import *
+import platform
 
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 class LoadingForm(wx.Frame):
@@ -155,7 +156,10 @@ class AccountsForm(wx.Frame):
         accounts = datamanage.get_accounts_all()
         self.list.SetFont(font)
 
-        bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
+        if platform.system()=='Linux':
+            bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
+        else:
+            bmp = wx.Bitmap("./resources/ic_delete_with_background.bmp", wx.BITMAP_TYPE_BMP)
 
         i = 0
         if len(accounts) > 0:
@@ -629,14 +633,19 @@ class TopicsPanel(wx.Panel):
         boldfont.SetPointSize(12)
 
         topPanel = wx.Panel(self, size=wx.Size(360, 560))
-        panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
-        panelList = wx.Panel(self, -1, size=wx.Size(360, 300))
-        panelTopic = wx.Panel(self, -1, size=wx.Size(360, 80))
+        panelText = wx.Panel(self, -1, size=wx.Size(359, 30))
+        panelList = wx.Panel(self, -1, size=wx.Size(359, 280))
+        panelTopic = wx.Panel(self, -1, size=wx.Size(359, 80))
         panelTopic.SetBackgroundColour((255, 255, 255))
-        panelBtn = wx.Panel(self, -1, size=wx.Size(360, 50))
+        panelBtn = wx.Panel(self, -1, size=wx.Size(359, 50))
 
-        text = wx.StaticText(panelText, -1, "  topics list:",size=wx.Size(360, 50))
+        text = wx.StaticText(panelText, -1, "  topics list:",size=wx.Size(359, 20))
         text.SetFont(boldfont)
+
+        #self.timer = wx.Timer(self, 1)
+        #self.count = 0
+        #self.gauge = wx.Gauge(panelText, 100, size=(359, 5))
+        #self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
 
         self.list = ULC.UltimateListCtrl(panelList, wx.ID_ANY, agwStyle=ULC.ULC_NO_HEADER | wx.LC_REPORT | wx.LC_SINGLE_SEL | ULC.ULC_HAS_VARIABLE_ROW_HEIGHT)
         self.list.SetFont(boldfont)
@@ -655,7 +664,11 @@ class TopicsPanel(wx.Panel):
         account = datamanage.get_default_account()
         self.list.SetFont(font)
 
-        bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
+        if platform.system() == 'Linux':
+            bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
+        else:
+            bmp = wx.Bitmap("./resources/ic_delete_with_background.bmp", wx.BITMAP_TYPE_BMP)
+
         i = 0
         topics = None
         if account is not None:
@@ -669,11 +682,18 @@ class TopicsPanel(wx.Panel):
                     self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
                     self.list.InsertStringItem(i, str(item.topicName))
 
-                    qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
-                    if item.qos == 1:
-                        qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
-                    if item.qos == 2:
-                        qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+                    if platform.system() == 'Linux':
+                        qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
+                        if item.qos == 1:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
+                        if item.qos == 2:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+                    else:
+                        qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
+                        if item.qos == 1:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
+                        if item.qos == 2:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
 
                     self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
                     self.list.SetItemWindow(i, 1, self.imageCtrlQos)
@@ -724,6 +744,12 @@ class TopicsPanel(wx.Panel):
 
         panelTopic.SetSizer(panelTopic_vertical)
 
+        headerBox = wx.BoxSizer(wx.VERTICAL)
+        headerBox.Add(text)
+        #headerBox.Add(self.gauge, wx.ALIGN_LEFT)
+        headerBox.Add((0, 5), 0)
+        panelText.SetSizer(headerBox)
+
         sizer.Add(panelText, wx.EXPAND | wx.ALL, border=0)
         sizer.Add(panelList, wx.EXPAND | wx.ALL, border=0)
         sizer.Add(panelTopic, wx.EXPAND | wx.ALL, border=0)
@@ -739,30 +765,42 @@ class TopicsPanel(wx.Panel):
     def OnCreate(self, event):
         name = self.nameText.GetValue()
         qos = self.comboQos.GetValue()
-        #ADD to list
 
-        self.nameText.SetValue('');
-        self.comboQos.SetValue('0');
+        if name is not None and name != '':
+            #ADD to list
+            self.nameText.SetValue('');
+            self.comboQos.SetValue('0');
 
-        i = self.list.GetItemCount()
-        bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
-        self.btnDel = wx.BitmapButton(self.list, id=i, bitmap=bmp,
-                                      size=(bmp.GetWidth() + 12, bmp.GetHeight() + 10), style=wx.NO_BORDER)
+            i = self.list.GetItemCount()
+            bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
+            self.btnDel = wx.BitmapButton(self.list, id=i, bitmap=bmp,
+                                          size=(bmp.GetWidth() + 12, bmp.GetHeight() + 10), style=wx.NO_BORDER)
 
-        self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
-        self.list.InsertStringItem(i, str(name))
-        qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
-        if int(qos) == 1:
-            qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
-        if int(qos) == 2:
-            qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
-        self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
+            self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
+            self.list.InsertStringItem(i, str(name))
 
-        self.list.SetItemWindow(i, 1, self.imageCtrlQos)
-        self.list.SetItemWindow(i, 2, self.btnDel)
-        # SEND SUBSCRIBE _________________________________________________________________________________SEND SUBSCRIBE
-        self.app.client.subscribeTo(name, int(qos))
+            if platform.system() == 'Linux':
+                qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
+                if qos == 1:
+                    qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
+                if qos == 2:
+                    qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+            else:
+                qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
+                if qos == 1:
+                    qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
+                if qos == 2:
+                    qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
 
+            self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
+            self.list.SetItemWindow(i, 1, self.imageCtrlQos)
+            self.list.SetItemWindow(i, 2, self.btnDel)
+            # SEND SUBSCRIBE _________________________________________________________________________________SEND SUBSCRIBE
+            self.app.client.subscribeTo(name, int(qos))
+            self.timer.Start(1)
+        else:
+            pymsgbox.alert('Please, fill in all required fields: TopicName ',
+                           'Topic creation Error')
 
     def OnDelete(self, event):
         btn = event.GetEventObject()
@@ -770,6 +808,23 @@ class TopicsPanel(wx.Panel):
         topicName = self.list.GetItem(id, 0).GetText()
         # SEND UNSUBSCRIBE _________________________________________________________________________________SEND UNSUBSCRIBE
         self.app.client.unsubscribeFrom(topicName)
+        self.timer.Start(1)
+
+    def OnTimer(self, event):
+        self.count = self.count+1
+        time.sleep(0.03)
+        self.gauge.SetValue(self.count)
+        self.gauge.Update()
+
+        if self.count == 100:
+            self.timer.Stop()
+            self.count = 0
+            self.gauge.SetValue(self.count)
+            self.gauge.Update()
+
+            #print("Suback or Unsuback is not received. Please, check state of your connection to server")
+            #pymsgbox.alert('Suback or Unsuback is not received. Please, check state of your connection to server',
+                           #'Topic subscribe/unsubscribe Error')
 
 class MessagesPanel(wx.Panel):
     def __init__(self, parent, app):
@@ -814,20 +869,38 @@ class MessagesPanel(wx.Panel):
             if len(messages) > 0:
                 for item in messages:
                     self.list.InsertStringItem(i, str(item.topicName) + '\n' + str(item.content))
-                    if item.incoming:
-                        if item.qos == 0:
-                            bmp = wx.Bitmap("./resources/icon_in_qos_0_75.png", wx.BITMAP_TYPE_BMP)
-                        if item.qos == 1:
-                            bmp = wx.Bitmap("./resources/icon_in_qos_1_75.png", wx.BITMAP_TYPE_BMP)
-                        if item.qos == 2:
-                            bmp = wx.Bitmap("./resources/icon_in_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+
+                    if platform.system() == 'Linux':
+                        if item.incoming:
+                            if item.qos == 0:
+                                bmp = wx.Bitmap("./resources/icon_in_qos_0_75.png", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 1:
+                                bmp = wx.Bitmap("./resources/icon_in_qos_1_75.png", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 2:
+                                bmp = wx.Bitmap("./resources/icon_in_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+                        else:
+                            if item.qos == 0:
+                                bmp = wx.Bitmap("./resources/icon_out_qos_0_75.png", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 1:
+                                bmp = wx.Bitmap("./resources/icon_out_qos_1_75.png", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 2:
+                                bmp = wx.Bitmap("./resources/icon_out_qos_2_75.png", wx.BITMAP_TYPE_BMP)
                     else:
-                        if item.qos == 0:
-                            bmp = wx.Bitmap("./resources/icon_out_qos_0_75.png", wx.BITMAP_TYPE_BMP)
-                        if item.qos == 1:
-                            bmp = wx.Bitmap("./resources/icon_out_qos_1_75.png", wx.BITMAP_TYPE_BMP)
-                        if item.qos == 2:
-                            bmp = wx.Bitmap("./resources/icon_out_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+                        if item.incoming:
+                            if item.qos == 0:
+                                bmp = wx.Bitmap("./resources/icon_in_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 1:
+                                bmp = wx.Bitmap("./resources/icon_in_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 2:
+                                bmp = wx.Bitmap("./resources/icon_in_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
+                        else:
+                            if item.qos == 0:
+                                bmp = wx.Bitmap("./resources/icon_out_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 1:
+                                bmp = wx.Bitmap("./resources/icon_out_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
+                            if item.qos == 2:
+                                bmp = wx.Bitmap("./resources/icon_out_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
+
                     self.imageCtrl = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(bmp))
                     self.list.SetItemWindow(i, 1, self.imageCtrl)
                     i += 1
@@ -850,13 +923,18 @@ class SendPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.parent = parent
 
+        #self.timer = wx.Timer(self, 1)
+        #self.count = 0
+        #self.gauge = wx.Gauge(self, 100, size=(359, 5))
+        #self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
+
         vbox = wx.BoxSizer(wx.VERTICAL)
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox3 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox5 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox6 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox7 = wx.BoxSizer(wx.HORIZONTAL)
+        contentBox = wx.BoxSizer(wx.HORIZONTAL)
+        nameBox = wx.BoxSizer(wx.HORIZONTAL)
+        qosBox = wx.BoxSizer(wx.HORIZONTAL)
+        retainBox = wx.BoxSizer(wx.HORIZONTAL)
+        duplBox = wx.BoxSizer(wx.HORIZONTAL)
+        btnBox = wx.BoxSizer(wx.HORIZONTAL)
 
         boldfont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         boldfont.SetWeight(wx.BOLD)
@@ -893,61 +971,63 @@ class SendPanel(wx.Panel):
         self.btnSend.SetForegroundColour((255, 255, 255))
         self.Bind(wx.EVT_BUTTON, self.OnSend, self.btnSend)
 
-        hbox1.AddSpacer(30)
-        hbox1.Add(self.imageCtrlContent)
-        hbox1.AddSpacer(20)
-        hbox1.Add(self.contentLabel)
-        hbox1.AddSpacer(60)
-        hbox1.Add(self.contentText, 1, wx.ALIGN_RIGHT)
+        contentBox.AddSpacer(30)
+        contentBox.Add(self.imageCtrlContent)
+        contentBox.AddSpacer(20)
+        contentBox.Add(self.contentLabel)
+        contentBox.AddSpacer(60)
+        contentBox.Add(self.contentText, 1, wx.ALIGN_RIGHT)
 
-        hbox2.AddSpacer(30)
-        hbox2.Add(self.imageCtrlName)
-        hbox2.AddSpacer(20)
-        hbox2.Add(self.nameLabel)
-        hbox2.AddSpacer(40)
-        hbox2.Add(self.nameText, 1, wx.ALIGN_RIGHT)
+        nameBox.AddSpacer(30)
+        nameBox.Add(self.imageCtrlName)
+        nameBox.AddSpacer(20)
+        nameBox.Add(self.nameLabel)
+        nameBox.AddSpacer(40)
+        nameBox.Add(self.nameText, 1, wx.ALIGN_RIGHT)
 
-        hbox3.AddSpacer(30)
-        hbox3.Add(self.imageCtrlqos)
-        hbox3.AddSpacer(20)
-        hbox3.Add(self.qosLabel)
-        hbox3.AddSpacer(180)
-        hbox3.Add(self.comboQos, 1, wx.ALIGN_RIGHT)
+        qosBox.AddSpacer(30)
+        qosBox.Add(self.imageCtrlqos)
+        qosBox.AddSpacer(20)
+        qosBox.Add(self.qosLabel)
+        qosBox.AddSpacer(180)
+        qosBox.Add(self.comboQos, 1, wx.ALIGN_RIGHT)
 
-        hbox5.AddSpacer(30)
-        hbox5.Add(self.imageCtrlret)
-        hbox5.AddSpacer(20)
-        hbox5.Add(self.retLabel)
-        hbox5.AddSpacer(200)
-        hbox5.Add(self.retCheck, 1, wx.ALIGN_RIGHT)
+        retainBox.AddSpacer(30)
+        retainBox.Add(self.imageCtrlret)
+        retainBox.AddSpacer(20)
+        retainBox.Add(self.retLabel)
+        retainBox.AddSpacer(200)
+        retainBox.Add(self.retCheck, 1, wx.ALIGN_RIGHT)
 
-        hbox6.AddSpacer(30)
-        hbox6.Add(self.imageCtrldub)
-        hbox6.AddSpacer(20)
-        hbox6.Add(self.dubLabel)
-        hbox6.AddSpacer(180)
-        hbox6.Add(self.dubCheck, 1, wx.ALIGN_RIGHT)
+        duplBox.AddSpacer(30)
+        duplBox.Add(self.imageCtrldub)
+        duplBox.AddSpacer(20)
+        duplBox.Add(self.dubLabel)
+        duplBox.AddSpacer(180)
+        duplBox.Add(self.dubCheck, 1, wx.ALIGN_RIGHT)
 
-        hbox7.Add(self.btnSend)
+        btnBox.Add(self.btnSend)
 
         vbox.Add(text)
+        #vbox.Add(self.gauge, wx.ALIGN_LEFT)
+        vbox.Add((0, 5), 0)
+        vbox.Add(contentBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 10), 0)
-        vbox.Add(hbox1, 0, wx.ALIGN_LEFT)
+        vbox.Add(nameBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 10), 0)
-        vbox.Add(hbox2, 0, wx.ALIGN_LEFT)
+        vbox.Add(qosBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 10), 0)
-        vbox.Add(hbox3, 0, wx.ALIGN_LEFT)
+        vbox.Add(retainBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 10), 0)
-        vbox.Add(hbox5, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 10), 0)
-        vbox.Add(hbox6, 0, wx.ALIGN_LEFT)
+        vbox.Add(duplBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 210), 0)
-        vbox.Add(hbox7, 0, wx.ALIGN_CENTRE)
+        vbox.Add(btnBox, 0, wx.ALIGN_CENTRE)
 
         self.SetSizer(vbox)
         self.Centre()
 
     def OnSend(self, event):
+
         datamanage = datamanager()
         content = str.encode(self.contentText.GetValue())
         name = self.nameText.GetValue()
@@ -964,6 +1044,8 @@ class SendPanel(wx.Panel):
         # SEND PUBLISH _________________________________________________________________________________SEND PUBLISH
         contentDecoded = content.decode('utf8')
         self.app.client.publish(name, int(qos), contentDecoded, retain, dup)
+        if int(qos)>0 and int(qos)<3:
+            self.timer.Start(1)
 
         if int(qos) == 0:
             # ADD to DB
@@ -973,19 +1055,34 @@ class SendPanel(wx.Panel):
                                     incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
             datamanage.add_entity(message)
 
-            self.parent.DeletePage(3)
-            self.parent.DeletePage(2)
-            self.parent.AddPage(MessagesPanel(self.parent, self.app), "", imageId=2)
-            self.parent.AddPage(LogoutPanel(self.parent, self.app), "", imageId=3)
+        self.parent.DeletePage(3)
+        self.parent.DeletePage(2)
+        self.parent.AddPage(MessagesPanel(self.parent, self.app), "messages", imageId=2)
+        self.parent.AddPage(LogoutPanel(self.parent, self.app), "logout", imageId=3)
 
+    def OnTimer(self, event):
+        self.count = self.count+1
+        time.sleep(0.03)
+        self.gauge.SetValue(self.count)
+        self.gauge.Update()
+
+        if self.count == 100:
+            self.timer.Stop()
+            self.count = 0
+            self.gauge.SetValue(self.count)
+            self.gauge.Update()
+            print("Puback is not received. Please, check state of your connection to server")
+
+            #pymsgbox.alert('Puback or Unsuback is not received. Please, check state of your connection to server',
+                           #'Topic creation Error')
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 
-protocols = ['MQTT', 'MQTT_SN', 'COAP', 'AMQP']
+protocols = ['MQTT', 'MQTTSN', 'COAP', 'AMQP']
 qos = ['0', '1', '2']
 
 switch_protocol = {
             'MQTT': 1,
-            'MQTT_SN': 2,
+            'MQTTSN': 2,
             'COAP': 3,
             'AMQP': 4
         }

@@ -16,4 +16,4 @@ class AccountValidation:
         if account.protocol == 4:
             print('Protocol= ' + str(protocols[account.protocol - 1]))
 
-protocols = ['MQTT', 'MQTT_SN', 'COAP', 'AMQP']
+protocols = ['MQTT', 'MQTTSN', 'COAP', 'AMQP']
