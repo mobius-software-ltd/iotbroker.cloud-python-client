@@ -4,7 +4,7 @@ from venv.IoT.MQTTSN.MQTTSN_classes.FullTopic import *
 class WillTopicUpd(object):
     def __init__(self, retain, topic):
         self.retain = retain
-        self.topic = FullTopic(topic)
+        self.topic = topic
 
     def getLength(self):
         length = 2
@@ -15,7 +15,7 @@ class WillTopicUpd(object):
         return length
 
     def getType(self):
-        return MQTTSN_messageType.SN_WILL_TOPIC_UPD
+        return MQTTSN_messageType.SN_WILL_TOPIC_UPD.value[0]
 
     def isRetain(self):
         return self.retain

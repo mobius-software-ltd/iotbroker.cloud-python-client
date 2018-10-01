@@ -9,7 +9,7 @@ class Advertise(object):
         return 5
 
     def getType(self):
-        return MQTTSN_messageType.SN_ADVERTISE
+        return MQTTSN_messageType.SN_ADVERTISE.value[0]
 
     def getgwID(self):
         return self.gwID

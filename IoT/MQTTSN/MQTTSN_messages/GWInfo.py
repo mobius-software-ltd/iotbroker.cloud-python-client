@@ -7,12 +7,12 @@ class GWInfo(object):
 
     def getLength(self):
         length = 3
-        if self.gwAddress is not None & len(self.gwAddress)>0:
+        if self.gwAddress is not None and len(self.gwAddress)>0:
             length += len(self.gwAddress)
         return length
 
     def getType(self):
-        return MQTTSN_messageType.SN_GWINFO
+        return MQTTSN_messageType.SN_GWINFO.value[0]
 
     def getgwID(self):
         return self.gwID

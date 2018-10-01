@@ -1,11 +1,10 @@
 from venv.IoT.Classes.Topic import *
-from venv.IoT.Classes.QoS import *
 from venv.IoT.MQTTSN.MQTTSN_classes.TopicType import *
 
 class IdentifierTopic(Topic):
     def __init__(self, value, qos):
         self.value = value
-        self.qos = QoS(qos)
+        self.qos = qos
 
     def getType(self):
         return TopicType.ID
@@ -17,7 +16,7 @@ class IdentifierTopic(Topic):
         return self.qos
 
     def setQoS(self, qos):
-        self.qos = QoS(qos)
+        self.qos = qos
 
     def encode(self):
         return self.value

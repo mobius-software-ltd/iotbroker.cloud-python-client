@@ -8,7 +8,7 @@ class SearchGW(object):
         return 3
 
     def getType(self):
-        return MQTTSN_messageType.SN_SEARCHGW
+        return MQTTSN_messageType.SN_SEARCHGW.value[0]
 
     def getRadius(self):
         return self.radius

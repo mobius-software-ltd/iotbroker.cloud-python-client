@@ -11,7 +11,7 @@ class SNDisonnect(object):
         return length
 
     def getType(self):
-        return MQTTSN_messageType.SN_DISCONNECT
+        return MQTTSN_messageType.SN_DISCONNECT.value[0]
 
     def getDuration(self):
         return self.duration

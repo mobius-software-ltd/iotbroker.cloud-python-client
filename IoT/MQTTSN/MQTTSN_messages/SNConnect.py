@@ -15,7 +15,7 @@ class SNConnect(object):
         return length
 
     def getType(self):
-        return MQTTSN_messageType.SN_CONNECT
+        return MQTTSN_messageType.SN_CONNECT.value[0]
 
     def getWillPresent(self):
         return self.willPresent

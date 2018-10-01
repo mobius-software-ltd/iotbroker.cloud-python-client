@@ -1,19 +1,18 @@
 from venv.IoT.MQTTSN.MQTTSN_classes.MQTTSN_messageType import *
 from venv.IoT.MQTTSN.MQTTSN_classes.ReturnCode import *
-from venv.IoT.Classes.QoS import *
 
 class SNSuback(object):
     def __init__(self, topicID, code, qos, messageID):
         self.topicID = topicID
-        self.code = ReturnCode(code)
-        self.qos = QoS(qos)
+        self.code = code
+        self.qos = qos
         self.messageID = messageID
 
     def getLength(self):
         return 8
 
     def getType(self):
-        return MQTTSN_messageType.SN_SUBACK
+        return MQTTSN_messageType.SN_SUBACK.value[0]
 
     def getTopicID(self):
         return self.topicID
@@ -25,7 +24,7 @@ class SNSuback(object):
         return self.code
 
     def setCode(self, code):
-        self.code = ReturnCode(code)
+        self.code = code
 
     def getQoS(self):
         return self.qos

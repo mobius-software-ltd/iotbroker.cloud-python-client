@@ -15,7 +15,7 @@ class Register(object):
         return length
 
     def getType(self):
-        return MQTTSN_messageType.SN_REGISTER
+        return MQTTSN_messageType.SN_REGISTER.value[0]
 
     def getTopicID(self):
         return self.topicID

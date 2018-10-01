@@ -8,7 +8,7 @@ class SNPubrec(object):
         return 4
 
     def getType(self):
-        return MQTTSN_messageType.SN_PUBREC
+        return MQTTSN_messageType.SN_PUBREC.value[0]
 
     def getMessageID(self):
         return self.messageID

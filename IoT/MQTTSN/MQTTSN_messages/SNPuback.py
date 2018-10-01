@@ -1,17 +1,16 @@
 from venv.IoT.MQTTSN.MQTTSN_classes.MQTTSN_messageType import *
-from venv.IoT.MQTTSN.MQTTSN_classes.ReturnCode import *
 
 class SNPuback(object):
     def __init__(self, topicID, messageID, code):
         self.topicID = topicID
         self.messageID = messageID
-        self.code = ReturnCode(code)
+        self.code = code
 
     def getLength(self):
         return 7
 
     def getType(self):
-        return MQTTSN_messageType.SN_PUBACK
+        return MQTTSN_messageType.SN_PUBACK.value[0]
 
     def getTopicID(self):
         return self.topicID
@@ -29,4 +28,4 @@ class SNPuback(object):
         return self.code
 
     def setCode(self, code):
-        self.code = ReturnCode(code)
+        self.code = code

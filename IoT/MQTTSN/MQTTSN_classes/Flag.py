@@ -10,4 +10,5 @@ class Flag(Enum):
     CLEAN_SESSION = 4,
     RESERVED_TOPIC = 3,
     SHORT_TOPIC = 2,
-    ID_TOPIC = 1
+    ID_TOPIC = 1,
+    UNKNOWN = 0

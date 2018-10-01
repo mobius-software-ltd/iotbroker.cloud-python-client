@@ -8,4 +8,4 @@ class WillTopicReq(object):
         return 2
 
     def getType(self):
-        return MQTTSN_messageType.SN_WILL_TOPIC_REQ
+        return MQTTSN_messageType.SN_WILL_TOPIC_REQ.value[0]

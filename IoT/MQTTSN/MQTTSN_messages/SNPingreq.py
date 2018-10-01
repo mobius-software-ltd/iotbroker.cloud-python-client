@@ -6,12 +6,12 @@ class SNPingreq(object):
 
     def getLength(self):
         length = 2
-        if self.clientID is not None & len(self.clientID) > 0:
+        if self.clientID is not None and len(self.clientID) > 0:
             length += len(self.clientID)
         return length
 
     def getType(self):
-        return MQTTSN_messageType.SN_PINGREQ
+        return MQTTSN_messageType.SN_PINGREQ.value[0]
 
     def getClientID(self):
         return self.clientID

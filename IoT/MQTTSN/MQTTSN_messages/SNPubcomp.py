@@ -8,7 +8,7 @@ class SNPubcomp(object):
         return 4
 
     def getType(self):
-        return MQTTSN_messageType.SN_PUBCOMP
+        return MQTTSN_messageType.SN_PUBCOMP.value[0]
 
     def getMessageID(self):
         return self.messageID

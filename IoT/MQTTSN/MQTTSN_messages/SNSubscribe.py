@@ -8,14 +8,14 @@ class SNSubscribe(object):
 
     def getLength(self):
         length = 5
-        if self.topic is not None & len(self.topic)>0:
-            length += len(self.topic)
-        if len(self.content) > 250:
+        if self.topic is not None and self.topic.getLength() > 0:
+            length += self.topic.getLength()
+        if self.topic.getLength() > 250:
             length += 2
         return length
 
     def getType(self):
-        return MQTTSN_messageType.SN_SUBSCRIBE
+        return MQTTSN_messageType.SN_SUBSCRIBE.value[0]
 
     def getMessageID(self):
         return self.messageID

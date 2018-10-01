@@ -8,7 +8,7 @@ class SNUnsuback(object):
         return 4
 
     def getType(self):
-        return MQTTSN_messageType.SN_UNSUBACK
+        return MQTTSN_messageType.SN_UNSUBACK.value[0]
 
     def getMessageID(self):
         return self.messageID
