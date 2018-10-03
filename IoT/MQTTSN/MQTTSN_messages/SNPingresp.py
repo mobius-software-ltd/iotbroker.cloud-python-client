@@ -8,4 +8,4 @@ class SNPingresp(object):
         return 2
 
     def getType(self):
-        return MQTTSN_messageType.SN_PINGRESP
+        return MQTTSN_messageType.SN_PINGRESP.value[0]

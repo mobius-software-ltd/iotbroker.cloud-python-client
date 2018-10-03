@@ -1,12 +1,10 @@
 from venv.IoT.Timers.TimerTask import *
-from venv.IoT.MQTT.MQTTMessages.MQPingreq import *
 
 class TimersMap():
     def __init__(self, client):
         self.client = client
         self.connectTimer = None
         self.pingTimer = None
-        self.regTimer = None
         self.timeoutTimer = None
         self.count = 0
         self.timersMap = {}
@@ -58,7 +56,7 @@ class TimersMap():
         timer = TimerTask(message, 3, self.client)
         self.timersMap[message.packetID] = timer
         timer.start()
-
+        return message.packetID
 
     def removeTimer(self, id):
         timer = self.timersMap.get(id)

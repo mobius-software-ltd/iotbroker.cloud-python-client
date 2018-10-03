@@ -8,4 +8,4 @@ class WillMsgReq(object):
         return 2
 
     def getType(self):
-        return MQTTSN_messageType.SN_WILL_MSG_REQ
+        return MQTTSN_messageType.SN_WILL_MSG_REQ.value[0]

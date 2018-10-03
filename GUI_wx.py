@@ -19,6 +19,7 @@ wxreactor.install()
 from twisted.internet import reactor
 
 from venv.IoT.MQTT.MQTTclient import *
+from venv.IoT.MQTTSN.MQTTSNclient import *
 import platform
 
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
@@ -82,7 +83,7 @@ class LoadingForm(wx.Frame):
 
         if self.count == 100:
             self.timer.Stop()
-            print("timer stopped")
+            #print("timer stopped")
 
             #if default account exists when connect else show accountsForm
             datamanage = datamanager()
@@ -98,7 +99,9 @@ class LoadingForm(wx.Frame):
                     self.Hide()
 
                 if account.protocol == 2:
-                    print('Protocol= ' + str(protocols[account.protocol-1]))
+                    self.app.client = MQTTSNclient(account, self.app.gui)
+                    self.app.client.goConnect()
+                    self.Hide()
 
                 if account.protocol == 3:
                     print('Protocol= ' + str(protocols[account.protocol-1]))
@@ -107,7 +110,7 @@ class LoadingForm(wx.Frame):
                     print('Protocol= ' + str(protocols[account.protocol-1]))
 
             else:
-                print("show AccountsForm")
+                #print("show AccountsForm")
                 self.Hide()
                 next = AccountsForm(None, 1, "Accounts List", self.app)
                 next.Show()
@@ -205,9 +208,14 @@ class AccountsForm(wx.Frame):
     def OnDelete(self, event):
         btn = event.GetEventObject()
         id = btn.GetId()
+
+        data = self.list.GetItem(id, 0).GetText()
+        params = data.split('\n')
+        clientID = str(params[1])
+
         accountID = id
         datamanage = datamanager()
-        account = datamanage.delete_account(accountID)
+        account = datamanage.delete_account(clientID)
         self.list.DeleteItem(id)
 
     def OnCreate(self, event):
@@ -537,12 +545,20 @@ class ToolbookImpl(wx.Toolbook):
         wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BK_DEFAULT | wx.BK_BOTTOM)
         # Make an image list using the LBXX images
         self.parent = parent
+
         il = wx.ImageList(75, 41)
-        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
+        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_cut75.png")
         send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
         mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
         logout_img = wx.Bitmap("./resources/logout_75.png")
-
+        """
+        il = wx.ImageList(74, 39)
+        
+        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_cut75.png")
+        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75cut.png")
+        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
+        logout_img = wx.Bitmap("./resources/logout_75.png")
+        """
         il.Add(tlist_img)
         il.Add(send_img)
         il.Add(mlist_img)
@@ -570,7 +586,7 @@ class ToolbookImpl(wx.Toolbook):
             next.Show()
             #______________________________________________________________________SEND___DISCONNECT
             if self.parent.app.client is not None:
-                self.parent.app.client.disconnectWith()
+                self.parent.app.client.disconnectWith(0)
         event.Skip()
 
     def OnPageChanged(self, event):
@@ -618,7 +634,7 @@ class LogoutPanel(wx.Panel):
     def __init__(self, parent, app):
         self.app = app
         wx.Panel.__init__(self, parent)
-        print('LOGOUT')
+        pass
 
 class TopicsPanel(wx.Panel):
     def __init__(self, parent, app):
@@ -634,7 +650,7 @@ class TopicsPanel(wx.Panel):
 
         topPanel = wx.Panel(self, size=wx.Size(360, 560))
         panelText = wx.Panel(self, -1, size=wx.Size(359, 30))
-        panelList = wx.Panel(self, -1, size=wx.Size(359, 280))
+        panelList = wx.Panel(self, -1, size=wx.Size(359, 300))
         panelTopic = wx.Panel(self, -1, size=wx.Size(359, 80))
         panelTopic.SetBackgroundColour((255, 255, 255))
         panelBtn = wx.Panel(self, -1, size=wx.Size(359, 50))
@@ -797,7 +813,7 @@ class TopicsPanel(wx.Panel):
             self.list.SetItemWindow(i, 2, self.btnDel)
             # SEND SUBSCRIBE _________________________________________________________________________________SEND SUBSCRIBE
             self.app.client.subscribeTo(name, int(qos))
-            self.timer.Start(1)
+            #self.timer.Start(1)
         else:
             pymsgbox.alert('Please, fill in all required fields: TopicName ',
                            'Topic creation Error')
@@ -806,9 +822,10 @@ class TopicsPanel(wx.Panel):
         btn = event.GetEventObject()
         id = btn.GetId()
         topicName = self.list.GetItem(id, 0).GetText()
+
         # SEND UNSUBSCRIBE _________________________________________________________________________________SEND UNSUBSCRIBE
         self.app.client.unsubscribeFrom(topicName)
-        self.timer.Start(1)
+        #self.timer.Start(1)
 
     def OnTimer(self, event):
         self.count = self.count+1
@@ -839,7 +856,7 @@ class MessagesPanel(wx.Panel):
 
         topPanel = wx.Panel(self, size=wx.Size(360, 560))
         panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
-        panelList = wx.Panel(self, -1, size=wx.Size(360, 420))
+        panelList = wx.Panel(self, -1, size=wx.Size(360, 430))
 
         text = wx.StaticText(panelText, -1, "  messages list:", size=wx.Size(360, 50))
         text.SetFont(boldfont)
@@ -1044,8 +1061,8 @@ class SendPanel(wx.Panel):
         # SEND PUBLISH _________________________________________________________________________________SEND PUBLISH
         contentDecoded = content.decode('utf8')
         self.app.client.publish(name, int(qos), contentDecoded, retain, dup)
-        if int(qos)>0 and int(qos)<3:
-            self.timer.Start(1)
+        #if int(qos)>0 and int(qos)<3:
+            #self.timer.Start(1)
 
         if int(qos) == 0:
             # ADD to DB
@@ -1116,6 +1133,7 @@ class MyApp(wx.App, UIClient):
         self.gui = self
         self.client = None
         self.frame = LoadingForm(None, -1, "Loading", self)
+        #self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show(True)
         datamanage = datamanager()
         datamanage.create_db()
@@ -1126,60 +1144,78 @@ class MyApp(wx.App, UIClient):
         print("GUI timeout")
 
     def connackReceived(self, returnCode):
+        #print('App connackReceived')
         self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show()
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        print('App publishReceived')
+        #print('App publishReceived')
         #store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
-        message = MessageEntity(content = bytes(content, encoding='utf_8'), qos = qos.getValue(), topicName = topic.name, incoming = True, isRetain = retainFlag, isDub = dup, accountentity_id = account.id)
+
+        if isinstance(topic, MQTopic):
+            topicName = topic.getName()
+        elif isinstance(topic, FullTopic):
+            topicName = topic.getValue()
+
+        message = MessageEntity(content = bytes(content, encoding='utf_8'), qos = qos.getValue(), topicName = topicName,
+                                incoming = True, isRetain = retainFlag, isDub = dup, accountentity_id = account.id)
         datamanage.add_entity(message)
-        print('Message stored to DB ' + str(message))
+        #print('Message stored to DB ' + str(message))
         self.frame.Hide()
         self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show()
 
     def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode):
-        print('App pubackReceived')
+        #print('App pubackReceived')
         # store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
-        message = MessageEntity(content=bytes(content, encoding='utf_8'), qos=qos.getValue(), topicName=topic.name,
+
+        if isinstance(topic, MQTopic):
+            topicName = topic.getName()
+        elif isinstance(topic, FullTopic):
+            topicName = topic.getValue()
+        #print('content=' + str(content) + ' qos=' + str(qos.getValue()) + ' topicName=' + str(topicName) + ' retainFlag=' + str(retainFlag) + ' dup=' + str(dup))
+        message = MessageEntity(content=bytes(content, encoding='utf_8'), qos=qos.getValue(), topicName=topicName,
                                 incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
+        #print('App pubackReceived entity was saved')
         self.frame.Hide()
         self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show()
 
     def subackReceived(self, topic, qos, returnCode):
-        print('App subackReceived')
+        #print('App subackReceived')
         #store topic
         datamanage = datamanager()
         account = datamanage.get_default_account()
-        topicToDB = TopicEntity(topicName = topic.name, qos=qos.getValue(), accountentity_id = account.id)
+        topicToDB = TopicEntity(topicName = topic, qos=qos.getValue(), accountentity_id = account.id)
         datamanage.add_entity(topicToDB)
 
     def unsubackReceived(self, listTopics):
-        print('App unsubackReceived')
+        #print('App unsubackReceived')
         #delete topics from list
         datamanage = datamanager()
         for name in listTopics:
             datamanage.delete_topic_name(name)
-            print('Topic deleted from DB ' + str(name))
+            #print('Topic deleted from DB ' + str(name))
         self.frame.Hide()
         self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show()
 
     def pingrespReceived(self):
-        print('MyApp pingresp Received')
+        #print('MyApp pingresp Received')
+        pass
 
     def disconnectReceived(self):
-        print('MyApp disconnectReceived')
+        #print('MyApp disconnectReceived')
+        pass
 
     def errorReceived(self, text):
-        print('MyApp errorReceived: ' + text)
+        #print('MyApp errorReceived: ' + text)
+        pass
 
 log.startLogging(sys.stdout)
 

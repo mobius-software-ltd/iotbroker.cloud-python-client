@@ -1,8 +1,8 @@
 from venv.IoT.MQTTSN.MQTTSN_classes.MQTTSN_messageType import *
 
 class SNUnsubscribe(object):
-    def __init__(self, messageID, topic):
-        self.messageID = messageID
+    def __init__(self, packetID, topic):
+        self.packetID = packetID
         self.topic = topic
 
     def getLength(self):
@@ -16,11 +16,11 @@ class SNUnsubscribe(object):
     def getType(self):
         return MQTTSN_messageType.SN_UNSUBSCRIBE.value[0]
 
-    def getMessageID(self):
-        return self.messageID
+    def getPacketID(self):
+        return self.packetID
 
-    def setMessageID(self, messageID):
-        self.messageID = messageID
+    def setPacketID(self, packetID):
+        self.packetID = packetID
 
     def getTopic(self):
         return self.topic

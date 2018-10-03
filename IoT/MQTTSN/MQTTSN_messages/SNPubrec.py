@@ -1,8 +1,8 @@
 from venv.IoT.MQTTSN.MQTTSN_classes.MQTTSN_messageType import *
 
 class SNPubrec(object):
-    def __init__(self, messageID):
-        self.messageID = messageID
+    def __init__(self, packetID):
+        self.packetID = packetID
 
     def getLength(self):
         return 4
@@ -10,8 +10,8 @@ class SNPubrec(object):
     def getType(self):
         return MQTTSN_messageType.SN_PUBREC.value[0]
 
-    def getMessageID(self):
-        return self.messageID
+    def getPacketID(self):
+        return self.packetID
 
-    def setMessageID(self, messageID):
-        self.messageID = messageID
+    def setPacketID(self, packetID):
+        self.packetID = packetID

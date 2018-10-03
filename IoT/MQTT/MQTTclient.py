@@ -117,7 +117,7 @@ class MQTTclient(IoTClient):
     def pingreq(self):
         self.send(MQPingreq())
 
-    def disconnectWith(self):
+    def disconnectWith(self, duration):
         self.send(MQDisconnect())
         self.timers.stopAllTimers()
 

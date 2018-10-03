@@ -1,8 +1,6 @@
 from twisted.internet import reactor, tksupport
 from twisted.internet.protocol import Protocol, ReconnectingClientFactory
 
-from venv.IoT.MQTT.MQParser import MQParser
-
 class TCPClient(Protocol):
     def __init__(self, message, client):
         self.message = message
@@ -18,8 +16,6 @@ class TCPClient(Protocol):
 
     def dataReceived(self, data):
         #print("Server said:", data)
-        parser = MQParser(None)
-        message = parser.decode(data)
         self.client.dataReceived(data)
 
     def sendMessage(self, message):

@@ -1,9 +1,9 @@
 from venv.IoT.MQTTSN.MQTTSN_classes.MQTTSN_messageType import *
 
 class Register(object):
-    def __init__(self, topicID, messageID, topicName):
+    def __init__(self, topicID, packetID, topicName):
         self.topicID = topicID
-        self.messageID = messageID
+        self.packetID = packetID
         self.topicName = topicName
 
     def getLength(self):
@@ -23,11 +23,11 @@ class Register(object):
     def setTopicID(self, topicID):
         self.topicID = topicID
 
-    def getMessageID(self):
-        return self.messageID
+    def getPacketID(self):
+        return self.packetID
 
-    def setMessageID(self, messageID):
-        self.messageID = messageID
+    def setPacketID(self, packetID):
+        self.packetID = packetID
 
     def getTopicName(self):
         return self.topicName

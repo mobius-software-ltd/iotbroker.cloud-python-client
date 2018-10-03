@@ -1,8 +1,8 @@
 from venv.IoT.MQTTSN.MQTTSN_classes.MQTTSN_messageType import *
 
 class SNSubscribe(object):
-    def __init__(self, messageID, topic, dup):
-        self.messageID = messageID
+    def __init__(self, packetID, topic, dup):
+        self.packetID = packetID
         self.topic = topic
         self.dup = dup
 
@@ -17,11 +17,11 @@ class SNSubscribe(object):
     def getType(self):
         return MQTTSN_messageType.SN_SUBSCRIBE.value[0]
 
-    def getMessageID(self):
-        return self.messageID
+    def getPacketID(self):
+        return self.packetID
 
-    def setMessageID(self, messageID):
-        self.messageID = messageID
+    def setPacketID(self, packetID):
+        self.packetID = packetID
 
     def getTopic(self):
         return self.topic

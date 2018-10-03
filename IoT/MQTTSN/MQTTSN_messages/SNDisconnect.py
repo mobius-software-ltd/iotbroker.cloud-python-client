@@ -6,7 +6,7 @@ class SNDisonnect(object):
 
     def getLength(self):
         length = 2
-        if self.duration > 0:
+        if self.duration is not None and self.duration > 0:
             length += 2
         return length
 

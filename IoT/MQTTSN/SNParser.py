@@ -197,7 +197,6 @@ def WILL_TOPIC(self,message):
     else:
         data = addByte(data, 1)
         data = addShort(data, message.getLength())
-
     if isinstance(message, WillTopic):
         data = addByte(data, int(message.getType()))
         if message.getTopic() is not None:
@@ -235,7 +234,7 @@ def REGISTER(self,message):
     if isinstance(message, Register):
         data = addByte(data, int(message.getType()))
         data = addShort(data, message.getTopicID())
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
         data = addString(data, message.getTopicName())
     else:
         raise ValueError('Encode.register malformed message')
@@ -252,7 +251,7 @@ def REGACK(self,message):
     if isinstance(message, Regack):
         data = addByte(data, int(message.getType()))
         data = addShort(data, message.getTopicID())
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
         data = addByte(data, message.getCode())
     else:
         raise ValueError('Encode.regack malformed message')
@@ -268,18 +267,21 @@ def PUBLISH(self,message):
 
     if isinstance(message, SNPublish):
         data = addByte(data, int(message.getType()))
-        if message.getTopic() is not None:
-            if message.getTopic() is not None:
-                flags = Flags(message.isDup(), message.getTopic().getQoS(), message.isRetain(), False, False,
-                              message.getTopic().getType())
-                flagsByte = flags.encode()
-                data = addByte(data, flagsByte)
+        topic = message.getTopic()
+        if topic is not None:
+            flags = Flags(message.isDup(), message.getTopic().getQoS(), message.isRetain(), False, False,
+                          message.getTopic().getType())
+            flagsByte = flags.encode()
+            data = addByte(data, flagsByte)
 
+            if isinstance(topic, FullTopic):
                 data = addString(data, message.getTopic().getValue())
+            else:
+                data = addShort(data, message.getTopic().getValue())
 
-                data = addShort(data, message.getMessageID())
-                data = addString(data, message.getContent())
-                return data
+            data = addShort(data, message.getPacketID())
+            data = addString(data, message.getContent())
+            return data
     else:
         raise ValueError('Encode.publish malformed message')
 
@@ -294,7 +296,7 @@ def PUBACK(self,message):
     if isinstance(message, SNPuback):
         data = addByte(data, int(message.getType()))
         data = addShort(data, message.getTopicID())
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
         data = addByte(data, message.getCode())
     else:
         raise ValueError('Encode.puback malformed message')
@@ -310,7 +312,7 @@ def PUBREC(self,message):
 
     if isinstance(message, SNPubrec):
         data = addByte(data, int(message.getType()))
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
     else:
         raise ValueError('Encode.pubrec malformed message')
     return data
@@ -325,7 +327,7 @@ def PUBREL(self,message):
 
     if isinstance(message, SNPubrel):
         data = addByte(data, int(message.getType()))
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
     else:
         raise ValueError('Encode.pubrel malformed message')
     return data
@@ -340,7 +342,7 @@ def PUBCOMP(self,message):
 
     if isinstance(message, SNPubcomp):
         data = addByte(data, int(message.getType()))
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
     else:
         raise ValueError('Encode.pubcomp malformed message')
     return data
@@ -355,7 +357,7 @@ def UNSUBACK(self,message):
 
     if isinstance(message, SNUnsuback):
         data = addByte(data, int(message.getType()))
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
     else:
         raise ValueError('Encode.unsuback malformed message')
     return data
@@ -369,14 +371,20 @@ def SUBSCRIBE(self,message):
         data = addShort(data, message.getLength())
 
     if isinstance(message, SNSubscribe):
-        data = addByte(data, int(message.getType()))
-        if message.getTopic() is not None:
+        data = addByte(data, message.getType())
+        topic = message.getTopic()
+        if topic is not None:
             flags = Flags(message.isDup(), message.getTopic().getQoS(), False, False, False,
                           message.getTopic().getType())
             flagsByte = flags.encode()
             data = addByte(data, flagsByte)
-            data = addShort(data, message.getMessageID())
-            data = addString(data, message.getTopic().getValue())
+            data = addShort(data, message.getPacketID())
+
+            if isinstance(topic, FullTopic):
+                data = addString(data, message.getTopic().getValue())
+            else:
+                data = addShort(data, message.getTopic().getValue())
+
             return data
     else:
         raise ValueError('Encode.subscribe malformed message')
@@ -395,7 +403,7 @@ def SUBACK(self,message):
         flagsByte = flags.encode()
         data = addByte(data, flagsByte)
         data = addShort(data, message.getTopicID())
-        data = addShort(data, message.getMessageID())
+        data = addShort(data, message.getPacketID())
         data = addByte(data, message.getCode())
         return data
     else:
@@ -415,7 +423,7 @@ def UNSUBSCRIBE(self,message):
             flags = Flags(False,message.getTopic().getQoS(),False,False,False,message.getTopic().getType())
             flagsByte = flags.encode()
             data = addByte(data, flagsByte)
-            data = addShort(data, message.getMessageID())
+            data = addShort(data, message.getPacketID())
             data = addString(data, message.getTopic().getValue())
             return data
     else:
@@ -441,21 +449,14 @@ def PINGREQ(self,message):
 
 def DISCONNECT(self,message):
     data = bytearray()
-    if message.getLength() <= 255:
-        data = addByte(data, message.getLength())
-    else:
-        data = addByte(data, 1)
-        data = addShort(data, message.getLength())
-
-    if message.getLength() > 2:
-        if isinstance(message, SNDisonnect):
-            data = addByte(data, int(message.getType()))
+    data = addByte(data, message.getLength())
+    if isinstance(message, SNDisonnect):
+        data = addByte(data, int(message.getType()))
+        if message.getLength() > 2:
             data = addShort(data, message.getDuration())
-            return data
-        else:
-            raise ValueError('Encode.disconnect malformed message')
-    else:
         return data
+    else:
+        raise ValueError('Encode.disconnect malformed message')
 
 def WILL_TOPIC_UPD(self,message):
     data = bytearray()
@@ -569,7 +570,7 @@ def GWINFO_DECODE(self):
     data = bytearray(self.buffer)
     infogwId = getByte(data, self.index)
     if self.index+1 < self.length:
-        gwInfoAddress = getString(data[self.index+2:len(data)])
+        gwInfoAddress = getString(data[self.index+1:len(data)])
         gwInfoAddress = gwInfoAddress.strip()
     message = GWInfo(infogwId, gwInfoAddress)
     return message
@@ -585,7 +586,7 @@ def CONNECT_DECODE(self):
     self.index += 1
     duration = getShort(data[self.index:self.index + 2])
     self.index += 2
-    clientID = getString(data[self.index+2:len(data)])
+    clientID = getString(data[self.index:len(data)])
     clientID = clientID.strip()
     message = SNConnect(flags.isWill(), flags.isClean(), duration, clientID)
     return message
@@ -610,7 +611,7 @@ def WILL_TOPIC_DECODE(self):
         flags = decodeFlags.decode(getByte(data, self.index), MQTTSN_messageType.SN_WILL_TOPIC)
         self.index += 1
         retain = flags.isRetain()
-        value = getString(data[self.index+2:len(data)])
+        value = getString(data[self.index:len(data)])
         value = value.strip()
         willTopic = FullTopic(value, flags.getQoS())
     message = WillTopic(retain, willTopic)
@@ -624,7 +625,7 @@ def WILL_MSG_REQ_DECODE(self):
 def WILL_MSG_DECODE(self):
     data = bytearray(self.buffer)
     if self.index < len(data):
-        content = getString(data[self.index+2:len(data)])
+        content = getString(data[self.index:len(data)])
     message = WillMsg(content)
     return message
 
@@ -635,7 +636,7 @@ def REGISTER_DECODE(self):
     messageID = getShort(data[self.index:self.index + 2])
     self.index += 2
     if self.index < self.length:
-        topicName = getString(data[self.index+2:len(data)])
+        topicName = getString(data[self.index:len(data)])
     message = Register(topicID, messageID, topicName)
     return message
 
@@ -654,14 +655,8 @@ def PUBLISH_DECODE(self):
     decodeFlags = Flags(False, None, False, False, False, None)
     flags = decodeFlags.decode(getByte(data, self.index), MQTTSN_messageType.SN_PUBLISH)
     self.index += 1
-    if flags.getTopicType() == TopicType.NAMED or flags.getTopicType() == TopicType.SHORT:
-        length = getShort(data[self.index:self.index + 2])
-        self.index += 2
-        topicID = getString(data[self.index:self.index+length])
-        self.index += length
-    else:
-        topicID = getShort(data[self.index:self.index + 2])
-        self.index += 2
+    topicID = getShort(data[self.index:self.index + 2])
+    self.index += 2
     messageID = getShort(data[self.index:self.index + 2])
     self.index += 2
     if flags.getQoS() != 0 and messageID == 0:
@@ -673,7 +668,7 @@ def PUBLISH_DECODE(self):
         topic = IdentifierTopic(topicID, flags.getQoS())
     content = ''
     if self.index < self.length:
-        content = getString(data[self.index + 2:len(data)])
+        content = getString(data[self.index:len(data)])
         content.strip()
     message = SNPublish(messageID,topic,content,flags.isDup(),flags.isRetain())
     return message
@@ -716,14 +711,14 @@ def SUBSCRIBE_DECODE(self):
     topic = None
     if self.index < self.length:
         if flags.getTopicType() == TopicType.NAMED:
-            topicName = getString(data[self.index + 2:len(data)])
+            topicName = getString(data[self.index:len(data)])
             topic = FullTopic(topicName, flags.getQoS())
         if flags.getTopicType() == TopicType.ID:
             topicID = getShort(data[self.index:self.index + 2])
             topic = IdentifierTopic(topicName, flags.getQoS())
         if flags.getTopicType() == TopicType.SHORT:
-            topicName = getString(data[self.index + 2:len(data)])
-            topic = ShortTopic(topicName, flags.getQoS())
+            topicID = getShort(data[self.index:self.index + 2])
+            topic = ShortTopic(topicID, flags.getQoS())
     message = SNSubscribe(messageID, topic, flags.isDup())
     return message
 
@@ -750,13 +745,13 @@ def UNSUBSCRIBE_DECODE(self):
     topic = None
     if self.index < self.length:
         if flags.getTopicType() == TopicType.NAMED:
-            topicName = getString(data[self.index + 2:len(data)])
+            topicName = getString(data[self.index:len(data)])
             topic = FullTopic(topicName, flags.getQoS())
         if flags.getTopicType() == TopicType.ID: #ID
             topicID = getShort(data[self.index:self.index + 2])
             topic = IdentifierTopic(topicName, flags.getQoS())
         if flags.getTopicType() == TopicType.SHORT: #SHORT
-            topicName = getString(data[self.index + 2:len(data)])
+            topicName = getString(data[self.index:len(data)])
             topic = ShortTopic(topicName, flags.getQoS())
     message = SNUnsubscribe(messageID, topic)
     return message
@@ -771,7 +766,7 @@ def PINGREQ_DECODE(self):
     data = bytearray(self.buffer)
     clientID = None
     if self.index < self.length:
-        clientID = getString(data[self.index + 2:len(data)])
+        clientID = getString(data[self.index:len(data)])
     message = SNPingreq(clientID.strip())
     return message
 
@@ -797,7 +792,7 @@ def WILL_TOPIC_UPD_DECODE(self):
         flags = decodeFlags.decode(getByte(data, self.index), MQTTSN_messageType.SN_WILL_TOPIC_UPD)
         self.index += 1
         retain = flags.isRetain()
-        value = getString(data[self.index + 2:len(data)])
+        value = getString(data[self.index:len(data)])
         topic = FullTopic(value, flags.getQoS())
     message = WillTopicUpd(retain, topic)
     return message
@@ -806,11 +801,12 @@ def WILL_MSG_UPD_DECODE(self):
     data = bytearray(self.buffer)
     content = ''
     if self.index < self.length:
-        content = getString(data[self.index + 2:len(data)])
+        content = getString(data[self.index:len(data)])
     message = WillMsgUpd(content)
     return message
 
 def WILL_TOPIC_RESP_DECODE(self):
+    print('HERE')
     data = bytearray(self.buffer)
     code = getByte(data, self.index)
     message = WillTopicResp(code)
@@ -877,7 +873,8 @@ def getShort(data):
     return tuple[0]
 
 def addString(dataIn, text):
-    data = addShort(dataIn, len(text))
+    #data = addShort(dataIn, len(text))
+    data = dataIn
     for ch in text:
         ch = bytes(ch, encoding='utf_8')
         data += struct.pack('c', ch)
