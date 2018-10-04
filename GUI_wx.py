@@ -546,19 +546,12 @@ class ToolbookImpl(wx.Toolbook):
         # Make an image list using the LBXX images
         self.parent = parent
 
-        il = wx.ImageList(75, 41)
-        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_cut75.png")
-        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
-        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
-        logout_img = wx.Bitmap("./resources/logout_75.png")
-        """
-        il = wx.ImageList(74, 39)
-        
-        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_cut75.png")
-        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75cut.png")
-        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
-        logout_img = wx.Bitmap("./resources/logout_75.png")
-        """
+        il = wx.ImageList(75, 38)
+        tlist_img = wx.Bitmap("./resources/topics.png")
+        send_img = wx.Bitmap("./resources/send.png")
+        mlist_img = wx.Bitmap("./resources/messages.png")
+        logout_img = wx.Bitmap("./resources/logout1.png")
+
         il.Add(tlist_img)
         il.Add(send_img)
         il.Add(mlist_img)
@@ -566,12 +559,15 @@ class ToolbookImpl(wx.Toolbook):
         self.AssignImageList(il)
         imageIdGenerator = getNextImageID(il.GetImageCount())
 
-        notebookPageList = [(TopicsPanel(self, app), 'topics'),
-                            (SendPanel(self, app), 'send'),
-                            (MessagesPanel(self, app), 'messages'),
-                            (LogoutPanel(self, app), 'logout')]
+        notebookPageList = [(TopicsPanel(self, app),  'Topics list'),
+                            (SendPanel(self, app),    'Send message'),
+                            (MessagesPanel(self, app),'Messages list'),
+                            (LogoutPanel(self, app),  'Logout')]
         for page, label in notebookPageList:
             self.AddPage(page, label, imageId=imageIdGenerator.__next__())
+
+        toolbar = self.GetToolBar()
+        toolbar.SetFont(wx.Font(7, wx.FONTBTN_DEFAULT_STYLE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
 
         self.ChangeSelection(1)
         self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -579,7 +575,6 @@ class ToolbookImpl(wx.Toolbook):
 
     def OnPageChanging(self, event):
         new = event.GetSelection()
-        #print('cur page: ' + str(new))
         if new == 3:
             self.parent.Hide()
             next = AccountsForm(None, 1, "Accounts List", self.parent.app)
@@ -656,6 +651,7 @@ class TopicsPanel(wx.Panel):
         panelBtn = wx.Panel(self, -1, size=wx.Size(359, 50))
 
         text = wx.StaticText(panelText, -1, "  topics list:",size=wx.Size(359, 20))
+        text.SetBackgroundColour((215, 215, 215))
         text.SetFont(boldfont)
 
         #self.timer = wx.Timer(self, 1)
@@ -858,7 +854,8 @@ class MessagesPanel(wx.Panel):
         panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
         panelList = wx.Panel(self, -1, size=wx.Size(360, 430))
 
-        text = wx.StaticText(panelText, -1, "  messages list:", size=wx.Size(360, 50))
+        text = wx.StaticText(panelText, -1, "  messages list:", size=wx.Size(360, 20))
+        text.SetBackgroundColour((215, 215, 215))
         text.SetFont(boldfont)
 
         self.list = ULC.UltimateListCtrl(panelList, wx.ID_ANY,
@@ -958,6 +955,7 @@ class SendPanel(wx.Panel):
         boldfont.SetPointSize(12)
 
         text = wx.StaticText(self, -1, "  send new message:", size=wx.Size(360, 20))
+        text.SetBackgroundColour((215, 215, 215))
         text.SetFont(boldfont)
 
         imgSettings = wx.Image("./resources/settings.png", wx.BITMAP_TYPE_ANY)
@@ -967,7 +965,7 @@ class SendPanel(wx.Panel):
         self.contentText = wx.TextCtrl(self, size=wx.Size(150, 30))
 
         self.imageCtrlName = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.nameLabel = wx.StaticText(self, -1, "topicName:")
+        self.nameLabel = wx.StaticText(self, -1, "Topic:")
         self.nameText = wx.TextCtrl(self, size=wx.Size(150, 30))
 
         self.imageCtrlqos = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
@@ -999,7 +997,7 @@ class SendPanel(wx.Panel):
         nameBox.Add(self.imageCtrlName)
         nameBox.AddSpacer(20)
         nameBox.Add(self.nameLabel)
-        nameBox.AddSpacer(40)
+        nameBox.AddSpacer(80)
         nameBox.Add(self.nameText, 1, wx.ALIGN_RIGHT)
 
         qosBox.AddSpacer(30)
@@ -1020,7 +1018,7 @@ class SendPanel(wx.Panel):
         duplBox.Add(self.imageCtrldub)
         duplBox.AddSpacer(20)
         duplBox.Add(self.dubLabel)
-        duplBox.AddSpacer(180)
+        duplBox.AddSpacer(179)
         duplBox.Add(self.dubCheck, 1, wx.ALIGN_RIGHT)
 
         btnBox.Add(self.btnSend)
@@ -1037,7 +1035,7 @@ class SendPanel(wx.Panel):
         vbox.Add(retainBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 10), 0)
         vbox.Add(duplBox, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 210), 0)
+        vbox.Add((0, 230), 0)
         vbox.Add(btnBox, 0, wx.ALIGN_CENTRE)
 
         self.SetSizer(vbox)
@@ -1132,8 +1130,8 @@ class MyApp(wx.App, UIClient):
     def OnInit(self):
         self.gui = self
         self.client = None
-        self.frame = LoadingForm(None, -1, "Loading", self)
-        #self.frame = MainForm(None, -1, "Main", self)
+        #self.frame = LoadingForm(None, -1, "Loading", self)
+        self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show(True)
         datamanage = datamanager()
         datamanage.create_db()
