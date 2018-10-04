@@ -1130,8 +1130,8 @@ class MyApp(wx.App, UIClient):
     def OnInit(self):
         self.gui = self
         self.client = None
-        #self.frame = LoadingForm(None, -1, "Loading", self)
-        self.frame = MainForm(None, -1, "Main", self)
+        self.frame = LoadingForm(None, -1, "Loading", self)
+        #self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show(True)
         datamanage = datamanager()
         datamanage.create_db()
