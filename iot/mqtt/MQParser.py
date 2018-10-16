@@ -79,7 +79,7 @@ def MQ_CONNECT(self, message):
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
 
-    protocolName = 'mqtt'
+    protocolName = 'MQTT'
     nameData = struct.pack('h',len(protocolName))
     data += nameData[::-1]
 

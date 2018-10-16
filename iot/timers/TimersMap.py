@@ -1,4 +1,5 @@
 from venv.iot.timers.TimerTask import *
+from venv.iot.coap.tlv.CoapMessage import *
 
 class TimersMap():
     def __init__(self, client):
@@ -52,6 +53,8 @@ class TimersMap():
 
         if message.packetID == 0:
             message.packetID = self.getNewPacketID()
+            if isinstance(message, CoapMessage):
+                message.token = str(message.packetID)
 
         timer = TimerTask(message, 3, self.client)
         self.timersMap[message.packetID] = timer

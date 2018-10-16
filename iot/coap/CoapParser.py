@@ -19,17 +19,14 @@ class CoapParser(object):
             if token is not None and len(token) > 0:
                 firstByte += len(token)
             data = addByte(data,firstByte)
-
             codeMsb = int(message.getCode().value / 100)
             codeLsb = message.getCode().value % 100
             codeByte = (codeMsb << 5) + codeLsb
             data = addByte(data, codeByte)
-
-            data = addShort(data, message.getMessageID())
+            data = addShort(data, message.getPacketID())
 
             if token is not None and len(token) > 0:
                 data = addString(data, token)
-
             previousNumber = 0
             for option in message.getOptions():
                 if isinstance(option, CoapOption):
@@ -54,22 +51,18 @@ class CoapParser(object):
                         else:
                             nextByte += 14
                     data = addByte(data, nextByte)
-
                     if extendedDelta is not None:
                         if extendedDelta < 0xFF:
                             data = addByte(data, extendedDelta - 13)
                         else:
                             data = addShort(data, extendedDelta - 269)
-
                     if extendedLength is not None:
                         if extendedLength < 0xFF:
                             data = addByte(data, extendedLength - 13)
                         else:
                             data = addShort(data, extendedLength - 269)
-
                     data += option.getValue()
                     previousNumber = option.getType().value
-
             data = addByte(data, 0xFF)
 
             if message.getPayload() is not None and len(message.getPayload()) > 0:
@@ -104,6 +97,7 @@ class CoapParser(object):
         messageID = getShort(data[index:index + 2])
         index += 2
 
+        token = None
         if tokenLength > 0:
             token = getString(data[index:index + tokenLength])
             index += tokenLength
@@ -143,12 +137,14 @@ class CoapParser(object):
             elif optionLength > 14:
                 raise ValueError('Error.decode Invalid option length value: ' + str(optionLength))
 
+            optionValue = None
             if optionLength > 0:
                 optionValue = data[index:index+optionLength]
                 index += optionLength
 
             options.append(CoapOption(number, optionLength, optionValue))
 
+        payload = None
         if index < len(data):
             payload = getString(data[index:len(data)])
 

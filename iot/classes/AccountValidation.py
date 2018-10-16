@@ -14,7 +14,10 @@ class AccountValidation:
                 return False
 
         if account.protocol == 3:
-            print('Protocol= ' + str(protocols[account.protocol - 1]))
+            if (account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<64800):
+                return True
+            else:
+                return False
 
         if account.protocol == 4:
             print('Protocol= ' + str(protocols[account.protocol - 1]))

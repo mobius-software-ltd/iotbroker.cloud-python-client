@@ -9,6 +9,7 @@ class CoapCode(Enum):
     DELETED                     = 202
     VALID                       = 203
     CHANGED                     = 204
+    CONTENT                     = 205
     BAR_DEQUEST                 = 400
     UNAUTHORIZED                = 401
     BAD_OPTION                  = 402

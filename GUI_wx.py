@@ -3,13 +3,10 @@ import time
 import sys
 
 from database import AccountEntity, TopicEntity, MessageEntity, Base, datamanager
-from venv.IoT.Classes.AccountValidation import  *
+from venv.iot.classes.AccountValidation import  *
 
 from twisted.python import log
 from twisted.internet import wxreactor
-#FOR ALERTS
-import pymsgbox
-#pymsgbox.alert('Please, select account','Account selection is empty Error')
 
 from wx.lib.agw import ultimatelistctrl as ULC
 
@@ -18,8 +15,9 @@ wxreactor.install()
 #import t.i.reactor only after installing wxreactor
 from twisted.internet import reactor
 
-from venv.IoT.MQTT.MQTTclient import *
-from venv.IoT.MQTTSN.MQTTSNclient import *
+from venv.iot.mqtt.MQTTclient import *
+from venv.iot.mqttsn.MQTTSNclient import *
+from venv.iot.coap.CoapClient import *
 import platform
 
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
@@ -27,6 +25,7 @@ class LoadingForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
         self.app = app
         wx.Frame.__init__(self, parent, ID, title,size=wx.Size(360,500))
+        self.Centre()
         self.SetBackgroundStyle(wx.BG_STYLE_ERASE)
         self.timer = wx.Timer(self, 1)
         self.count = 0
@@ -104,7 +103,11 @@ class LoadingForm(wx.Frame):
                     self.Hide()
 
                 if account.protocol == 3:
-                    print('Protocol= ' + str(protocols[account.protocol-1]))
+                   self.app.client = CoapClient(account, self.app.gui)
+                   self.app.client.goConnect()
+                   self.Hide()
+                   #next = MainForm(None, -1, "Main", self.app.gui)
+                   #next.Show()
 
                 if account.protocol == 4:
                     print('Protocol= ' + str(protocols[account.protocol-1]))
@@ -118,6 +121,8 @@ class LoadingForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+        datamanage = datamanager()
+        datamanage.clear_default_account()
         reactor.stop()
 
 class AccountsForm(wx.Frame):
@@ -125,7 +130,7 @@ class AccountsForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
         self.app = app
         wx.Frame.__init__(self, parent, ID, title, size=wx.Size(360, 500))
-
+        self.Centre()
         self.Bind(wx.EVT_CLOSE, self.onClose)
         font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         font.SetPointSize(10)
@@ -138,7 +143,8 @@ class AccountsForm(wx.Frame):
         panelList = wx.Panel(self, -1, size=wx.Size(360, 400))
         panelBtn = wx.Panel(self, -1, size=wx.Size(360, 50))
 
-        self.text = wx.Button(panelText, label="Please select account", size=wx.Size(360, 50))
+        self.text = wx.Button(panelText, label="Please select account", size=wx.Size(360, 50), style = wx.NO_BORDER)
+        self.text.BitmapFocus = self.text.BitmapCurrent
         self.text.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.text.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.text.SetForegroundColour((255, 255, 255))
@@ -174,7 +180,7 @@ class AccountsForm(wx.Frame):
                 self.list.SetItemWindow(i, 1, self.btnDel)
                 i += 1
 
-        self.btnCreate = wx.Button(panelBtn, label="CREATE", size=wx.Size(360, 50))
+        self.btnCreate = wx.Button(panelBtn, label="CREATE", size=wx.Size(360, 50), style = wx.NO_BORDER)
         self.btnCreate.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.btnCreate.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.btnCreate.SetForegroundColour((255, 255, 255))
@@ -200,6 +206,8 @@ class AccountsForm(wx.Frame):
         params = data.split('\n')
         clientID = str(params[1])
         datamanage = datamanager()
+        datamanage.clear_default_account()
+        print('clientID ' + str(clientID))
         account = datamanage.set_default_account_clientID(clientID)
         self.Hide()
         next = LoadingForm(None, -1, "Loading", self.app)
@@ -226,12 +234,15 @@ class AccountsForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+        datamanage = datamanager()
+        datamanage.clear_default_account()
         reactor.stop()
 
 class LoginForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
         self.app = app
         wx.Frame.__init__(self, parent, ID, title,size=wx.Size(360, 540))
+        self.Centre()
         self.SetBackgroundStyle(wx.BG_STYLE_ERASE)
 
         self.Bind(wx.EVT_CLOSE, self.onClose)
@@ -256,7 +267,7 @@ class LoginForm(wx.Frame):
         self.imageCtrlSettings = wx.StaticBitmap(panel1, wx.ID_ANY, wx.Bitmap(imgSettings))
         self.protocolLabel = wx.StaticText(panel1, -1, "Protocol:", )
         self.protocolLabel.SetFont(font)
-        self.comboProtocol = wx.ComboBox(panel1, -1, 'MQTT', choices=protocols)
+        self.comboProtocol = wx.ComboBox(panel1, -1, 'mqtt', choices=protocols)
 
         imgSettings = wx.Image("./resources/username.png", wx.BITMAP_TYPE_ANY)
         imgSettings = imgSettings.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
@@ -342,42 +353,42 @@ class LoginForm(wx.Frame):
         protocol_horizontal.Add(self.imageCtrlSettings, wx.LEFT, 20)
         protocol_horizontal.AddSpacer(10)
         protocol_horizontal.Add(self.protocolLabel)
-        protocol_horizontal.AddSpacer(100)
+        protocol_horizontal.AddSpacer(120)
         protocol_horizontal.Add(self.comboProtocol, 1, wx.RIGHT, 20)
 
         username_horizontal.AddSpacer(10)
         username_horizontal.Add(self.imageCtrlName, wx.LEFT, 20)
         username_horizontal.AddSpacer(10)
         username_horizontal.Add(self.nameLabel)
-        username_horizontal.AddSpacer(50)
+        username_horizontal.AddSpacer(64)
         username_horizontal.Add(self.nameText, 1, wx.RIGHT, 20)
 
         pasw_horizontal.AddSpacer(10)
         pasw_horizontal.Add(self.imageCtrlPasw, wx.LEFT, 20)
         pasw_horizontal.AddSpacer(10)
         pasw_horizontal.Add(self.paswLabel)
-        pasw_horizontal.AddSpacer(52)
+        pasw_horizontal.AddSpacer(73)
         pasw_horizontal.Add(self.paswText, 1, wx.RIGHT, 20)
 
         clientId_horizontal.AddSpacer(10)
         clientId_horizontal.Add(self.imageCtrlclient, wx.LEFT, 20)
         clientId_horizontal.AddSpacer(10)
         clientId_horizontal.Add(self.idLabel)
-        clientId_horizontal.AddSpacer(60)
+        clientId_horizontal.AddSpacer(80)
         clientId_horizontal.Add(self.idText, 1, wx.RIGHT, 20)
 
         host_horizontal.AddSpacer(10)
         host_horizontal.Add(self.imageCtrlhost, wx.LEFT, 20)
         host_horizontal.AddSpacer(10)
         host_horizontal.Add(self.hostLabel)
-        host_horizontal.AddSpacer(50)
+        host_horizontal.AddSpacer(56)
         host_horizontal.Add(self.hostText, 1, wx.RIGHT, 20)
 
         port_horizontal.AddSpacer(10)
         port_horizontal.Add(self.imageCtrlport, wx.LEFT, 20)
         port_horizontal.AddSpacer(10)
         port_horizontal.Add(self.portLabel)
-        port_horizontal.AddSpacer(100)
+        port_horizontal.AddSpacer(115)
         port_horizontal.Add(self.portText, 1, wx.RIGHT, 20)
 
         panel1_vertical.AddSpacer(5)
@@ -407,7 +418,7 @@ class LoginForm(wx.Frame):
         clean_horizontal.Add(self.imageCtrlclean)
         clean_horizontal.AddSpacer(10)
         clean_horizontal.Add(self.cleanLabel)
-        clean_horizontal.AddSpacer(150)
+        clean_horizontal.AddSpacer(165)
         clean_horizontal.Add(self.cleanCheck, 1, wx.RIGHT, 20)
 
         alive_horizontal.AddSpacer(10)
@@ -435,14 +446,14 @@ class LoginForm(wx.Frame):
         retain_horizontal.Add(self.imageCtrlretain)
         retain_horizontal.AddSpacer(10)
         retain_horizontal.Add(self.retainLabel)
-        retain_horizontal.AddSpacer(210)
+        retain_horizontal.AddSpacer(225)
         retain_horizontal.Add(self.retainCheck, 1, wx.RIGHT, 20)
 
         qos_horizontal.AddSpacer(10)
         qos_horizontal.Add(self.imageCtrlqos)
         qos_horizontal.AddSpacer(10)
         qos_horizontal.Add(self.qosLabel)
-        qos_horizontal.AddSpacer(200)
+        qos_horizontal.AddSpacer(205)
         qos_horizontal.Add(self.comboQos, 1, wx.RIGHT, 20)
 
         panel2_vertical.AddSpacer(5)
@@ -461,7 +472,7 @@ class LoginForm(wx.Frame):
         panel2.SetSizer(panel2_vertical)
 
         # BUTTON
-        self.btn = wx.Button(topPanel, label="Log In", size=wx.Size(360, 50))
+        self.btn = wx.Button(topPanel, label="Log In", size=wx.Size(360, 50), style = wx.NO_BORDER)
         self.btn.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.btn.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.btn.SetForegroundColour((255, 255, 255))
@@ -513,6 +524,7 @@ class LoginForm(wx.Frame):
                                 isRetain=True,
                                 qos=qos, isDefault=False)
 
+
         if AccountValidation.valid(account):
             datamanage = datamanager()
             datamanage.add_entity(account)
@@ -523,14 +535,18 @@ class LoginForm(wx.Frame):
             next = LoadingForm(None, -1, "Loading", self.app)
             next.Show()
         else:
-            pymsgbox.alert('Please, fill in all required fileds: Username, Password, ClientID, Host, Port, Keepalive ', 'Account creation Error')
+            wx.MessageBox('Please, fill in all required fileds: Username, Password, ClientID, Host, Port, Keepalive', 'Warning',
+                          wx.OK | wx.ICON_WARNING)
 
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+        datamanage = datamanager()
+        datamanage.clear_default_account()
         reactor.stop()
 
 def getNextImageID(count):
+    print('here')
     imID = 0
     while True:
         yield imID
@@ -542,39 +558,109 @@ def getNextImageID(count):
 class ToolbookImpl(wx.Toolbook):
 
     def __init__(self, parent, app):
-        wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BK_DEFAULT | wx.BK_BOTTOM)
+        #wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BK_DEFAULT | wx.BK_BOTTOM)
+        wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_CUSTOM | wx.BK_BOTTOM | wx.NO_BORDER)
         # Make an image list using the LBXX images
         self.parent = parent
+        self.app = app
 
-        il = wx.ImageList(75, 38)
-        tlist_img = wx.Bitmap("./resources/topics.png")
-        send_img = wx.Bitmap("./resources/send.png")
-        mlist_img = wx.Bitmap("./resources/messages.png")
-        logout_img = wx.Bitmap("./resources/logout1.png")
+        self.il = wx.ImageList(75, 41)
+        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
+        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
+        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
+        logout_img = wx.Bitmap("./resources/logout75.png")
 
-        il.Add(tlist_img)
-        il.Add(send_img)
-        il.Add(mlist_img)
-        il.Add(logout_img)
-        self.AssignImageList(il)
-        imageIdGenerator = getNextImageID(il.GetImageCount())
+        self.il.Add(tlist_img)
+        self.il.Add(send_img)
+        self.il.Add(mlist_img)
+        self.il.Add(logout_img)
+        self.AssignImageList(self.il)
 
-        notebookPageList = [(TopicsPanel(self, app),  'Topics list'),
+        self.notebookPageList = [(TopicsPanel(self, app),  'Topics list'),
                             (SendPanel(self, app),    'Send message'),
                             (MessagesPanel(self, app),'Messages list'),
                             (LogoutPanel(self, app),  'Logout')]
-        for page, label in notebookPageList:
-            self.AddPage(page, label, imageId=imageIdGenerator.__next__())
+
+        i = 0
+        for page, label in self.notebookPageList:
+            self.AddPage(page, label, imageId=i)
+            i += 1
+            if i == 4:
+                break
 
         toolbar = self.GetToolBar()
-        toolbar.SetFont(wx.Font(7, wx.FONTBTN_DEFAULT_STYLE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        if platform.system() == 'Linux':
+            toolbar.SetFont(wx.Font(7, wx.FONTBTN_DEFAULT_STYLE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        else:
+            toolbar.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL))
 
-        self.ChangeSelection(1)
+        toolbar.SetWindowStyle(style=wx.TB_FLAT)
+
+        #self.ChangeSelection(1)
         self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGING, self.OnPageChanging)
-        self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGED, self.OnPageChanged)
 
     def OnPageChanging(self, event):
         new = event.GetSelection()
+        print('OnPageChanging')
+        #self.il = wx.ImageList(75, 41)
+
+        #if new == 0:
+         #   tlist_img = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
+          #  self.SetPageImage(self.GetPage(0),1)
+
+        """
+        if new == 0:
+            tlist_img = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
+        else:
+            tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
+        if new == 1:
+            send_img = wx.Bitmap("./resources/is_message_list_blue-2_75.png")
+        else:
+            send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
+        if new == 2:
+            mlist_img = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
+        else:
+            mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
+        
+        logout_img = wx.Bitmap("./resources/logout75.png")
+        print('self ' + str(self.PageCount))
+        self.il.RemoveAll()
+        self.il.Add(tlist_img)
+        self.il.Add(send_img)
+        self.il.Add(mlist_img)
+        self.il.Add(logout_img)
+        self.AssignImageList(self.il)
+
+        self.notebookPageList.clear()
+        self.notebookPageList = [(TopicsPanel(self, self.app), 'Topics list'),
+                                 (SendPanel(self, self.app), 'Send message'),
+                                 (MessagesPanel(self, self.app), 'Messages list'),
+                                 (LogoutPanel(self, self.app), 'Logout')]
+
+        self.DeleteAllPages()
+        toolbar = self.GetToolBar()
+        if isinstance(toolbar, wx.ToolBar):
+            print('toolbar ' + str(toolbar.GetToolsCount()))
+            toolbar.ClearTools()
+            print('toolbar ' + str(toolbar.GetToolsCount()))
+
+        validator = self.GetValidator()
+        if isinstance(validator, wx.Validator):
+            validator.DeletePendingEvents()
+
+
+        print('self ' + str(self.PageCount))
+        
+        i = 0
+        for page, label in self.notebookPageList:
+            print('HERE')
+            self.AddPage(page, label, imageId=i)
+            i += 1
+
+        #self.Hide()
+        #self.Show()
+        """
+
         if new == 3:
             self.parent.Hide()
             next = AccountsForm(None, 1, "Accounts List", self.parent.app)
@@ -584,19 +670,12 @@ class ToolbookImpl(wx.Toolbook):
                 self.parent.app.client.disconnectWith(0)
         event.Skip()
 
-    def OnPageChanged(self, event):
-        old = event.GetOldSelection()
-        new = event.GetSelection()
-        sel = self.GetSelection()
-        #print('cur page: ' + str(new))
-        event.Skip()
-
 class MainForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
-        wx.Frame.__init__(self, parent, ID, title, size=wx.Size(370, 560))
+        wx.Frame.__init__(self, parent, ID, title, size=wx.Size(360, 560))
+
         self.SetBackgroundStyle(wx.BG_STYLE_ERASE)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
         self.app = app
         self.Bind(wx.EVT_CLOSE, self.onClose)
         nb = ToolbookImpl(self, app)
@@ -609,10 +688,13 @@ class MainForm(wx.Frame):
         sizer.Add(nb, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
         self.SetSizer(sizer)
         self.Layout()
+        self.Centre()
 
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+        datamanage = datamanager()
+        datamanage.clear_default_account()
         reactor.stop()
 
     def OnEraseBackground(self, evt):
@@ -629,30 +711,63 @@ class LogoutPanel(wx.Panel):
     def __init__(self, parent, app):
         self.app = app
         wx.Panel.__init__(self, parent)
+        datamanage = datamanager()
+        datamanage.clear_default_account()
         pass
+
+class MyStaticText(wx.StaticText):
+    def __init__(self,parent,id,label,
+                 pos=wx.DefaultPosition,
+                 size=wx.DefaultSize,
+                 style=0):
+        wx.StaticText.__init__(self,parent,id,label,pos,size,style)
+        self.Bind(wx.EVT_PAINT,self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+
+    def OnPaint(self,event):
+        dc = wx.PaintDC(self)
+        dc.DrawText(self.GetLabelText(), 0, 0)
+
+    def OnEraseBackground(self, evt):
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./resources/iot_broker_background.png")
+        dc.DrawBitmap(bmp, 0, 0)
 
 class TopicsPanel(wx.Panel):
     def __init__(self, parent, app):
 
         self.app = app
         wx.Panel.__init__(self, parent)
-
         font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         font.SetPointSize(10)
+
         boldfont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         boldfont.SetWeight(wx.BOLD)
         boldfont.SetPointSize(12)
 
-        topPanel = wx.Panel(self, size=wx.Size(360, 560))
-        panelText = wx.Panel(self, -1, size=wx.Size(359, 30))
-        panelList = wx.Panel(self, -1, size=wx.Size(359, 300))
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+
+        topPanel = wx.Panel(self, size=wx.Size(359, 560))
+        panelText1 = wx.Panel(self, -1, size=wx.Size(359, 20), style= wx.NO_BORDER)
+        panelList = wx.Panel(self, -1, size=wx.Size(359, 320))
+        panelText2 = wx.Panel(self, -1, size=wx.Size(359, 20))
         panelTopic = wx.Panel(self, -1, size=wx.Size(359, 80))
         panelTopic.SetBackgroundColour((255, 255, 255))
         panelBtn = wx.Panel(self, -1, size=wx.Size(359, 50))
 
-        text = wx.StaticText(panelText, -1, "  topics list:",size=wx.Size(359, 20))
-        text.SetBackgroundColour((215, 215, 215))
-        text.SetFont(boldfont)
+
+        #if platform.system() == 'Linux':
+         #   text1 = wx.StaticText(panelText1, -1, ' topics list:', size=wx.Size(370, 20))
+          #  text2 = wx.StaticText(panelText2, -1, ' add new topic:', size=wx.Size(370, 20))
+        #else:
+        text1 = MyStaticText(panelText1, -1, ' topics list:',size=wx.Size(359, 20))
+        text2 = MyStaticText(panelText2, -1, ' add new topic:', size=wx.Size(359, 20))
+
 
         #self.timer = wx.Timer(self, 1)
         #self.count = 0
@@ -670,7 +785,7 @@ class TopicsPanel(wx.Panel):
         self.list.SetColumnWidth(1, 50)
         self.list.SetColumnWidth(2, 50)
 
-        self.list.SetSize(350, 300)
+        self.list.SetSize(350, 315)
 
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -712,7 +827,7 @@ class TopicsPanel(wx.Panel):
                     self.list.SetItemWindow(i, 2, self.btnDel)
                     i += 1
 
-        self.btnCreate = wx.Button(topPanel, label="Add", size=wx.Size(359, 50))
+        self.btnCreate = wx.Button(panelBtn, label="Add", size=wx.Size(370, 50), style = wx.NO_BORDER)
         self.btnCreate.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.btnCreate.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.btnCreate.SetForegroundColour((255, 255, 255))
@@ -749,23 +864,32 @@ class TopicsPanel(wx.Panel):
         qos_horizontal.Add(self.comboQos, 1, wx.RIGHT, 20)
 
         panelTopic_vertical = wx.BoxSizer(wx.VERTICAL)
-        panelTopic_vertical.AddSpacer(5)
+        panelTopic_vertical.AddSpacer(10)
         panelTopic_vertical.Add(topic_horizontal)
         panelTopic_vertical.AddSpacer(5)
         panelTopic_vertical.Add(qos_horizontal)
 
         panelTopic.SetSizer(panelTopic_vertical)
 
-        headerBox = wx.BoxSizer(wx.VERTICAL)
-        headerBox.Add(text)
+        headerBox1 = wx.BoxSizer(wx.VERTICAL)
+        headerBox1.Add(text1)
         #headerBox.Add(self.gauge, wx.ALIGN_LEFT)
-        headerBox.Add((0, 5), 0)
-        panelText.SetSizer(headerBox)
+        #headerBox.Add((0, 5), 0)
+        panelText1.SetSizer(headerBox1)
+        headerBox2 = wx.BoxSizer(wx.VERTICAL)
+        headerBox2.Add(text2)
+        #headerBox2.Add((0, 5), 0)
+        panelText2.SetSizer(headerBox2)
 
-        sizer.Add(panelText, wx.EXPAND | wx.ALL, border=0)
+        buttonBox = wx.BoxSizer(wx.VERTICAL)
+        buttonBox.Add(self.btnCreate)
+        panelBtn.SetSizer(buttonBox)
+
+        sizer.Add(panelText1, wx.EXPAND | wx.ALL, border=0)
         sizer.Add(panelList, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add(panelText2, wx.EXPAND | wx.ALL, border=0)
         sizer.Add(panelTopic, wx.EXPAND | wx.ALL, border=0)
-        sizer.Add(self.btnCreate, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add(panelBtn, wx.EXPAND | wx.ALL, border=0)
 
         topPanel.SetSizer(sizer)
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -773,6 +897,16 @@ class TopicsPanel(wx.Panel):
         vbox.Fit(self)
         self.Layout()
         self.SetSizer(vbox)
+
+    def OnEraseBackground(self, evt):
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./resources/iot_broker_background.png")
+        dc.DrawBitmap(bmp, 0, 0)
 
     def OnCreate(self, event):
         name = self.nameText.GetValue()
@@ -811,8 +945,8 @@ class TopicsPanel(wx.Panel):
             self.app.client.subscribeTo(name, int(qos))
             #self.timer.Start(1)
         else:
-            pymsgbox.alert('Please, fill in all required fields: TopicName ',
-                           'Topic creation Error')
+            wx.MessageBox('Please, fill in all required fields: TopicName', 'Warning',
+                          wx.OK | wx.ICON_WARNING)
 
     def OnDelete(self, event):
         btn = event.GetEventObject()
@@ -836,27 +970,26 @@ class TopicsPanel(wx.Panel):
             self.gauge.Update()
 
             #print("Suback or Unsuback is not received. Please, check state of your connection to server")
-            #pymsgbox.alert('Suback or Unsuback is not received. Please, check state of your connection to server',
-                           #'Topic subscribe/unsubscribe Error')
+            wx.MessageBox('Suback or Unsuback is not received. Please, check state of your connection to server', 'Warning',
+                          wx.OK | wx.ICON_WARNING)
 
 class MessagesPanel(wx.Panel):
     def __init__(self, parent, app):
         self.app = app
         wx.Panel.__init__(self, parent)
-
         font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         font.SetPointSize(10)
         boldfont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         boldfont.SetWeight(wx.BOLD)
         boldfont.SetPointSize(12)
 
-        topPanel = wx.Panel(self, size=wx.Size(360, 560))
-        panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
-        panelList = wx.Panel(self, -1, size=wx.Size(360, 430))
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
-        text = wx.StaticText(panelText, -1, "  messages list:", size=wx.Size(360, 20))
-        text.SetBackgroundColour((215, 215, 215))
-        text.SetFont(boldfont)
+        topPanel = wx.Panel(self, size=wx.Size(361, 560))
+        panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
+        panelList = wx.Panel(self, -1, size=wx.Size(360, 470))
+
+        text = MyStaticText(panelText, -1, ' messages list:', size=wx.Size(360, 20))
 
         self.list = ULC.UltimateListCtrl(panelList, wx.ID_ANY,
                                          agwStyle=ULC.ULC_NO_HEADER | wx.LC_REPORT | wx.LC_SINGLE_SEL | ULC.ULC_HAS_VARIABLE_ROW_HEIGHT)
@@ -868,7 +1001,7 @@ class MessagesPanel(wx.Panel):
         self.list.SetColumnWidth(0, 280)
         self.list.SetColumnWidth(1, 59)
 
-        self.list.SetSize(350, 420)
+        self.list.SetSize(350, 460)
 
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -921,6 +1054,7 @@ class MessagesPanel(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(panelText, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add((0, 0), 0)
         sizer.Add(panelList, wx.EXPAND | wx.ALL, border=0)
 
         topPanel.SetSizer(sizer)
@@ -929,6 +1063,16 @@ class MessagesPanel(wx.Panel):
         vbox.Fit(self)
         self.Layout()
         self.SetSizer(vbox)
+
+    def OnEraseBackground(self, evt):
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./resources/iot_broker_background.png")
+        dc.DrawBitmap(bmp, 0, 0)
 
 class SendPanel(wx.Panel):
     def __init__(self, parent, app):
@@ -941,6 +1085,7 @@ class SendPanel(wx.Panel):
         #self.count = 0
         #self.gauge = wx.Gauge(self, 100, size=(359, 5))
         #self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
         vbox = wx.BoxSizer(wx.VERTICAL)
         contentBox = wx.BoxSizer(wx.HORIZONTAL)
@@ -954,78 +1099,86 @@ class SendPanel(wx.Panel):
         boldfont.SetWeight(wx.BOLD)
         boldfont.SetPointSize(12)
 
-        text = wx.StaticText(self, -1, "  send new message:", size=wx.Size(360, 20))
-        text.SetBackgroundColour((215, 215, 215))
-        text.SetFont(boldfont)
+        topPanel = wx.Panel(self, size=wx.Size(361, 560))
+        #topPanel.SetBackgroundColour((255,255,255))
+        panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
+        panelAll = wx.Panel(self, -1, size=wx.Size(360, 540))
+        panelAll.SetBackgroundColour((255, 255, 255))
+
+        #text = MyStaticText(self, -1, ' send new message:', size=wx.Size(360, 20))
+        text = MyStaticText(panelText, -1, ' send new message:', size=wx.Size(360, 20))
+
 
         imgSettings = wx.Image("./resources/settings.png", wx.BITMAP_TYPE_ANY)
         imgSettings = imgSettings.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
-        self.imageCtrlContent = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.contentLabel = wx.StaticText(self, -1, "Content:")
-        self.contentText = wx.TextCtrl(self, size=wx.Size(150, 30))
+        #self.imageCtrlContent = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.imageCtrlContent = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.contentLabel = wx.StaticText(panelAll, -1, "Content:")
+        self.contentText = wx.TextCtrl(panelAll, size=wx.Size(170, 30))
 
-        self.imageCtrlName = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.nameLabel = wx.StaticText(self, -1, "Topic:")
-        self.nameText = wx.TextCtrl(self, size=wx.Size(150, 30))
+        self.imageCtrlName = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
+        #self.nameLabel = wx.StaticText(self, -1, "Topic:")
+        self.nameLabel = wx.StaticText(panelAll, -1, "Topic:")
+        self.nameText = wx.TextCtrl(panelAll, size=wx.Size(170, 30))
 
-        self.imageCtrlqos = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.qosLabel = wx.StaticText(self, -1, "QoS:")
-        self.comboQos = wx.ComboBox(self, -1, '0', choices=qos)
+        self.imageCtrlqos = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.qosLabel = wx.StaticText(panelAll, -1, "QoS:")
+        self.comboQos = wx.ComboBox(panelAll, -1, '0', choices=qos)
 
-        self.imageCtrlret = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.retLabel = wx.StaticText(self, -1, "Retain:")
-        self.retCheck = wx.CheckBox(self)
+        self.imageCtrlret = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.retLabel = wx.StaticText(panelAll, -1, "Retain:")
+        self.retCheck = wx.CheckBox(panelAll)
 
-        self.imageCtrldub = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.dubLabel = wx.StaticText(self, -1, "Duplicate:")
-        self.dubCheck = wx.CheckBox(self)
+        self.imageCtrldub = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.dubLabel = wx.StaticText(panelAll, -1, "Duplicate:")
+        self.dubCheck = wx.CheckBox(panelAll)
 
-        self.btnSend = wx.Button(self, label="Send", size=wx.Size(360, 50))
+        self.btnSend = wx.Button(panelAll, label="Send", size=wx.Size(360, 50), style = wx.NO_BORDER)
         self.btnSend.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.btnSend.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.btnSend.SetForegroundColour((255, 255, 255))
         self.Bind(wx.EVT_BUTTON, self.OnSend, self.btnSend)
 
-        contentBox.AddSpacer(30)
+        contentBox.AddSpacer(10)
         contentBox.Add(self.imageCtrlContent)
         contentBox.AddSpacer(20)
         contentBox.Add(self.contentLabel)
         contentBox.AddSpacer(60)
         contentBox.Add(self.contentText, 1, wx.ALIGN_RIGHT)
 
-        nameBox.AddSpacer(30)
+        nameBox.AddSpacer(10)
         nameBox.Add(self.imageCtrlName)
         nameBox.AddSpacer(20)
         nameBox.Add(self.nameLabel)
         nameBox.AddSpacer(80)
         nameBox.Add(self.nameText, 1, wx.ALIGN_RIGHT)
 
-        qosBox.AddSpacer(30)
+        qosBox.AddSpacer(10)
         qosBox.Add(self.imageCtrlqos)
         qosBox.AddSpacer(20)
         qosBox.Add(self.qosLabel)
-        qosBox.AddSpacer(180)
+        qosBox.AddSpacer(200)
         qosBox.Add(self.comboQos, 1, wx.ALIGN_RIGHT)
 
-        retainBox.AddSpacer(30)
+        retainBox.AddSpacer(10)
         retainBox.Add(self.imageCtrlret)
         retainBox.AddSpacer(20)
         retainBox.Add(self.retLabel)
-        retainBox.AddSpacer(200)
+        retainBox.AddSpacer(220)
         retainBox.Add(self.retCheck, 1, wx.ALIGN_RIGHT)
 
-        duplBox.AddSpacer(30)
+        duplBox.AddSpacer(10)
         duplBox.Add(self.imageCtrldub)
         duplBox.AddSpacer(20)
         duplBox.Add(self.dubLabel)
-        duplBox.AddSpacer(179)
+        duplBox.AddSpacer(199)
         duplBox.Add(self.dubCheck, 1, wx.ALIGN_RIGHT)
 
         btnBox.Add(self.btnSend)
 
-        vbox.Add(text)
+        vbox.Add(panelText)
         #vbox.Add(self.gauge, wx.ALIGN_LEFT)
-        vbox.Add((0, 5), 0)
+        vbox.Add((0, 10), 0)
         vbox.Add(contentBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 10), 0)
         vbox.Add(nameBox, 0, wx.ALIGN_LEFT)
@@ -1035,11 +1188,33 @@ class SendPanel(wx.Panel):
         vbox.Add(retainBox, 0, wx.ALIGN_LEFT)
         vbox.Add((0, 10), 0)
         vbox.Add(duplBox, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 230), 0)
+        vbox.Add((0, 220), 0)
         vbox.Add(btnBox, 0, wx.ALIGN_CENTRE)
 
+        panelAll.SetSizer(vbox)
+        #self.Centre()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(panelText, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add((0, 0), 0)
+        sizer.Add(panelAll, wx.EXPAND | wx.ALL, border=0)
+
+        topPanel.SetSizer(sizer)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        vbox.Add(topPanel)
+        vbox.Fit(self)
+        self.Layout()
         self.SetSizer(vbox)
-        self.Centre()
+
+    def OnEraseBackground(self, evt):
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
+        dc.Clear()
+        bmp = wx.Bitmap("./resources/iot_broker_background.png")
+        dc.DrawBitmap(bmp, 0, 0)
 
     def OnSend(self, event):
 
@@ -1066,9 +1241,10 @@ class SendPanel(wx.Panel):
             # ADD to DB
             datamanage = datamanager()
             account = datamanage.get_default_account()
-            message = MessageEntity(content=content, qos=int(qos), topicName=name,
-                                    incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
-            datamanage.add_entity(message)
+            if account.protocol != 3:
+                message = MessageEntity(content=content, qos=int(qos), topicName=name,
+                                        incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
+                datamanage.add_entity(message)
 
         self.parent.DeletePage(3)
         self.parent.DeletePage(2)
@@ -1086,19 +1262,19 @@ class SendPanel(wx.Panel):
             self.count = 0
             self.gauge.SetValue(self.count)
             self.gauge.Update()
-            print("Puback is not received. Please, check state of your connection to server")
 
-            #pymsgbox.alert('Puback or Unsuback is not received. Please, check state of your connection to server',
-                           #'Topic creation Error')
+            #print("Puback is not received. Please, check state of your connection to server")
+            wx.MessageBox('Puback or Unsuback is not received. Please, check state of your connection to server',
+                          'Warning',wx.OK | wx.ICON_WARNING)
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 
-protocols = ['MQTT', 'MQTTSN', 'COAP', 'AMQP']
+protocols = ['mqtt', 'mqttsn', 'coap', 'AMQP']
 qos = ['0', '1', '2']
 
 switch_protocol = {
-            'MQTT': 1,
-            'MQTTSN': 2,
-            'COAP': 3,
+            'mqtt': 1,
+            'mqttsn': 2,
+            'coap': 3,
             'AMQP': 4
         }
 
@@ -1124,7 +1300,7 @@ switch_MQTTmessageType = {
     14 : 'MQ_DISCONNECT'
         }
 
-from venv.IoT.Classes.UIClient import *
+from venv.iot.classes.UIClient import *
 
 class MyApp(wx.App, UIClient):
     def OnInit(self):
@@ -1132,10 +1308,12 @@ class MyApp(wx.App, UIClient):
         self.client = None
         self.frame = LoadingForm(None, -1, "Loading", self)
         #self.frame = MainForm(None, -1, "Main", self)
+        #self.frame = LoginForm(None, -1, "Login", self)
         self.frame.Show(True)
         datamanage = datamanager()
         datamanage.create_db()
         datamanage.clear()
+        datamanage.clear_default_account()
         return True
 
     def timeout(self):
@@ -1147,15 +1325,15 @@ class MyApp(wx.App, UIClient):
         self.frame.Show()
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        #print('App publishReceived')
+        print('App publishReceived')
         #store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
 
-        if isinstance(topic, MQTopic):
-            topicName = topic.getName()
-        elif isinstance(topic, FullTopic):
+        if isinstance(topic, FullTopic):
             topicName = topic.getValue()
+        else:
+            topicName = topic.getName()
 
         message = MessageEntity(content = bytes(content, encoding='utf_8'), qos = qos.getValue(), topicName = topicName,
                                 incoming = True, isRetain = retainFlag, isDub = dup, accountentity_id = account.id)
@@ -1166,16 +1344,17 @@ class MyApp(wx.App, UIClient):
         self.frame.Show()
 
     def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode):
-        #print('App pubackReceived')
+        print('App pubackReceived')
         # store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
 
-        if isinstance(topic, MQTopic):
-            topicName = topic.getName()
-        elif isinstance(topic, FullTopic):
+        if isinstance(topic, FullTopic):
             topicName = topic.getValue()
-        #print('content=' + str(content) + ' qos=' + str(qos.getValue()) + ' topicName=' + str(topicName) + ' retainFlag=' + str(retainFlag) + ' dup=' + str(dup))
+        else:
+            topicName = topic.getName()
+
+        #print(' topicName=' + str(topicName))
         message = MessageEntity(content=bytes(content, encoding='utf_8'), qos=qos.getValue(), topicName=topicName,
                                 incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
@@ -1205,7 +1384,9 @@ class MyApp(wx.App, UIClient):
 
     def pingrespReceived(self):
         #print('MyApp pingresp Received')
-        pass
+        self.frame.Hide()
+        self.frame = MainForm(None, -1, "Main", self)
+        self.frame.Show()
 
     def disconnectReceived(self):
         #print('MyApp disconnectReceived')

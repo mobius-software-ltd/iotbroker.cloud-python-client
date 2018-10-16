@@ -1,9 +1,11 @@
+from venv.iot.coap.options.CoapOption import *
+
 class CoapMessage(object):
-    def __init__(self, version, type, code, messageID, token, options, payload):
+    def __init__(self, version, type, code, packetID, token, options, payload):
         self.version = version
         self.type = type
         self.code = code
-        self.messageID = messageID
+        self.packetID = packetID
         self.token = token
         self.options = options
         self.payload = payload
@@ -31,11 +33,11 @@ class CoapMessage(object):
     def setCode(self, code):
         self.code = code
 
-    def getMessageID(self):
-        return self.messageID
+    def getPacketID(self):
+        return self.packetID
 
-    def setMessageID(self, messageID):
-        self.messageID = messageID
+    def setPacketID(self, packetID):
+        self.packetID = packetID
 
     def getToken(self):
         return self.token
@@ -44,6 +46,9 @@ class CoapMessage(object):
         self.token = token
 
     def getOptions(self):
+        #if isinstance(CoapOption.type, int):
+         #   return self.getOptionsDecode()
+        #else:
         return sorted(self.options, key=lambda CoapOption: CoapOption.type.value)
 
     def getOptionsDecode(self):
