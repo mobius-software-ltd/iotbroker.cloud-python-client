@@ -171,6 +171,15 @@ class datamanager():
         session.commit()
         session.close()
 
+    def clear_default_account(self):
+        engine = create_engine(self.path)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        session = DBSession()
+        session.query(AccountEntity).filter(AccountEntity.clientID != '').update({"isDefault": False})
+        session.commit()
+        session.close()
+
     def get_topic(self,id):
         engine = create_engine(self.path)
         Base.metadata.bind = engine
