@@ -121,8 +121,6 @@ class LoadingForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-        datamanage = datamanager()
-        datamanage.clear_default_account()
         reactor.stop()
 
 class AccountsForm(wx.Frame):
@@ -207,7 +205,6 @@ class AccountsForm(wx.Frame):
         clientID = str(params[1])
         datamanage = datamanager()
         datamanage.clear_default_account()
-        print('clientID ' + str(clientID))
         account = datamanage.set_default_account_clientID(clientID)
         self.Hide()
         next = LoadingForm(None, -1, "Loading", self.app)
@@ -234,8 +231,6 @@ class AccountsForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-        datamanage = datamanager()
-        datamanage.clear_default_account()
         reactor.stop()
 
 class LoginForm(wx.Frame):
@@ -541,8 +536,6 @@ class LoginForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-        datamanage = datamanager()
-        datamanage.clear_default_account()
         reactor.stop()
 
 def getNextImageID(count):
@@ -558,7 +551,6 @@ def getNextImageID(count):
 class ToolbookImpl(wx.Toolbook):
 
     def __init__(self, parent, app):
-        #wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BK_DEFAULT | wx.BK_BOTTOM)
         wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_CUSTOM | wx.BK_BOTTOM | wx.NO_BORDER)
         # Make an image list using the LBXX images
         self.parent = parent
@@ -621,44 +613,6 @@ class ToolbookImpl(wx.Toolbook):
             mlist_img = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
         else:
             mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
-        
-        logout_img = wx.Bitmap("./resources/logout75.png")
-        print('self ' + str(self.PageCount))
-        self.il.RemoveAll()
-        self.il.Add(tlist_img)
-        self.il.Add(send_img)
-        self.il.Add(mlist_img)
-        self.il.Add(logout_img)
-        self.AssignImageList(self.il)
-
-        self.notebookPageList.clear()
-        self.notebookPageList = [(TopicsPanel(self, self.app), 'Topics list'),
-                                 (SendPanel(self, self.app), 'Send message'),
-                                 (MessagesPanel(self, self.app), 'Messages list'),
-                                 (LogoutPanel(self, self.app), 'Logout')]
-
-        self.DeleteAllPages()
-        toolbar = self.GetToolBar()
-        if isinstance(toolbar, wx.ToolBar):
-            print('toolbar ' + str(toolbar.GetToolsCount()))
-            toolbar.ClearTools()
-            print('toolbar ' + str(toolbar.GetToolsCount()))
-
-        validator = self.GetValidator()
-        if isinstance(validator, wx.Validator):
-            validator.DeletePendingEvents()
-
-
-        print('self ' + str(self.PageCount))
-        
-        i = 0
-        for page, label in self.notebookPageList:
-            print('HERE')
-            self.AddPage(page, label, imageId=i)
-            i += 1
-
-        #self.Hide()
-        #self.Show()
         """
 
         if new == 3:
@@ -693,8 +647,6 @@ class MainForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-        datamanage = datamanager()
-        datamanage.clear_default_account()
         reactor.stop()
 
     def OnEraseBackground(self, evt):
@@ -711,8 +663,6 @@ class LogoutPanel(wx.Panel):
     def __init__(self, parent, app):
         self.app = app
         wx.Panel.__init__(self, parent)
-        datamanage = datamanager()
-        datamanage.clear_default_account()
         pass
 
 class MyStaticText(wx.StaticText):
@@ -760,14 +710,8 @@ class TopicsPanel(wx.Panel):
         panelTopic.SetBackgroundColour((255, 255, 255))
         panelBtn = wx.Panel(self, -1, size=wx.Size(359, 50))
 
-
-        #if platform.system() == 'Linux':
-         #   text1 = wx.StaticText(panelText1, -1, ' topics list:', size=wx.Size(370, 20))
-          #  text2 = wx.StaticText(panelText2, -1, ' add new topic:', size=wx.Size(370, 20))
-        #else:
         text1 = MyStaticText(panelText1, -1, ' topics list:',size=wx.Size(359, 20))
         text2 = MyStaticText(panelText2, -1, ' add new topic:', size=wx.Size(359, 20))
-
 
         #self.timer = wx.Timer(self, 1)
         #self.count = 0
@@ -825,6 +769,8 @@ class TopicsPanel(wx.Panel):
                     self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
                     self.list.SetItemWindow(i, 1, self.imageCtrlQos)
                     self.list.SetItemWindow(i, 2, self.btnDel)
+
+                    self.list.SetItemBackgroundColour(i,(255,0,255))
                     i += 1
 
         self.btnCreate = wx.Button(panelBtn, label="Add", size=wx.Size(370, 50), style = wx.NO_BORDER)
@@ -924,6 +870,7 @@ class TopicsPanel(wx.Panel):
 
             self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
             self.list.InsertStringItem(i, str(name))
+            #self.list.SetItemBackgroundColour(i, (255, 0, 255))
 
             if platform.system() == 'Linux':
                 qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
@@ -1087,119 +1034,125 @@ class SendPanel(wx.Panel):
         #self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        contentBox = wx.BoxSizer(wx.HORIZONTAL)
-        nameBox = wx.BoxSizer(wx.HORIZONTAL)
-        qosBox = wx.BoxSizer(wx.HORIZONTAL)
-        retainBox = wx.BoxSizer(wx.HORIZONTAL)
-        duplBox = wx.BoxSizer(wx.HORIZONTAL)
-        btnBox = wx.BoxSizer(wx.HORIZONTAL)
-
         boldfont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         boldfont.SetWeight(wx.BOLD)
         boldfont.SetPointSize(12)
 
-        topPanel = wx.Panel(self, size=wx.Size(361, 560))
-        #topPanel.SetBackgroundColour((255,255,255))
+        topPanel = wx.Panel(self, size=wx.Size(360, 560))
+        #topPanel.SetBackgroundColour((255, 0, 0))
         panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
-        panelAll = wx.Panel(self, -1, size=wx.Size(360, 540))
-        panelAll.SetBackgroundColour((255, 255, 255))
+        childPanel = wx.Panel(self, size=wx.Size(360, 400))
+        childPanel.SetBackgroundColour((255, 255, 255))
 
-        #text = MyStaticText(self, -1, ' send new message:', size=wx.Size(360, 20))
+        panelContent = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelContent.SetBackgroundColour((255, 255, 255))
+        panelName = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelName.SetBackgroundColour((224, 224, 224))
+        panelQos = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelQos.SetBackgroundColour((255, 255, 255))
+        panelRet = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelRet.SetBackgroundColour((224, 224, 224))
+        panelDup = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelDup.SetBackgroundColour((255, 255, 255))
+        panelButton = wx.Panel(self, -1, size=wx.Size(359, 50))
+
         text = MyStaticText(panelText, -1, ' send new message:', size=wx.Size(360, 20))
-
+        textBox = wx.BoxSizer(wx.HORIZONTAL)
+        textBox.Add(text)
+        panelText.SetSizer(textBox)
 
         imgSettings = wx.Image("./resources/settings.png", wx.BITMAP_TYPE_ANY)
         imgSettings = imgSettings.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
-        #self.imageCtrlContent = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.imageCtrlContent = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.contentLabel = wx.StaticText(panelAll, -1, "Content:")
-        self.contentText = wx.TextCtrl(panelAll, size=wx.Size(170, 30))
+        self.imageCtrlContent = wx.StaticBitmap(panelContent, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.contentLabel = wx.StaticText(panelContent, -1, "Content:")
+        self.contentText = wx.TextCtrl(panelContent, size=wx.Size(170, 30))
+        contentBox = wx.BoxSizer(wx.HORIZONTAL)
+        contentBox.AddSpacer(10)
+        contentBox.Add(self.imageCtrlContent, 0, wx.CENTER)
+        contentBox.AddSpacer(20)
+        contentBox.Add(self.contentLabel, 0, wx.CENTER)
+        contentBox.AddSpacer(60)
+        contentBox.Add(self.contentText, 1, wx.ALIGN_RIGHT)
+        panelContent.SetSizer(contentBox)
 
-        self.imageCtrlName = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
-        #self.nameLabel = wx.StaticText(self, -1, "Topic:")
-        self.nameLabel = wx.StaticText(panelAll, -1, "Topic:")
-        self.nameText = wx.TextCtrl(panelAll, size=wx.Size(170, 30))
+        self.imageCtrlName = wx.StaticBitmap(panelName, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.nameLabel = wx.StaticText(panelName, -1, "Topic:")
+        self.nameText = wx.TextCtrl(panelName, size=wx.Size(170, 30))
+        nameBox = wx.BoxSizer(wx.HORIZONTAL)
+        nameBox.AddSpacer(10)
+        nameBox.Add(self.imageCtrlName, 0, wx.CENTER)
+        nameBox.AddSpacer(20)
+        nameBox.Add(self.nameLabel, 0, wx.CENTER)
+        nameBox.AddSpacer(80)
+        nameBox.Add(self.nameText, 1, wx.ALIGN_RIGHT)
+        panelName.SetSizer(nameBox)
 
-        self.imageCtrlqos = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.qosLabel = wx.StaticText(panelAll, -1, "QoS:")
-        self.comboQos = wx.ComboBox(panelAll, -1, '0', choices=qos)
+        self.imageCtrlqos = wx.StaticBitmap(panelQos, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.qosLabel = wx.StaticText(panelQos, -1, "QoS:")
+        self.comboQos = wx.ComboBox(panelQos, -1, '0', choices=qos)
+        qosBox = wx.BoxSizer(wx.HORIZONTAL)
+        qosBox.AddSpacer(10)
+        qosBox.Add(self.imageCtrlqos, 0, wx.CENTER)
+        qosBox.AddSpacer(20)
+        qosBox.Add(self.qosLabel, 0, wx.CENTER)
+        qosBox.AddSpacer(200)
+        qosBox.Add(self.comboQos, 1, wx.CENTER)
+        panelQos.SetSizer(qosBox)
 
-        self.imageCtrlret = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.retLabel = wx.StaticText(panelAll, -1, "Retain:")
-        self.retCheck = wx.CheckBox(panelAll)
+        self.imageCtrlret = wx.StaticBitmap(panelRet, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.retLabel = wx.StaticText(panelRet, -1, "Retain:")
+        self.retCheck = wx.CheckBox(panelRet)
+        retainBox = wx.BoxSizer(wx.HORIZONTAL)
+        retainBox.AddSpacer(10)
+        retainBox.Add(self.imageCtrlret, 0, wx.CENTER)
+        retainBox.AddSpacer(20)
+        retainBox.Add(self.retLabel, 0, wx.CENTER)
+        retainBox.AddSpacer(220)
+        retainBox.Add(self.retCheck, 1, wx.CENTER)
+        panelRet.SetSizer(retainBox)
 
-        self.imageCtrldub = wx.StaticBitmap(panelAll, wx.ID_ANY, wx.Bitmap(imgSettings))
-        self.dubLabel = wx.StaticText(panelAll, -1, "Duplicate:")
-        self.dubCheck = wx.CheckBox(panelAll)
+        self.imageCtrldub = wx.StaticBitmap(panelDup, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.dubLabel = wx.StaticText(panelDup, -1, "Duplicate:")
+        self.dubCheck = wx.CheckBox(panelDup)
+        duplBox = wx.BoxSizer(wx.HORIZONTAL)
+        duplBox.AddSpacer(10)
+        duplBox.Add(self.imageCtrldub, 0, wx.CENTER)
+        duplBox.AddSpacer(20)
+        duplBox.Add(self.dubLabel, 0, wx.CENTER)
+        duplBox.AddSpacer(199)
+        duplBox.Add(self.dubCheck, 1, wx.CENTER)
+        panelDup.SetSizer(duplBox)
 
-        self.btnSend = wx.Button(panelAll, label="Send", size=wx.Size(360, 50), style = wx.NO_BORDER)
+        self.btnSend = wx.Button(panelButton, label="Send", size=wx.Size(350, 50), style = wx.NO_BORDER)
         self.btnSend.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.btnSend.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.btnSend.SetForegroundColour((255, 255, 255))
         self.Bind(wx.EVT_BUTTON, self.OnSend, self.btnSend)
-
-        contentBox.AddSpacer(10)
-        contentBox.Add(self.imageCtrlContent)
-        contentBox.AddSpacer(20)
-        contentBox.Add(self.contentLabel)
-        contentBox.AddSpacer(60)
-        contentBox.Add(self.contentText, 1, wx.ALIGN_RIGHT)
-
-        nameBox.AddSpacer(10)
-        nameBox.Add(self.imageCtrlName)
-        nameBox.AddSpacer(20)
-        nameBox.Add(self.nameLabel)
-        nameBox.AddSpacer(80)
-        nameBox.Add(self.nameText, 1, wx.ALIGN_RIGHT)
-
-        qosBox.AddSpacer(10)
-        qosBox.Add(self.imageCtrlqos)
-        qosBox.AddSpacer(20)
-        qosBox.Add(self.qosLabel)
-        qosBox.AddSpacer(200)
-        qosBox.Add(self.comboQos, 1, wx.ALIGN_RIGHT)
-
-        retainBox.AddSpacer(10)
-        retainBox.Add(self.imageCtrlret)
-        retainBox.AddSpacer(20)
-        retainBox.Add(self.retLabel)
-        retainBox.AddSpacer(220)
-        retainBox.Add(self.retCheck, 1, wx.ALIGN_RIGHT)
-
-        duplBox.AddSpacer(10)
-        duplBox.Add(self.imageCtrldub)
-        duplBox.AddSpacer(20)
-        duplBox.Add(self.dubLabel)
-        duplBox.AddSpacer(199)
-        duplBox.Add(self.dubCheck, 1, wx.ALIGN_RIGHT)
-
+        btnBox = wx.BoxSizer(wx.HORIZONTAL)
         btnBox.Add(self.btnSend)
+        panelButton.SetSizer(btnBox)
 
-        vbox.Add(panelText)
         #vbox.Add(self.gauge, wx.ALIGN_LEFT)
-        vbox.Add((0, 10), 0)
-        vbox.Add(contentBox, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 10), 0)
-        vbox.Add(nameBox, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 10), 0)
-        vbox.Add(qosBox, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 10), 0)
-        vbox.Add(retainBox, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 10), 0)
-        vbox.Add(duplBox, 0, wx.ALIGN_LEFT)
-        vbox.Add((0, 220), 0)
-        vbox.Add(btnBox, 0, wx.ALIGN_CENTRE)
-
-        panelAll.SetSizer(vbox)
-        #self.Centre()
+        #vbox.Add((0, 10), 0)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(panelText, wx.EXPAND | wx.ALL, border=0)
-        sizer.Add((0, 0), 0)
-        sizer.Add(panelAll, wx.EXPAND | wx.ALL, border=0)
+        #sizer.Add((0, 10), 0)
+        sizer.Add(panelContent, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add(panelName, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add(panelQos, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add(panelRet, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add(panelDup, wx.EXPAND | wx.ALL, border=0)
+        sizer.Add((0, 230), 0)
+        #sizer.Add(panelButton, wx.EXPAND | wx.ALL, border=0)
+        childPanel.SetSizer(sizer)
 
-        topPanel.SetSizer(sizer)
+        sizerTop = wx.BoxSizer(wx.VERTICAL)
+        sizerTop.Add(panelText, wx.EXPAND | wx.ALL, border=0)
+        sizerTop.Add(childPanel, wx.EXPAND | wx.ALL, border=0)
+        sizerTop.Add(panelButton, wx.EXPAND | wx.ALL, border=0)
+
+        topPanel.SetSizer(sizerTop)
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(topPanel)
         vbox.Fit(self)
@@ -1306,8 +1259,8 @@ class MyApp(wx.App, UIClient):
     def OnInit(self):
         self.gui = self
         self.client = None
-        self.frame = LoadingForm(None, -1, "Loading", self)
-        #self.frame = MainForm(None, -1, "Main", self)
+        #self.frame = LoadingForm(None, -1, "Loading", self)
+        self.frame = MainForm(None, -1, "Main", self)
         #self.frame = LoginForm(None, -1, "Login", self)
         self.frame.Show(True)
         datamanage = datamanager()
@@ -1364,12 +1317,13 @@ class MyApp(wx.App, UIClient):
         self.frame.Show()
 
     def subackReceived(self, topic, qos, returnCode):
-        #print('App subackReceived')
+        #print('App subackReceived' + str(topic) + ' ' + str(qos))
         #store topic
         datamanage = datamanager()
         account = datamanage.get_default_account()
-        topicToDB = TopicEntity(topicName = topic, qos=qos.getValue(), accountentity_id = account.id)
-        datamanage.add_entity(topicToDB)
+        if isinstance(topic, MQTopic):
+            topicToDB = TopicEntity(topicName = topic.getName(), qos=qos.getValue(), accountentity_id = account.id)
+            datamanage.add_entity(topicToDB)
 
     def unsubackReceived(self, listTopics):
         #print('App unsubackReceived')
