@@ -562,10 +562,19 @@ class ToolbookImpl(wx.Toolbook):
         mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
         logout_img = wx.Bitmap("./resources/logout75.png")
 
+        tlist_img_blue = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
+        send_img_blue = wx.Bitmap("./resources/is_message_list_blue-2_75.png")
+        mlist_img_blue = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
+
         self.il.Add(tlist_img)
         self.il.Add(send_img)
         self.il.Add(mlist_img)
         self.il.Add(logout_img)
+
+        self.il.Add(tlist_img_blue)
+        self.il.Add(send_img_blue)
+        self.il.Add(mlist_img_blue)
+
         self.AssignImageList(self.il)
 
         self.notebookPageList = [(TopicsPanel(self, app),  'Topics list'),
@@ -593,27 +602,16 @@ class ToolbookImpl(wx.Toolbook):
 
     def OnPageChanging(self, event):
         new = event.GetSelection()
-        print('OnPageChanging')
-        #self.il = wx.ImageList(75, 41)
+        print('OnPageChanging ' + str(new))
 
-        #if new == 0:
-         #   tlist_img = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
-          #  self.SetPageImage(self.GetPage(0),1)
-
-        """
         if new == 0:
-            tlist_img = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
-        else:
-            tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
+            self.SetPageImage(0,4)
         if new == 1:
-            send_img = wx.Bitmap("./resources/is_message_list_blue-2_75.png")
-        else:
-            send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
+            self.SetPageImage(1,5)
         if new == 2:
-            mlist_img = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
-        else:
-            mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
-        """
+            self.SetPageImage(2,6)
+
+        self.Refresh()
 
         if new == 3:
             self.parent.Hide()
@@ -769,8 +767,10 @@ class TopicsPanel(wx.Panel):
                     self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
                     self.list.SetItemWindow(i, 1, self.imageCtrlQos)
                     self.list.SetItemWindow(i, 2, self.btnDel)
-
-                    self.list.SetItemBackgroundColour(i,(255,0,255))
+                    if (i % 2) == 0:
+                        self.list.SetItemBackgroundColour(i, wx.Colour(255, 255, 255))
+                    else:
+                        self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
                     i += 1
 
         self.btnCreate = wx.Button(panelBtn, label="Add", size=wx.Size(370, 50), style = wx.NO_BORDER)
@@ -870,21 +870,24 @@ class TopicsPanel(wx.Panel):
 
             self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
             self.list.InsertStringItem(i, str(name))
-            #self.list.SetItemBackgroundColour(i, (255, 0, 255))
+            if (i % 2) == 0:
+                self.list.SetItemBackgroundColour(i, wx.Colour(255, 255, 255))
+            else:
+                self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
 
+            qosBmp = None
             if platform.system() == 'Linux':
                 qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
-                if qos == 1:
+                if int(qos) == 1:
                     qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
-                if qos == 2:
+                if int(qos) == 2:
                     qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
             else:
                 qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
-                if qos == 1:
+                if int(qos) == 1:
                     qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
-                if qos == 2:
+                if int(qos) == 2:
                     qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
-
             self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
             self.list.SetItemWindow(i, 1, self.imageCtrlQos)
             self.list.SetItemWindow(i, 2, self.btnDel)
@@ -997,6 +1000,10 @@ class MessagesPanel(wx.Panel):
 
                     self.imageCtrl = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(bmp))
                     self.list.SetItemWindow(i, 1, self.imageCtrl)
+                    if (i % 2) == 0:
+                        self.list.SetItemBackgroundColour(i, wx.Colour(255, 255, 255))
+                    else:
+                        self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
                     i += 1
 
         sizer = wx.BoxSizer(wx.VERTICAL)
