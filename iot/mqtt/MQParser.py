@@ -94,8 +94,8 @@ def MQ_CONNECT(self, message):
     if message.cleanSession == True:
         contentFlags += 2
 
-    if message.willValid == True:
-        contentFlags += 4
+    if message.willValid() == True:
+        contentFlags += 0x04
         qos = message.will.getTopic().getQoS()
         contentFlags += qos.getValue() << 3
         if message.will.getRetain():
@@ -117,7 +117,6 @@ def MQ_CONNECT(self, message):
     for ch in message.clientID:
         ch = bytes(ch, encoding='utf_8')
         data += struct.pack('c', ch)
-
     if message.willValid() == True:
         topic = message.will.getTopic()
         if isinstance(topic, MQTopic):
@@ -129,8 +128,12 @@ def MQ_CONNECT(self, message):
                     ch = bytes(ch, encoding='utf_8')
                     data += struct.pack('c', ch)
             if message.will.content is not None:
-                data.append(len(message.will.content))
-                data.extend(message.will.content.encode('utf-8'))
+                contentTopic = message.will.content
+                contentData = struct.pack('h', len(contentTopic))
+                data += contentData[::-1]
+                for ch in contentTopic:
+                    ch = bytes(ch, encoding='utf_8')
+                    data += struct.pack('c', ch)
 
     if message.username is not None:
         userData = struct.pack('h', len(message.username))
