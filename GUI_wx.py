@@ -548,8 +548,75 @@ def getNextImageID(count):
     # end while
 # end def
 
-class ToolbookImpl(wx.Toolbook):
+class ListbookImpl(wx.Listbook):
+    def __init__(self, parent, app):
+        #wx.Listbook.__init__(self, parent, wx.ID_ANY, size=wx.Size(360, 60), style=wx.BK_BOTTOM | wx.NB_FIXEDWIDTH | wx.NB_FLAT | wx.LC_ICON | wx.LC_NO_HEADER | wx.NO_BORDER)
+        wx.Listbook.__init__(self, parent, wx.ID_ANY,style=wx.BK_BOTTOM | wx.NB_FIXEDWIDTH | wx.NB_FLAT | wx.LC_ICON | wx.LC_NO_HEADER | wx.NO_BORDER | wx.LC_SINGLE_SEL)
+        self.SetOwnBackgroundColour((255,255,255))
 
+        # Make an image list using the LBXX images
+        self.parent = parent
+        self.app = app
+
+        self.il = wx.ImageList(75, 41)
+        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
+        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
+        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
+        logout_img = wx.Bitmap("./resources/logout75.png")
+
+        tlist_img_blue = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
+        send_img_blue = wx.Bitmap("./resources/is_message_list_blue-2_75.png")
+        mlist_img_blue = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
+
+        self.il.Add(tlist_img)
+        self.il.Add(send_img)
+        self.il.Add(mlist_img)
+        self.il.Add(logout_img)
+
+        self.il.Add(tlist_img_blue)
+        self.il.Add(send_img_blue)
+        self.il.Add(mlist_img_blue)
+
+        self.AssignImageList(self.il)
+        self.notebookPageList = [(TopicsPanel(self, app), ''),
+                                 (SendPanel(self, app), ''),
+                                 (MessagesPanel(self, app), ''),
+                                 (LogoutPanel(self, app), '')]
+
+        i = 0
+        for page, label in self.notebookPageList:
+            self.AddPage(page, label, imageId=i)
+            i += 1
+            if i == 4:
+                break
+        self.SetPageImage(0, 4)
+        self.ChangeSelection(0)
+        self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
+
+    def OnPageChanged(self, event):
+        new = event.GetSelection()
+        self.defaultImagesSet()
+        if new == 0:
+            self.SetPageImage(0, 4)
+        if new == 1:
+            self.SetPageImage(1, 5)
+        if new == 2:
+            self.SetPageImage(2, 6)
+        if new == 3:
+            self.parent.Hide()
+            next = AccountsForm(None, 1, "Accounts List", self.parent.app)
+            next.Show()
+            # ______________________________________________________________________SEND___DISCONNECT
+            if self.parent.app.client is not None:
+                self.parent.app.client.disconnectWith(0)
+        event.Skip()
+
+    def defaultImagesSet(self):
+        self.SetPageImage(0, 0)
+        self.SetPageImage(1, 1)
+        self.SetPageImage(2, 2)
+"""
+class ToolbookImpl(wx.Toolbook):
     def __init__(self, parent, app):
         wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_CUSTOM | wx.BK_BOTTOM | wx.NO_BORDER)
         # Make an image list using the LBXX images
@@ -575,7 +642,7 @@ class ToolbookImpl(wx.Toolbook):
         self.il.Add(send_img_blue)
         self.il.Add(mlist_img_blue)
 
-        self.AssignImageList(self.il)
+        self.SetImageList(self.il)
 
         self.notebookPageList = [(TopicsPanel(self, app),  'Topics list'),
                             (SendPanel(self, app),    'Send message'),
@@ -602,16 +669,16 @@ class ToolbookImpl(wx.Toolbook):
 
     def OnPageChanging(self, event):
         new = event.GetSelection()
-        print('OnPageChanging ' + str(new))
+        #print('OnPageChanging ' + str(new))
 
+        #print('page id= ' + str(self.GetPageImage(0)))
         if new == 0:
             self.SetPageImage(0,4)
+        #print('page id= ' + str(self.GetPageImage(0)))
         if new == 1:
             self.SetPageImage(1,5)
         if new == 2:
             self.SetPageImage(2,6)
-
-        self.Refresh()
 
         if new == 3:
             self.parent.Hide()
@@ -621,16 +688,17 @@ class ToolbookImpl(wx.Toolbook):
             if self.parent.app.client is not None:
                 self.parent.app.client.disconnectWith(0)
         event.Skip()
-
+"""
 class MainForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
-        wx.Frame.__init__(self, parent, ID, title, size=wx.Size(360, 560))
+        wx.Frame.__init__(self, parent, ID, title, size=wx.Size(360, 570))
 
         self.SetBackgroundStyle(wx.BG_STYLE_ERASE)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.app = app
         self.Bind(wx.EVT_CLOSE, self.onClose)
-        nb = ToolbookImpl(self, app)
+        #nb = ToolbookImpl(self, app)
+        nb = ListbookImpl(self, app)
 
         font = wx.Font(10, wx.SWISS, wx.NORMAL, wx.NORMAL, )
         nb.SetFont(font)
@@ -661,6 +729,7 @@ class LogoutPanel(wx.Panel):
     def __init__(self, parent, app):
         self.app = app
         wx.Panel.__init__(self, parent)
+        #print('HERE')
         pass
 
 class MyStaticText(wx.StaticText):
@@ -1304,7 +1373,7 @@ class MyApp(wx.App, UIClient):
         self.frame.Show()
 
     def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode):
-        print('App pubackReceived')
+        #print('App pubackReceived')
         # store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
