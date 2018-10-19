@@ -548,12 +548,80 @@ def getNextImageID(count):
     # end while
 # end def
 
+class NotebookImpl(wx.Notebook):
+    def __init__(self, parent, app):
+        wx.Notebook.__init__(self, parent, wx.ID_ANY,style=wx.BK_BOTTOM | wx.NB_FIXEDWIDTH | wx.NB_FLAT | wx.NB_NOPAGETHEME)
+        self.SetOwnBackgroundColour((255,255,255))
+        self.SetThemeEnabled(False)
+        # Make an image list using the LBXX images
+        self.parent = parent
+        self.app = app
+
+        self.il = wx.ImageList(75, 41)
+        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
+        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
+        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
+        logout_img = wx.Bitmap("./resources/logout75.png")
+
+        tlist_img_blue = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
+        send_img_blue = wx.Bitmap("./resources/is_message_list_blue-2_75.png")
+        mlist_img_blue = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
+
+        self.il.Add(tlist_img)
+        self.il.Add(send_img)
+        self.il.Add(mlist_img)
+        self.il.Add(logout_img)
+
+        self.il.Add(tlist_img_blue)
+        self.il.Add(send_img_blue)
+        self.il.Add(mlist_img_blue)
+
+        self.AssignImageList(self.il)
+        self.notebookPageList = [(TopicsPanel(self, app), ''),
+                                 (SendPanel(self, app), ''),
+                                 (MessagesPanel(self, app), ''),
+                                 (LogoutPanel(self, app), '')]
+
+        i = 0
+        for page, label in self.notebookPageList:
+            self.AddPage(page, label, imageId=i)
+            i += 1
+            if i == 4:
+                break
+        self.SetPageImage(0, 4)
+        self.ChangeSelection(0)
+        self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
+
+    def OnPageChanged(self, event):
+        new = event.GetSelection()
+        self.defaultImagesSet()
+        if new == 0:
+            self.SetPageImage(0, 4)
+        if new == 1:
+            self.SetPageImage(1, 5)
+        if new == 2:
+            self.SetPageImage(2, 6)
+        if new == 3:
+            self.parent.Hide()
+            next = AccountsForm(None, 1, "Accounts List", self.parent.app)
+            next.Show()
+            # ______________________________________________________________________SEND___DISCONNECT
+            if self.parent.app.client is not None:
+                self.parent.app.client.disconnectWith(0)
+        event.Skip()
+
+    def defaultImagesSet(self):
+        self.SetPageImage(0, 0)
+        self.SetPageImage(1, 1)
+        self.SetPageImage(2, 2)
+
+"""
 class ListbookImpl(wx.Listbook):
     def __init__(self, parent, app):
         #wx.Listbook.__init__(self, parent, wx.ID_ANY, size=wx.Size(360, 60), style=wx.BK_BOTTOM | wx.NB_FIXEDWIDTH | wx.NB_FLAT | wx.LC_ICON | wx.LC_NO_HEADER | wx.NO_BORDER)
         wx.Listbook.__init__(self, parent, wx.ID_ANY,style=wx.BK_BOTTOM | wx.NB_FIXEDWIDTH | wx.NB_FLAT | wx.LC_ICON | wx.LC_NO_HEADER | wx.NO_BORDER | wx.LC_SINGLE_SEL)
         self.SetOwnBackgroundColour((255,255,255))
-
+        self.SetThemeEnabled(False)
         # Make an image list using the LBXX images
         self.parent = parent
         self.app = app
@@ -615,7 +683,7 @@ class ListbookImpl(wx.Listbook):
         self.SetPageImage(0, 0)
         self.SetPageImage(1, 1)
         self.SetPageImage(2, 2)
-"""
+
 class ToolbookImpl(wx.Toolbook):
     def __init__(self, parent, app):
         wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_CUSTOM | wx.BK_BOTTOM | wx.NO_BORDER)
@@ -691,14 +759,13 @@ class ToolbookImpl(wx.Toolbook):
 """
 class MainForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
-        wx.Frame.__init__(self, parent, ID, title, size=wx.Size(360, 570))
+        wx.Frame.__init__(self, parent, ID, title, size=wx.Size(375, 570))
 
         self.SetBackgroundStyle(wx.BG_STYLE_ERASE)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.app = app
         self.Bind(wx.EVT_CLOSE, self.onClose)
-        #nb = ToolbookImpl(self, app)
-        nb = ListbookImpl(self, app)
+        nb = NotebookImpl(self, app)
 
         font = wx.Font(10, wx.SWISS, wx.NORMAL, wx.NORMAL, )
         nb.SetFont(font)
@@ -729,7 +796,6 @@ class LogoutPanel(wx.Panel):
     def __init__(self, parent, app):
         self.app = app
         wx.Panel.__init__(self, parent)
-        #print('HERE')
         pass
 
 class MyStaticText(wx.StaticText):
@@ -769,16 +835,16 @@ class TopicsPanel(wx.Panel):
 
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
-        topPanel = wx.Panel(self, size=wx.Size(359, 560))
-        panelText1 = wx.Panel(self, -1, size=wx.Size(359, 20), style= wx.NO_BORDER)
-        panelList = wx.Panel(self, -1, size=wx.Size(359, 320))
-        panelText2 = wx.Panel(self, -1, size=wx.Size(359, 20))
-        panelTopic = wx.Panel(self, -1, size=wx.Size(359, 80))
+        topPanel = wx.Panel(self, size=wx.Size(374, 550), style= wx.NO_BORDER)
+        panelText1 = wx.Panel(self, -1, size=wx.Size(374, 20), style= wx.NO_BORDER)
+        panelList = wx.Panel(self, -1, size=wx.Size(374, 320))
+        panelText2 = wx.Panel(self, -1, size=wx.Size(374, 20))
+        panelTopic = wx.Panel(self, -1, size=wx.Size(374, 80))
         panelTopic.SetBackgroundColour((255, 255, 255))
-        panelBtn = wx.Panel(self, -1, size=wx.Size(359, 50))
+        panelBtn = wx.Panel(self, -1, size=wx.Size(374, 50))
 
-        text1 = MyStaticText(panelText1, -1, ' topics list:',size=wx.Size(359, 20))
-        text2 = MyStaticText(panelText2, -1, ' add new topic:', size=wx.Size(359, 20))
+        text1 = MyStaticText(panelText1, -1, ' topics list:',size=wx.Size(374, 20))
+        text2 = MyStaticText(panelText2, -1, ' add new topic:', size=wx.Size(374, 20))
 
         #self.timer = wx.Timer(self, 1)
         #self.count = 0
@@ -792,11 +858,11 @@ class TopicsPanel(wx.Panel):
         self.list.InsertColumn(1, "Qos")
         self.list.InsertColumn(2, "Button")
 
-        self.list.SetColumnWidth(0, 250)
+        self.list.SetColumnWidth(0, 265)
         self.list.SetColumnWidth(1, 50)
         self.list.SetColumnWidth(2, 50)
 
-        self.list.SetSize(350, 315)
+        self.list.SetSize(365, 315)
 
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -842,7 +908,7 @@ class TopicsPanel(wx.Panel):
                         self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
                     i += 1
 
-        self.btnCreate = wx.Button(panelBtn, label="Add", size=wx.Size(370, 50), style = wx.NO_BORDER)
+        self.btnCreate = wx.Button(panelBtn, label="Add", size=wx.Size(365, 50), style = wx.NO_BORDER)
         self.btnCreate.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.btnCreate.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.btnCreate.SetForegroundColour((255, 255, 255))
@@ -1004,11 +1070,11 @@ class MessagesPanel(wx.Panel):
 
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
-        topPanel = wx.Panel(self, size=wx.Size(361, 560))
-        panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
-        panelList = wx.Panel(self, -1, size=wx.Size(360, 470))
+        topPanel = wx.Panel(self, size=wx.Size(374, 530))
+        panelText = wx.Panel(self, -1, size=wx.Size(374, 20))
+        panelList = wx.Panel(self, -1, size=wx.Size(374, 495))
 
-        text = MyStaticText(panelText, -1, ' messages list:', size=wx.Size(360, 20))
+        text = MyStaticText(panelText, -1, ' messages list:', size=wx.Size(374, 20))
 
         self.list = ULC.UltimateListCtrl(panelList, wx.ID_ANY,
                                          agwStyle=ULC.ULC_NO_HEADER | wx.LC_REPORT | wx.LC_SINGLE_SEL | ULC.ULC_HAS_VARIABLE_ROW_HEIGHT)
@@ -1020,7 +1086,7 @@ class MessagesPanel(wx.Panel):
         self.list.SetColumnWidth(0, 280)
         self.list.SetColumnWidth(1, 59)
 
-        self.list.SetSize(350, 460)
+        self.list.SetSize(365, 492)
 
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -1114,25 +1180,26 @@ class SendPanel(wx.Panel):
         boldfont.SetWeight(wx.BOLD)
         boldfont.SetPointSize(12)
 
-        topPanel = wx.Panel(self, size=wx.Size(360, 560))
+        topPanel = wx.Panel(self, size=wx.Size(374, 550))
         #topPanel.SetBackgroundColour((255, 0, 0))
-        panelText = wx.Panel(self, -1, size=wx.Size(360, 20))
-        childPanel = wx.Panel(self, size=wx.Size(360, 400))
+        panelText = wx.Panel(self, -1, size=wx.Size(374, 20))
+        #panelText.SetBackgroundColour((0, 255, 0))
+        childPanel = wx.Panel(self, size=wx.Size(374, 430))
         childPanel.SetBackgroundColour((255, 255, 255))
 
-        panelContent = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelContent = wx.Panel(self, -1, size=wx.Size(374, 30))
         panelContent.SetBackgroundColour((255, 255, 255))
-        panelName = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelName = wx.Panel(self, -1, size=wx.Size(374, 30))
         panelName.SetBackgroundColour((224, 224, 224))
-        panelQos = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelQos = wx.Panel(self, -1, size=wx.Size(374, 30))
         panelQos.SetBackgroundColour((255, 255, 255))
-        panelRet = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelRet = wx.Panel(self, -1, size=wx.Size(374, 30))
         panelRet.SetBackgroundColour((224, 224, 224))
-        panelDup = wx.Panel(self, -1, size=wx.Size(360, 30))
+        panelDup = wx.Panel(self, -1, size=wx.Size(374, 30))
         panelDup.SetBackgroundColour((255, 255, 255))
-        panelButton = wx.Panel(self, -1, size=wx.Size(359, 50))
+        panelButton = wx.Panel(self, -1, size=wx.Size(374, 50))
 
-        text = MyStaticText(panelText, -1, ' send new message:', size=wx.Size(360, 20))
+        text = MyStaticText(panelText, -1, ' send new message:', size=wx.Size(374, 20))
         textBox = wx.BoxSizer(wx.HORIZONTAL)
         textBox.Add(text)
         panelText.SetSizer(textBox)
@@ -1141,7 +1208,7 @@ class SendPanel(wx.Panel):
         imgSettings = imgSettings.Scale(20, 20, wx.IMAGE_QUALITY_HIGH)
         self.imageCtrlContent = wx.StaticBitmap(panelContent, wx.ID_ANY, wx.Bitmap(imgSettings))
         self.contentLabel = wx.StaticText(panelContent, -1, "Content:")
-        self.contentText = wx.TextCtrl(panelContent, size=wx.Size(170, 30))
+        self.contentText = wx.TextCtrl(panelContent, size=wx.Size(185, 30))
         contentBox = wx.BoxSizer(wx.HORIZONTAL)
         contentBox.AddSpacer(10)
         contentBox.Add(self.imageCtrlContent, 0, wx.CENTER)
@@ -1153,7 +1220,7 @@ class SendPanel(wx.Panel):
 
         self.imageCtrlName = wx.StaticBitmap(panelName, wx.ID_ANY, wx.Bitmap(imgSettings))
         self.nameLabel = wx.StaticText(panelName, -1, "Topic:")
-        self.nameText = wx.TextCtrl(panelName, size=wx.Size(170, 30))
+        self.nameText = wx.TextCtrl(panelName, size=wx.Size(185, 30))
         nameBox = wx.BoxSizer(wx.HORIZONTAL)
         nameBox.AddSpacer(10)
         nameBox.Add(self.imageCtrlName, 0, wx.CENTER)
@@ -1199,7 +1266,7 @@ class SendPanel(wx.Panel):
         duplBox.Add(self.dubCheck, 1, wx.CENTER)
         panelDup.SetSizer(duplBox)
 
-        self.btnSend = wx.Button(panelButton, label="Send", size=wx.Size(350, 50), style = wx.NO_BORDER)
+        self.btnSend = wx.Button(panelButton, label="Send", size=wx.Size(374, 50), style = wx.NO_BORDER)
         self.btnSend.SetBackgroundColour(wx.Colour(30, 144, 255))
         self.btnSend.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.btnSend.SetForegroundColour((255, 255, 255))
@@ -1335,8 +1402,8 @@ class MyApp(wx.App, UIClient):
     def OnInit(self):
         self.gui = self
         self.client = None
-        #self.frame = LoadingForm(None, -1, "Loading", self)
-        self.frame = MainForm(None, -1, "Main", self)
+        self.frame = LoadingForm(None, -1, "Loading", self)
+        #self.frame = MainForm(None, -1, "Main", self)
         #self.frame = LoginForm(None, -1, "Login", self)
         self.frame.Show(True)
         datamanage = datamanager()
