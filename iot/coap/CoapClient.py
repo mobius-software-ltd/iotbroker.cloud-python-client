@@ -235,7 +235,7 @@ def ACKNOWLEDGEMENT(self,message):
         else:
             if self.pingNum == 0:
                 self.pingNum +=1
-                self.clientGUI.pingrespReceived()
+                self.clientGUI.pingrespReceived(True)
 
 def RESET(self,message):
     if isinstance(message, CoapMessage):

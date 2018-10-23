@@ -18,7 +18,9 @@ from twisted.internet import reactor
 from venv.iot.mqtt.MQTTclient import *
 from venv.iot.mqttsn.MQTTSNclient import *
 from venv.iot.coap.CoapClient import *
+from venv.iot.websocket.WSclient import *
 import platform
+import time
 
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 class LoadingForm(wx.Frame):
@@ -110,7 +112,10 @@ class LoadingForm(wx.Frame):
                    #next.Show()
 
                 if account.protocol == 4:
-                    print('Protocol= ' + str(protocols[account.protocol-1]))
+                    self.app.client = WSclient(account, self.app.gui)
+                    self.app.client.goConnect()
+                    time.sleep(1.5)
+                    self.Hide()
 
             else:
                 #print("show AccountsForm")
@@ -121,6 +126,9 @@ class LoadingForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+            if isinstance(self.app.client.clientFactory, WSSocketClientFactory):
+                self.app.client.clientFactory.ws.closeFlag = False
+
         reactor.stop()
 
 class AccountsForm(wx.Frame):
@@ -231,6 +239,8 @@ class AccountsForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+            if isinstance( self.app.client.clientFactory, WSSocketClientFactory):
+                self.app.client.clientFactory.ws.closeFlag = False
         reactor.stop()
 
 class LoginForm(wx.Frame):
@@ -536,6 +546,8 @@ class LoginForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+            if isinstance(self.app.client.clientFactory, WSSocketClientFactory):
+                self.app.client.clientFactory.ws.closeFlag = False
         reactor.stop()
 
 def getNextImageID(count):
@@ -615,148 +627,6 @@ class NotebookImpl(wx.Notebook):
         self.SetPageImage(1, 1)
         self.SetPageImage(2, 2)
 
-"""
-class ListbookImpl(wx.Listbook):
-    def __init__(self, parent, app):
-        #wx.Listbook.__init__(self, parent, wx.ID_ANY, size=wx.Size(360, 60), style=wx.BK_BOTTOM | wx.NB_FIXEDWIDTH | wx.NB_FLAT | wx.LC_ICON | wx.LC_NO_HEADER | wx.NO_BORDER)
-        wx.Listbook.__init__(self, parent, wx.ID_ANY,style=wx.BK_BOTTOM | wx.NB_FIXEDWIDTH | wx.NB_FLAT | wx.LC_ICON | wx.LC_NO_HEADER | wx.NO_BORDER | wx.LC_SINGLE_SEL)
-        self.SetOwnBackgroundColour((255,255,255))
-        self.SetThemeEnabled(False)
-        # Make an image list using the LBXX images
-        self.parent = parent
-        self.app = app
-
-        self.il = wx.ImageList(75, 41)
-        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
-        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
-        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
-        logout_img = wx.Bitmap("./resources/logout75.png")
-
-        tlist_img_blue = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
-        send_img_blue = wx.Bitmap("./resources/is_message_list_blue-2_75.png")
-        mlist_img_blue = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
-
-        self.il.Add(tlist_img)
-        self.il.Add(send_img)
-        self.il.Add(mlist_img)
-        self.il.Add(logout_img)
-
-        self.il.Add(tlist_img_blue)
-        self.il.Add(send_img_blue)
-        self.il.Add(mlist_img_blue)
-
-        self.AssignImageList(self.il)
-        self.notebookPageList = [(TopicsPanel(self, app), ''),
-                                 (SendPanel(self, app), ''),
-                                 (MessagesPanel(self, app), ''),
-                                 (LogoutPanel(self, app), '')]
-
-        i = 0
-        for page, label in self.notebookPageList:
-            self.AddPage(page, label, imageId=i)
-            i += 1
-            if i == 4:
-                break
-        self.SetPageImage(0, 4)
-        self.ChangeSelection(0)
-        self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
-
-    def OnPageChanged(self, event):
-        new = event.GetSelection()
-        self.defaultImagesSet()
-        if new == 0:
-            self.SetPageImage(0, 4)
-        if new == 1:
-            self.SetPageImage(1, 5)
-        if new == 2:
-            self.SetPageImage(2, 6)
-        if new == 3:
-            self.parent.Hide()
-            next = AccountsForm(None, 1, "Accounts List", self.parent.app)
-            next.Show()
-            # ______________________________________________________________________SEND___DISCONNECT
-            if self.parent.app.client is not None:
-                self.parent.app.client.disconnectWith(0)
-        event.Skip()
-
-    def defaultImagesSet(self):
-        self.SetPageImage(0, 0)
-        self.SetPageImage(1, 1)
-        self.SetPageImage(2, 2)
-
-class ToolbookImpl(wx.Toolbook):
-    def __init__(self, parent, app):
-        wx.Toolbook.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_CUSTOM | wx.BK_BOTTOM | wx.NO_BORDER)
-        # Make an image list using the LBXX images
-        self.parent = parent
-        self.app = app
-
-        self.il = wx.ImageList(75, 41)
-        tlist_img = wx.Bitmap("./resources/ic_topics_list_blue_75.png")
-        send_img = wx.Bitmap("./resources/is_message_list_blue-1_75.png")
-        mlist_img = wx.Bitmap("./resources/is_message_list_blue-03_75.png")
-        logout_img = wx.Bitmap("./resources/logout75.png")
-
-        tlist_img_blue = wx.Bitmap("./resources/ic_topics_list_blue-1_75.png")
-        send_img_blue = wx.Bitmap("./resources/is_message_list_blue-2_75.png")
-        mlist_img_blue = wx.Bitmap("./resources/is_message_list_blue-03-1_75.png")
-
-        self.il.Add(tlist_img)
-        self.il.Add(send_img)
-        self.il.Add(mlist_img)
-        self.il.Add(logout_img)
-
-        self.il.Add(tlist_img_blue)
-        self.il.Add(send_img_blue)
-        self.il.Add(mlist_img_blue)
-
-        self.SetImageList(self.il)
-
-        self.notebookPageList = [(TopicsPanel(self, app),  'Topics list'),
-                            (SendPanel(self, app),    'Send message'),
-                            (MessagesPanel(self, app),'Messages list'),
-                            (LogoutPanel(self, app),  'Logout')]
-
-        i = 0
-        for page, label in self.notebookPageList:
-            self.AddPage(page, label, imageId=i)
-            i += 1
-            if i == 4:
-                break
-
-        toolbar = self.GetToolBar()
-        if platform.system() == 'Linux':
-            toolbar.SetFont(wx.Font(7, wx.FONTBTN_DEFAULT_STYLE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        else:
-            toolbar.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.NORMAL))
-
-        toolbar.SetWindowStyle(style=wx.TB_FLAT)
-
-        #self.ChangeSelection(1)
-        self.Bind(wx.EVT_TOOLBOOK_PAGE_CHANGING, self.OnPageChanging)
-
-    def OnPageChanging(self, event):
-        new = event.GetSelection()
-        #print('OnPageChanging ' + str(new))
-
-        #print('page id= ' + str(self.GetPageImage(0)))
-        if new == 0:
-            self.SetPageImage(0,4)
-        #print('page id= ' + str(self.GetPageImage(0)))
-        if new == 1:
-            self.SetPageImage(1,5)
-        if new == 2:
-            self.SetPageImage(2,6)
-
-        if new == 3:
-            self.parent.Hide()
-            next = AccountsForm(None, 1, "Accounts List", self.parent.app)
-            next.Show()
-            #______________________________________________________________________SEND___DISCONNECT
-            if self.parent.app.client is not None:
-                self.parent.app.client.disconnectWith(0)
-        event.Skip()
-"""
 class MainForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
         wx.Frame.__init__(self, parent, ID, title, size=wx.Size(375, 570))
@@ -780,6 +650,8 @@ class MainForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
+            if isinstance(self.app.client.clientFactory, WSSocketClientFactory):
+                self.app.client.clientFactory.ws.closeFlag = False
         reactor.stop()
 
     def OnEraseBackground(self, evt):
@@ -1342,10 +1214,8 @@ class SendPanel(wx.Panel):
                                         incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
                 datamanage.add_entity(message)
 
-        self.parent.DeletePage(3)
-        self.parent.DeletePage(2)
-        self.parent.AddPage(MessagesPanel(self.parent, self.app), "messages", imageId=2)
-        self.parent.AddPage(LogoutPanel(self.parent, self.app), "logout", imageId=3)
+        self.app.frame.Hide()
+        self.app.connackReceived('code')
 
     def OnTimer(self, event):
         self.count = self.count+1
@@ -1364,14 +1234,14 @@ class SendPanel(wx.Panel):
                           'Warning',wx.OK | wx.ICON_WARNING)
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 
-protocols = ['mqtt', 'mqttsn', 'coap', 'AMQP']
+protocols = ['mqtt', 'mqttsn', 'coap', 'websocket']
 qos = ['0', '1', '2']
 
 switch_protocol = {
             'mqtt': 1,
             'mqttsn': 2,
             'coap': 3,
-            'AMQP': 4
+            'websocket': 4
         }
 
 switch_incoming = {
@@ -1421,7 +1291,7 @@ class MyApp(wx.App, UIClient):
         self.frame.Show()
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        print('App publishReceived')
+        #print('App publishReceived ' + str(content))
         #store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -1479,11 +1349,12 @@ class MyApp(wx.App, UIClient):
         self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show()
 
-    def pingrespReceived(self):
+    def pingrespReceived(self,coapFlag):
         #print('MyApp pingresp Received')
-        self.frame.Hide()
-        self.frame = MainForm(None, -1, "Main", self)
-        self.frame.Show()
+        if coapFlag:
+            self.frame.Hide()
+            self.frame = MainForm(None, -1, "Main", self)
+            self.frame.Show()
 
     def disconnectReceived(self):
         #print('MyApp disconnectReceived')

@@ -11,7 +11,7 @@ class Will(object):
 
         if len(self.content) > 0:
             totalLength += len(self.content) + 2
-
+        #print('Will length ' + str(totalLength) + ' topic len= ' +str(self.topic.getLength()) + ' content len= ' + str(len(self.content)))
         return totalLength
 
     def valid(self):

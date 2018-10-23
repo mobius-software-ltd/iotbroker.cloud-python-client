@@ -51,15 +51,24 @@ class TimersMap():
         if len(self.timersMap) == 1000:
             raise ValueError('TimersMap : Outgoing identifier overflow')
 
-        if message.packetID == 0:
-            message.packetID = self.getNewPacketID()
-            if isinstance(message, CoapMessage):
-                message.token = str(message.packetID)
+        if str(type(message).__name__) != 'dict':
+            if message.packetID == 0:
+                message.packetID = self.getNewPacketID()
+                if isinstance(message, CoapMessage):
+                    message.token = str(message.packetID)
 
-        timer = TimerTask(message, 3, self.client)
-        self.timersMap[message.packetID] = timer
-        timer.start()
-        return message.packetID
+            timer = TimerTask(message, 3, self.client)
+            self.timersMap[message.packetID] = timer
+            timer.start()
+            return message.packetID
+        else:
+            if message['packetID'] == None:
+                message['packetID'] = self.getNewPacketID()
+
+            timer = TimerTask(message, 3, self.client)
+            self.timersMap[message['packetID']] = timer
+            timer.start()
+            return message['packetID']
 
     def removeTimer(self, id):
         timer = self.timersMap.get(id)

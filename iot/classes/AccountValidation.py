@@ -20,6 +20,9 @@ class AccountValidation:
                 return False
 
         if account.protocol == 4:
-            print('Protocol= ' + str(protocols[account.protocol - 1]))
+            if (account.username and account.password and account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<65535):
+                return True
+            else:
+                return False
 
-protocols = ['mqtt', 'mqttsn', 'coap', 'AMQP']
+protocols = ['mqtt', 'mqttsn', 'coap', 'websocket']

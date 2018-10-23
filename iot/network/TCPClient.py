@@ -1,4 +1,4 @@
-from twisted.internet import reactor, tksupport
+from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, ReconnectingClientFactory
 
 class TCPClient(Protocol):

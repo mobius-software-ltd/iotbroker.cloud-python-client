@@ -205,7 +205,7 @@ def processPubcomp(self,message):
         self.clientGUI.pubackReceived(publish.topic, publish.topic.getQoS(), publish.content, publish.dup, publish.retain,0)
 
 def processPingresp(self,message):
-    self.clientGUI.pingrespReceived()
+    self.clientGUI.pingrespReceived(False)
 
 def processSubscribe(self,message):
     self.clientGUI.errorReceived('received invalid message subscribe')
