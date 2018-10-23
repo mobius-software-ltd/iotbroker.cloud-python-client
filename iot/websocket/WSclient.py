@@ -49,7 +49,9 @@ class WSclient(IoTClient):
 
         self.setState(ConnectionState.CONNECTING)
         if self.account.willTopic and len(self.account.willTopic)>0 is not None:
-            will = {"topic":{"name":self.account.willTopic,"qos":self.account.qos},"content":self.account.will,"retain":self.account.isRetain}
+            will = {"topic": {"name": self.account.willTopic, "qos": self.account.qos},
+                    "content": base64.b64encode(self.account.will.encode()).decode("utf-8"),
+                    "retain": self.account.isRetain}
             willFlag = True
         else:
             will = None
