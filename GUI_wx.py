@@ -1215,7 +1215,7 @@ class SendPanel(wx.Panel):
                 datamanage.add_entity(message)
 
         self.app.frame.Hide()
-        self.app.connackReceived('code')
+        self.app.showMainForm()
 
     def OnTimer(self, event):
         self.count = self.count+1
@@ -1234,14 +1234,15 @@ class SendPanel(wx.Panel):
                           'Warning',wx.OK | wx.ICON_WARNING)
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 
-protocols = ['mqtt', 'mqttsn', 'coap', 'websocket']
+protocols = ['mqtt', 'mqttsn', 'coap', 'websocket','amqp']
 qos = ['0', '1', '2']
 
 switch_protocol = {
             'mqtt': 1,
             'mqttsn': 2,
             'coap': 3,
-            'websocket': 4
+            'websocket': 4,
+            'amqp':5
         }
 
 switch_incoming = {
@@ -1285,10 +1286,13 @@ class MyApp(wx.App, UIClient):
     def timeout(self):
         print("GUI timeout")
 
-    def connackReceived(self, returnCode):
-        #print('App connackReceived')
+    def showMainForm(self):
         self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show()
+
+    def connackReceived(self, returnCode):
+        #print('App connackReceived')
+        self.showMainForm()
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
         #print('App publishReceived ' + str(content))
@@ -1306,8 +1310,7 @@ class MyApp(wx.App, UIClient):
         datamanage.add_entity(message)
         #print('Message stored to DB ' + str(message))
         self.frame.Hide()
-        self.frame = MainForm(None, -1, "Main", self)
-        self.frame.Show()
+        self.showMainForm()
 
     def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode):
         #print('App pubackReceived')
@@ -1326,8 +1329,7 @@ class MyApp(wx.App, UIClient):
         datamanage.add_entity(message)
         #print('App pubackReceived entity was saved')
         self.frame.Hide()
-        self.frame = MainForm(None, -1, "Main", self)
-        self.frame.Show()
+        self.showMainForm()
 
     def subackReceived(self, topic, qos, returnCode):
         #print('App subackReceived' + str(topic) + ' ' + str(qos))
@@ -1346,15 +1348,13 @@ class MyApp(wx.App, UIClient):
             datamanage.delete_topic_name(name)
             #print('Topic deleted from DB ' + str(name))
         self.frame.Hide()
-        self.frame = MainForm(None, -1, "Main", self)
-        self.frame.Show()
+        self.showMainForm()
 
     def pingrespReceived(self,coapFlag):
         #print('MyApp pingresp Received')
         if coapFlag:
             self.frame.Hide()
-            self.frame = MainForm(None, -1, "Main", self)
-            self.frame.Show()
+            self.showMainForm()
 
     def disconnectReceived(self):
         #print('MyApp disconnectReceived')
