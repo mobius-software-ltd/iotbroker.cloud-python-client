@@ -35,17 +35,24 @@ class TLVList(TLVAmqp):
             self.width = 4
             self.size += 3
 
-    def addElement(self, element):
-        if self.size == 0:
-            self.constructor.setCode(AMQPType.LIST_8)
-            self.width = 1
-            self.size += 1
-        if isinstance(self.values, list):
-            self.values.append(element)
-            self.count += 1
-        if isinstance(element, TLVAmqp):
-            self.size += element.getLength()
-        self.update()
+    def addElement(self, index, element):
+        if index is None:
+            if self.size == 0:
+                self.constructor.setCode(AMQPType.LIST_8)
+                self.width = 1
+                self.size += 1
+            if isinstance(self.values, list):
+                self.values.append(element)
+                self.count += 1
+            if isinstance(element, TLVAmqp):
+                self.size += element.getLength()
+            self.update()
+        else:
+            diff = index - len(self.values)
+            while diff > 0:
+                self.addElement(element=TLVNull())
+                diff -= 1
+            self.setElement(index, element)
 
     def setElement(self, index, element):
         self.size -= self.values[index].getLength()
@@ -53,12 +60,7 @@ class TLVList(TLVAmqp):
         self.size += element.getLength()
         self.update()
 
-    def addElement(self, index, element):
-        diff = index - len(self.values)
-        while diff > 0:
-            self.addElement(element = TLVNull())
-            diff -= 1
-        self.setElement(index, element)
+
 
     def addToList(self, index, elemIndex, element):
         if self.count < index:
@@ -138,10 +140,10 @@ class TLVList(TLVAmqp):
         return self.constructor.getLength() + self.width + self.size
 
     def getCode(self, arg):
-        pass
+        return self.getConstructor().getCode()
 
     def getConstructor(self, arg):
-        pass
+        return self.constructor
 
     def isNull(self):
         pass

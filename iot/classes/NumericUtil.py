@@ -1,6 +1,8 @@
 import struct
 
 class NumericUtil(object):
+    def __init__(self):
+        pass
 
     def addByte(data, byte):
         data.append(byte)
