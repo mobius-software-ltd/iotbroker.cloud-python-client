@@ -47,37 +47,38 @@ class TLVMap(TLVAmqp):
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
 
-        sizeBytes = bytearray(self.width)
+        sizeBytes = bytearray()
         if self.width == 1:
             sizeBytes = util.addByte(sizeBytes, self.size)
         else:
             sizeBytes = util.addInt(sizeBytes, self.size)
 
-        countBytes = bytearray(self.width)
+        countBytes = bytearray()
         if self.width == 1:
             countBytes = util.addByte(countBytes, self.count*2)
         else:
             countBytes = util.addInt(countBytes, self.count*2)
 
-        valueBytes = bytearray(self.size - self.width)
+        valueBytes = bytearray()
         pos = 0
         if isinstance(self.map, dict):
             for key, value in self.map.items():
                 if isinstance(key, TLVAmqp) and isinstance(value, TLVAmqp):
                     keyBytes = key.getBytes()
                     valBytes = value.getBytes()
-                    valueBytes[pos:len(keyBytes)-1] = keyBytes[0:len(keyBytes)-1]
+                    valueBytes.append(keyBytes)
                     pos += len(keyBytes)
-                    valueBytes[pos:len(valBytes) - 1] = valBytes[0:len(valBytes) - 1]
+                    valueBytes.append(valBytes)
                     pos += len(valBytes)
 
-        data = bytearray(len(constructorBytes) + len(sizeBytes) + len(countBytes) + len(valueBytes))
-        data[0:len(constructorBytes)-1] = constructorBytes[0:len(constructorBytes)-1]
+        data = bytearray()
+        data.append(constructorBytes)
         if self.size > 0:
-            data[len(constructorBytes):len(sizeBytes)-1] = sizeBytes[0:len(sizeBytes) - 1]
-            data[len(constructorBytes)+len(sizeBytes)-1:len(countBytes) - 1] = countBytes[0:len(countBytes) - 1]
-            data[len(constructorBytes) + len(sizeBytes) + len(valueBytes)- 1:len(valueBytes) - 1] = valueBytes[0:len(valueBytes) - 1]
+            data += sizeBytes
+            data += countBytes
+            data += valueBytes
 
+        print('TLVMap getBytes ' + str(data))
         return data
 
     def getMap(self):
@@ -89,11 +90,11 @@ class TLVMap(TLVAmqp):
     def getLength(self):
         return self.constructor.getLength() + self.width + self.size
 
-    def getCode(self, arg):
+    def getCode(self):
         pass
 
-    def getConstructor(self, arg):
-        pass
+    def getConstructor(self):
+        return self.constructor
 
     def isNull(self):
         pass

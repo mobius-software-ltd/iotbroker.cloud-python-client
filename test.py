@@ -7,7 +7,7 @@ if isinstance(x, np.float32):
 
 listt = [1,2,3]
 if isinstance(listt,list):
-    print('list')
+    print('list ' + str(listt[0]))
 
 d = {'abc':'abc','def':{'ghi':'ghi','jkl':'jkl'}}
 for ele in d.values():
@@ -55,3 +55,31 @@ if isinstance(list, TLVAmqp):
 if isinstance(list, TLVList):
     print('TLVList')
 
+from datetime import datetime
+dt = datetime.utcnow()
+dt64 = np.datetime64(dt)
+ts = (dt64 - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+print(str(ts))
+
+from venv.iot.amqp.avps.AMQPType import *
+print(str(AMQPType(0x1D)))
+
+from venv.iot.amqp.state.SASLState import *
+from venv.iot.amqp.avps.HeaderCode import *
+print(str(SASLState.validate(HeaderCode.MECHANISMS)))
+print(str(SASLState.validate(HeaderCode.INIT)))
+print(str(SASLState.validate(HeaderCode.OUTCOME)))
+
+from venv.iot.amqp.wrappers.MessageID import *
+from venv.iot.amqp.wrappers.LongID import *
+long = LongID(10)
+if isinstance(long, LongID):
+    print('Long')
+if isinstance(long, MessageID):
+    print('MessageID ' + str(long.getLong()))
+
+print(HeaderCode.TRANSFER.value)
+
+from venv.iot.amqp.constructor.SimpleConstructor import *
+constr = SimpleConstructor('123')
+print(str(constr.getLength()))

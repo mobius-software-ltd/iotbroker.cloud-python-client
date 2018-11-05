@@ -7,7 +7,7 @@ class TLVAmqp(metaclass=abc.ABCMeta):
         self.constructor = constructor
 
     @abc.abstractmethod
-    def getConstructor(self, arg):
+    def getConstructor(self):
         return self.constructor
 
     @abc.abstractmethod
@@ -15,7 +15,7 @@ class TLVAmqp(metaclass=abc.ABCMeta):
         self.constructor = arg
 
     @abc.abstractmethod
-    def getCode(self, arg):
+    def getCode(self):
         if isinstance(self.constructor, SimpleConstructor):
             return self.constructor.getCode()
 

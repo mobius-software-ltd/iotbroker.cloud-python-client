@@ -11,14 +11,17 @@ class TLVFixed(TLVAmqp):
 
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
-        data = bytearray(len(constructorBytes)+len(self.value))
-        data[0,len(constructorBytes)-1] = constructorBytes[0:len(constructorBytes)-1]
-        if len(self.value) > 0:
-            data[len(constructorBytes):len(constructorBytes)+len(self.value)-1] = self.value[0:len(self.value)-1]
+        #data = bytearray(len(str(constructorBytes))+len(str(self.value)))
+        data = bytearray()
+        data.append(constructorBytes)
+        print('data= ' + str(data))
+        if len(str(self.value)) > 0:
+            data.append(self.value)
+            #data[len(constructorBytes):len(constructorBytes)+len(self.value)-1] = self.value[0:len(self.value)-1]
         return data
 
     def getLength(self):
-        return len(self.value) + len(self.constructor.getLength())
+        return len(str(self.value)) + self.constructor.getLength()
 
     def getValue(self):
         return self.value
@@ -44,11 +47,11 @@ class TLVFixed(TLVAmqp):
             s = str(self.value)
         return s
 
-    def getCode(self, arg):
+    def getCode(self):
         pass
 
-    def getConstructor(self, arg):
-        pass
+    def getConstructor(self):
+        return self.constructor
 
     def isNull(self):
         pass

@@ -13,7 +13,7 @@ class TLVList(TLVAmqp):
             self.width = 0
             self.count = 0
             self.size = 0
-            self.values = None
+            self.values = []
             self.constructor = SimpleConstructor(AMQPType.LIST_0)
         else:
             self.values = values
@@ -36,7 +36,7 @@ class TLVList(TLVAmqp):
             self.size += 3
 
     def addElement(self, index, element):
-        if index is None:
+        if index is None or index == 0:
             if self.size == 0:
                 self.constructor.setCode(AMQPType.LIST_8)
                 self.width = 1
@@ -44,6 +44,7 @@ class TLVList(TLVAmqp):
             if isinstance(self.values, list):
                 self.values.append(element)
                 self.count += 1
+            #print('self.values ' + str(self.values) + ' ' + str(self.count))
             if isinstance(element, TLVAmqp):
                 self.size += element.getLength()
             self.update()
@@ -59,8 +60,6 @@ class TLVList(TLVAmqp):
         self.values[index] = element
         self.size += element.getLength()
         self.update()
-
-
 
     def addToList(self, index, elemIndex, element):
         if self.count < index:
@@ -101,33 +100,36 @@ class TLVList(TLVAmqp):
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
 
-        sizeBytes = bytearray(self.width)
+        sizeBytes = bytearray()
         if self.width == 1:
             sizeBytes = util.addByte(sizeBytes, self.size)
         elif self.width != 0:
             sizeBytes = util.addInt(sizeBytes, self.size)
 
-        countBytes = bytearray(self.width)
+        countBytes = bytearray()
         if self.width == 1:
             countBytes = util.addByte(countBytes, self.count)
         elif self.width != 0:
             countBytes = util.addInt(countBytes, self.count)
 
-        valueBytes = bytearray(self.size - self.width)
+        valueBytes = bytearray()
         pos = 0
-        for tlv in self.values:
-            if isinstance(tlv, TLVAmqp):
-                tlvBytes = tlv.getBytes()
-                valueBytes[pos:len(tlvBytes)-1] = tlvBytes[0:len(tlvBytes)-1]
-                pos += len(tlvBytes)
+        if self.values is not None:
+            for tlv in self.values:
+                if isinstance(tlv, TLVAmqp):
+                    tlvBytes = tlv.getBytes()
+                    valueBytes[pos:len(tlvBytes)-1] = tlvBytes[0:len(tlvBytes)]
+                    pos += len(tlvBytes)
 
-        data = bytearray(len(constructorBytes) + len(sizeBytes) + len(countBytes) + len(valueBytes))
-        data[0:len(constructorBytes)-1] = constructorBytes[0:len(constructorBytes)-1]
+        data = bytearray()
+        #print(str(constructorBytes[0]))
+        data.append(constructorBytes[0])
         if self.size > 0:
-            data[len(constructorBytes):len(sizeBytes)-1] = sizeBytes[0:len(sizeBytes) - 1]
-            data[len(constructorBytes)+len(sizeBytes)-1:len(countBytes) - 1] = countBytes[0:len(countBytes) - 1]
-            data[len(constructorBytes) + len(sizeBytes) + len(valueBytes)- 1:len(valueBytes) - 1] = valueBytes[0:len(valueBytes) - 1]
+            data += sizeBytes
+            data += countBytes
+            data += valueBytes
 
+        print('TLVList getBytes ' + str(data))
         return data
 
     def getList(self):
@@ -137,19 +139,20 @@ class TLVList(TLVAmqp):
         return None
 
     def getLength(self):
+        #print('getLength ' + str(self.constructor.getLength()) + ' ' + str(self.width) + ' ' + str(self.size))
         return self.constructor.getLength() + self.width + self.size
 
-    def getCode(self, arg):
+    def getCode(self):
         return self.getConstructor().getCode()
 
-    def getConstructor(self, arg):
+    def getConstructor(self):
         return self.constructor
 
     def isNull(self):
         pass
 
-    def setCode(self, arg):
+    def setCode(self):
         pass
 
-    def setConstructor(self, arg):
-        pass
+    def setConstructor(self, constructor):
+        self.constructor = constructor

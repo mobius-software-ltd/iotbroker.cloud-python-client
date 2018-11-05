@@ -18,11 +18,11 @@ class TLVNull(TLVAmqp):
     def toString(self):
         return 'NULL'
 
-    def getCode(self, arg):
+    def getCode(self):
         pass
 
-    def getConstructor(self, arg):
-        pass
+    def getConstructor(self):
+        return self.constructor
 
     def isNull(self):
         return True

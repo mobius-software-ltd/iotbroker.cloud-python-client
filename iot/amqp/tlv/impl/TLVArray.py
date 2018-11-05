@@ -12,7 +12,7 @@ class TLVArray(TLVAmqp):
             self.width = 1
             self.count = 0
             self.size = 0
-            self.values = None
+            self.values = []
             self.constructor = SimpleConstructor(AMQPType.ARRAY_8)
         else:
             self.constructor = SimpleConstructor(code)
@@ -35,7 +35,7 @@ class TLVArray(TLVAmqp):
         return self.constructor
 
     def addElement(self, element):
-        if len(self.values) == 0:
+        if self.values is not None and len(self.values) == 0:
             if isinstance(element, TLVAmqp):
                 self.constructor = element.getConstructor()
                 self.size += self.width
@@ -49,38 +49,39 @@ class TLVArray(TLVAmqp):
             self.width = 4
             self.size += 3
 
-
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
 
-        sizeBytes = bytearray(self.width)
+        sizeBytes = bytearray()
         if self.width == 1:
             sizeBytes = util.addByte(sizeBytes, self.size)
         elif self.width != 0 and self.width == 4:
             sizeBytes = util.addInt(sizeBytes, self.size)
 
-        countBytes = bytearray(self.width)
+        countBytes = bytearray()
         if self.width == 1:
             countBytes = util.addByte(countBytes, self.count)
         elif self.width != 0 and self.width == 4:
             countBytes = util.addInt(countBytes, self.count)
 
         elementConstructorBytes = self.constructor.getBytes()
-        valueBytes = bytearray(self.size - self.width)
+        #print(str(self.size) + '' + str(self.width))
+        valueBytes = bytearray()
         pos = 0
         for tlv in self.values:
             if isinstance(tlv, TLVAmqp):
                 tlvBytes = tlv.getBytes()
-                valueBytes[pos:len(tlvBytes)-len(elementConstructorBytes)-1] = tlvBytes[len(elementConstructorBytes)-1:len(tlvBytes)-len(elementConstructorBytes)]
-                pos += len(tlvBytes) - len(elementConstructorBytes)-1
+                valueBytes += tlvBytes[len(str(elementConstructorBytes)) - 1:len(tlvBytes)]
+                pos += len(tlvBytes) - len(str(elementConstructorBytes))-1
 
-        data = bytearray(len(constructorBytes) + len(sizeBytes) + len(countBytes) + len(valueBytes))
-        data[0:len(constructorBytes)-1] = constructorBytes[0:len(constructorBytes)-1]
+        data = bytearray()
+        data.append(constructorBytes)
         if self.size > 0:
-            data[len(constructorBytes):len(sizeBytes)-1] = sizeBytes[0:len(sizeBytes) - 1]
-            data[len(constructorBytes)+len(sizeBytes)-1:len(countBytes) - 1] = countBytes[0:len(countBytes) - 1]
-            data[len(constructorBytes) + len(sizeBytes) + len(valueBytes)- 1:len(valueBytes) - 1] = valueBytes[0:len(valueBytes) - 1]
+            data += sizeBytes
+            data += countBytes
+            data += valueBytes
 
+        print('TLVArray.getBytes ' + str(data))
         return data
 
     def getElements(self):
@@ -101,11 +102,11 @@ class TLVArray(TLVAmqp):
                 return True
         return False
 
-    def getCode(self, arg):
+    def getCode(self):
         pass
 
-    def getConstructor(self, arg):
-        pass
+    def getConstructor(self):
+        return self.constructor
 
     def isNull(self):
         pass
@@ -114,4 +115,4 @@ class TLVArray(TLVAmqp):
         pass
 
     def setConstructor(self, arg):
-        pass
+        self.constructor = arg

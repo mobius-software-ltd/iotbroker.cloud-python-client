@@ -18,7 +18,7 @@ class AMQPWrapper(object):
     def wrap(self, obj):
         result = None
 
-        if isinstance(obj, None):
+        if obj is None:
             return TLVNull()
 
         if isinstance(obj, np.int8):
@@ -249,6 +249,7 @@ class AMQPWrapper(object):
         array = TLVArray(None,None)
         for obj in input:
             array.addElement(self.wrap(obj))
+        #print('array ' + str(array))
         return array
 
     def convertUInt(self, i):

@@ -15,31 +15,31 @@ class TLVVariable(TLVAmqp):
 
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
-        widthBytes = bytearray(self.width)
+        widthBytes = bytearray()
         if self.width == 1:
-            widthBytes[0] = len(self.value)
+            widthBytes.append(len(self.value))
         elif self.width == 4:
             widthBytes = util.addInt(widthBytes, len(self.value))
 
-        data = bytearray(len(constructorBytes)+len(self.width)+len(self.value))
-
-        data[0,len(constructorBytes)-1] = constructorBytes[0:len(constructorBytes)-1]
-        data[len(constructorBytes):len(constructorBytes)+len(self.width)-1] = widthBytes[0:len(widthBytes) - 1]
+        data = bytearray()
+        data.append(constructorBytes)
+        data += widthBytes
         if len(self.value) > 0:
-            data[len(constructorBytes)+len(self.width):len(constructorBytes)+len(self.value)+len(self.width)-1] = self.value[0:len(self.value)-1]
+            data += self.value
+        print('TLVVariable.getBytes ' + str(data))
         return data
 
     def getLength(self):
-        return len(self.value) + len(self.constructor.getLength())
+        return len(self.value) + self.constructor.getLength()
 
     def getValue(self):
         return self.value
 
-    def getCode(self, arg):
+    def getCode(self):
         pass
 
-    def getConstructor(self, arg):
-        pass
+    def getConstructor(self):
+        return self.constructor
 
     def isNull(self):
         pass
