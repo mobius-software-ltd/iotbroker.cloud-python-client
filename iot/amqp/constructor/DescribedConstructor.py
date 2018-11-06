@@ -19,12 +19,14 @@ class DescribedConstructor(SimpleConstructor):
             return self.descriptor.getLength() + 2
 
     def getBytes(self):
-        data = []
+        data = bytearray(1)
         if isinstance(self.descriptor, TLVAmqp):
-            data.append(self.descriptor.getBytes())
-            data[0] = 0
+            descriptorBytes = self.descriptor.getBytes()
+            data += descriptorBytes
+            #print('DATA ' + str(data) + ' descriptorBytes= ' + str(descriptorBytes))
             if isinstance(self.code, AMQPType):
-                data[len(data)-1] = self.code.value
+                data.append(self.code.value)
+        #print('DATA ' + str(data))
         return data
 
     def getDescriptorCode(self):

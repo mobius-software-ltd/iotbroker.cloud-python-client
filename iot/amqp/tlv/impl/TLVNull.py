@@ -19,7 +19,7 @@ class TLVNull(TLVAmqp):
         return 'NULL'
 
     def getCode(self):
-        pass
+        return self.constructor.getCode()
 
     def getConstructor(self):
         return self.constructor

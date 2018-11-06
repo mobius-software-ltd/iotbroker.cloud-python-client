@@ -13,7 +13,7 @@ class SASLChallenge(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCode.CHALLENGE
+            self.code = HeaderCodeClear.CHALLENGE
         if doff is not None:
             self.doff = doff
         else:

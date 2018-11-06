@@ -16,3 +16,6 @@ class AMQPPing(AMQPHeader):
 
     def fromArgumentsList(self, list):
         pass
+
+    def toString(self):
+        return "AMQPPing"

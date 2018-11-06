@@ -1,5 +1,5 @@
 from venv.iot.amqp.avps.AMQPType import *
-from venv.iot.amqp.avps.HeaderCodeClear import *
+from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.avps.SectionCode import *
 from venv.iot.amqp.constructor.DescribedConstructor import *
 from venv.iot.amqp.header.api.AMQPHeader import *
@@ -16,7 +16,7 @@ class SASLMechanisms(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCodeClear.MECHANISMS.value
+            self.code = HeaderCode.MECHANISMS.value
         if doff is not None:
             self.doff = doff
         else:
@@ -32,7 +32,6 @@ class SASLMechanisms(AMQPHeader):
         self.mechanisms = mechanisms
 
     def toArgumentsList(self):
-
         list = TLVList(None,None)
 
         if self.mechanisms == None:
@@ -42,7 +41,7 @@ class SASLMechanisms(AMQPHeader):
         #print('SASLMechanismsm.toArgumentsList ' + str(list))
         constructor = DescribedConstructor(list.getCode(), TLVFixed(AMQPType.SMALL_ULONG, 0x40))
         list.setConstructor(constructor)
-        #print('LIST ' + str(list.getLength()))
+        #print('SASLMechanisms.toArgumentsList ' + str(list.getConstructor().getCode().value))
         return list
 
     def fromArgumentsList(self, list):
@@ -52,7 +51,9 @@ class SASLMechanisms(AMQPHeader):
                 element = list.getList()[0]
                 if element is None:
                     raise ValueError("Received malformed SASL-Init header: mechanism can't be null")
-                self.mechanisms = AMQPUnwrapper.unwrapArray(element)
+                unwrapper = AMQPUnwrapper()
+                #print('fromArgumentsList element ' + str(element))
+                self.mechanisms = unwrapper.unwrapArray(element)
 
     def toString(self):
         return "SASLMechanisms [mechanisms=" + str(self.mechanisms) + ", code=" + str(self.code) + ", doff=" + str(self.doff) + ", type=" + str(self.type) + ", channel=" + str(self.channel) + "]"

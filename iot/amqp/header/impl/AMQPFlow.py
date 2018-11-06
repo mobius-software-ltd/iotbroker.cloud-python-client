@@ -14,7 +14,7 @@ class AMQPFlow(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCode.FLOW
+            self.code = HeaderCodeClear.FLOW
         if doff is not None:
             self.doff = doff
         else:

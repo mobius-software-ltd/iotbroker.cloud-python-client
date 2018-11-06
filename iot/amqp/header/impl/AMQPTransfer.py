@@ -19,7 +19,7 @@ class AMQPTransfer(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCode.TRANSFER
+            self.code = HeaderCodeClear.TRANSFER
         if doff is not None:
             self.doff = doff
         else:

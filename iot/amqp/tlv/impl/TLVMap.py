@@ -91,7 +91,7 @@ class TLVMap(TLVAmqp):
         return self.constructor.getLength() + self.width + self.size
 
     def getCode(self):
-        pass
+        return self.constructor.getCode()
 
     def getConstructor(self):
         return self.constructor

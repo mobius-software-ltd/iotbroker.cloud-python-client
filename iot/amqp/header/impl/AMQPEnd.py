@@ -14,7 +14,7 @@ class AMQPEnd(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCode.END
+            self.code = HeaderCodeClear.END
         if doff is not None:
             self.doff = doff
         else:

@@ -7,6 +7,9 @@ class AMQPHeader(Parsable):
         self.type = type
         self.channel = channel
 
+    def setDoff(self,doff):
+        self.doff = doff
+
     def getDoff(self):
         return self.doff
 

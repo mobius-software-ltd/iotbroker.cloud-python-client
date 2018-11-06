@@ -24,6 +24,11 @@ from venv.iot.amqp.sections.MessageAnnotations import *
 from venv.iot.amqp.sections.AMQPProperties import *
 from venv.iot.amqp.sections.AMQPSequence import *
 from venv.iot.amqp.sections.AMQPValue import *
+from venv.iot.amqp.header.impl.SASLMechanisms import *
+from venv.iot.amqp.header.impl.SASLChallenge import *
+from venv.iot.amqp.header.impl.SASLInit import *
+from venv.iot.amqp.header.impl.SASLOutcome import *
+from venv.iot.amqp.header.impl.SASLResponse import *
 
 class HeaderFactory(object):
     def __init__(self, index):
@@ -32,6 +37,9 @@ class HeaderFactory(object):
 
     def getIndex(self):
         return self.index
+
+    def setIndex(self,index):
+        self.index = index
 
     def getAMQP(self, buf):
         list = self.tlvFactory.getTlv(buf)
@@ -43,31 +51,64 @@ class HeaderFactory(object):
                 raise ValueError('Received amqp-header with malformed arguments')
 
             byteCode = list.getConstructor().getDescriptorCode()
-            code = HeaderCode(byteCode)
+            code = HeaderCodeClear(byteCode)
 
-            header = code.emptyHeader()
+            if code == HeaderCodeClear.ATTACH:
+                header = AMQPAttach()
+            elif code == HeaderCodeClear.BEGIN:
+                header = AMQPBegin()
+            elif code == HeaderCodeClear.CLOSE:
+                header = AMQPClose()
+            elif code == HeaderCodeClear.DETACH:
+                header = AMQPDetach()
+            elif code == HeaderCodeClear.DISPOSITION:
+                header = AMQPDisposition()
+            elif code == HeaderCodeClear.END:
+                header = AMQPEnd()
+            elif code == HeaderCodeClear.FLOW:
+                header = AMQPFlow()
+            elif code == HeaderCodeClear.OPEN:
+                header = AMQPOpen()
+            elif code == HeaderCodeClear.TRANSFER:
+                header = AMQPTransfer()
+
             if isinstance(header, AMQPHeader):
                 header.fromArgumentsList(list)
                 return header
         return None
 
     def getSASL(self, buf):
+        #print('getSASL ' + str(buf) + ' ' +str(self.index))
         list = self.tlvFactory.getTlv(buf)
+        #print('EXIT')
         self.index = self.tlvFactory.getIndex()
-
+        #print('list ' + str(self.index))
         if list is not None and isinstance(list,TLVAmqp):
+
             code  = list.getCode()
             if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
                 raise ValueError('Received sasl-header with malformed arguments')
 
             byteCode = list.getConstructor().getDescriptorCode()
+            #print('list.getConstructor() ' + str(list.getValue()))
             code = HeaderCode(byteCode)
+            #print('code ' + str(code))
 
-            header = code.emptySASL()
+            #header = HeaderCode.emptySASL()
+            if code == HeaderCode.CHALLENGE:
+                header = SASLChallenge(None,None,None,None,None)
+            elif code == HeaderCode.INIT:
+                header = SASLInit(None,None,None,None,None,None,None)
+            elif code == HeaderCode.MECHANISMS:
+                header = SASLMechanisms(None,None,None,None,None)
+            elif code == HeaderCode.OUTCOME:
+                header = SASLOutcome(None,None,None,None,None,None)
+            elif code == HeaderCode.RESPONSE:
+                header = SASLResponse(None,None,None,None,None)
+
             if isinstance(header, AMQPHeader):
                 header.fromArgumentsList(list)
                 return header
-        return None
 
     def getSection(self, buf):
         value = self.tlvFactory.getTlv(buf)

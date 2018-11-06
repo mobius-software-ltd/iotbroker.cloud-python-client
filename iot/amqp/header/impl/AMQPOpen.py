@@ -1,5 +1,4 @@
 from venv.iot.amqp.avps.AMQPType import *
-from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.constructor.DescribedConstructor import *
 from venv.iot.amqp.header.api.AMQPHeader import *
 from venv.iot.amqp.header.api.AMQPUnwrapper import *

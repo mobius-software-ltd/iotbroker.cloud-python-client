@@ -192,8 +192,9 @@ class AMQPUnwrapper(object):
     def unwrapArray(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
+            #print('code = ' + str(code))
             if code not in (AMQPType.ARRAY_8,AMQPType.ARRAY_32):
-                raise ValueError('Error trying to parse ARRAY: received ' + str(tlv.getCode()))
+                raise ValueError('Error trying to parse ARRAY: received ' + str(code))
             result = []
             if isinstance(tlv, TLVArray):
                 for value in tlv.getElements():

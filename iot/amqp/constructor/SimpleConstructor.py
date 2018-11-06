@@ -2,6 +2,7 @@ from venv.iot.amqp.avps.AMQPType import *
 
 class SimpleConstructor(object):
     def __init__(self, code):
+        #print('Simple ' + str(code))
         self.code = code
 
     def getCode(self):

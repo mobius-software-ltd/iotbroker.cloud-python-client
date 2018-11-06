@@ -15,6 +15,8 @@ class TLVVariable(TLVAmqp):
 
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
+        #print('Varialble constructorBytes= ' + str(constructorBytes))
+
         widthBytes = bytearray()
         if self.width == 1:
             widthBytes.append(len(self.value))
@@ -26,17 +28,17 @@ class TLVVariable(TLVAmqp):
         data += widthBytes
         if len(self.value) > 0:
             data += self.value
-        print('TLVVariable.getBytes ' + str(data))
+        #print('TLVVariable.getBytes ' + str(data) + ' length= ' + str(self.getLength()))
         return data
 
     def getLength(self):
-        return len(self.value) + self.constructor.getLength()
+        return len(self.value) + self.constructor.getLength() + self.width
 
     def getValue(self):
         return self.value
 
     def getCode(self):
-        pass
+        return self.constructor.getCode()
 
     def getConstructor(self):
         return self.constructor

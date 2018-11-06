@@ -18,8 +18,10 @@ class TLVFactory(object):
         return self.index
 
     def getTlv(self, buf):
+        #print('TLVFactory ' + str(buf) + ' ' + str(self.index))
         constructor = self.getConstructor(buf)
         tlv = self.getElement(constructor, buf)
+        #print('TLVFactory Tlv ' + str(tlv))
         return tlv
 
     def getConstructor(self, buf):
@@ -35,23 +37,24 @@ class TLVFactory(object):
         else:
             code = AMQPType(codeByte & 0xff)
             constructor = SimpleConstructor(code)
+        #print('getConstructor ' + str(constructor))
         return constructor
 
     def getElement(self, constructor, buf):
         tlv = None
         code = constructor.getCode()
-
+        #print('getElement ' + str(code))
         if isinstance(code, AMQPType):
             if code == AMQPType.NULL:
                 tlv = TLVNull()
             elif code in (AMQPType.BOOLEAN_TRUE,AMQPType.BOOLEAN_FALSE,AMQPType.UINT_0,AMQPType.ULONG_0):
                 tlv = TLVFixed(code, bytearray())
             elif code in (AMQPType.BOOLEAN,AMQPType.UBYTE,AMQPType.BYTE,AMQPType.SMALL_UINT,AMQPType.SMALL_INT,AMQPType.SMALL_ULONG,AMQPType.SMALL_LONG):
-                value1 = buf[self.index: self.index + 1]
+                value1 = util.getByte(buf,self.index)
                 self.index += 1
                 tlv = TLVFixed(code, value1)
             elif code in (AMQPType.SHORT,AMQPType.USHORT):
-                value2 = buf[self.index: self.index+2]
+                value2 = buf[self.index:self.index + 2]
                 self.index += 2
                 tlv = TLVFixed(code, value2)
             elif code in (AMQPType.UINT,AMQPType.INT,AMQPType.FLOAT,AMQPType.DECIMAL_32,AMQPType.CHAR):
@@ -67,26 +70,32 @@ class TLVFactory(object):
                 self.index += 16
                 tlv = TLVFixed(code, value16)
             elif code in (AMQPType.STRING_8, AMQPType.SYMBOL_8, AMQPType.BINARY_8):
-                varlen = buf[self.index: self.index + 1] & 0xff
-                varValue8 = buf[self.index: self.index + int(varlen)-1]
+                varlen = util.getByte(buf,self.index) & 0xff
+                varValue8 = buf[self.index: self.index + int(varlen)+1]
                 self.index += int(varlen)
+                #print('HERE SYMBOL_8' + str(varValue8) + str(varlen))
                 tlv = TLVFixed(code, varValue8)
             elif code in (AMQPType.STRING_32, AMQPType.SYMBOL_32, AMQPType.BINARY_32):
                 var32len = util.getInt(buf[self.index:self.index+4])
                 self.index += 4
-                varValue32 = buf[self.index: self.index + int(var32len)-1]
+                varValue32 = buf[self.index: self.index + int(var32len)]
                 self.index += int(var32len)
                 tlv = TLVFixed(code, varValue32)
             elif code is AMQPType.LIST_0:
                 tlv = TLVList(None, None)
             elif code is AMQPType.LIST_8:
-                list8size = buf[self.index: self.index + 1] & 0xff
+
+                list8size = util.getByte(buf,self.index) & 0xff
                 self.index += 1
-                list8count = buf[self.index: self.index + 1] & 0xff
+                list8count = util.getByte(buf,self.index) & 0xff
+
                 self.index += 1
                 list8values = []
                 for i in range(0,list8count):
-                    list8values.append(self.getTlv(buf))
+                    entity = self.getTlv(buf)
+                    #print('entity ' + str(entity))
+                    list8values.append(entity)
+                #print('HERE LIST_8 ' + str(list8values[0].getElements()) + ' ' + str(list8values[0].getCode()))
                 tlv = TLVList(code, list8values)
             elif code is AMQPType.LIST_32:
                 list32size = util.getInt(buf[self.index:self.index+4])
@@ -98,9 +107,9 @@ class TLVFactory(object):
                     list32values.append(self.getTlv(buf))
                 tlv = TLVList(code, list32values)
             elif code is AMQPType.MAP_8:
-                map8size = buf[self.index: self.index + 1] & 0xff
+                map8size = util.getByte(buf,self.index) & 0xff
                 self.index += 1
-                map8count = buf[self.index: self.index + 1] & 0xff
+                map8count = util.getByte(buf,self.index) & 0xff
                 self.index += 1
                 stop8 = self.index + map8size - 1
                 map8 = TLVMap(None,None)
@@ -118,15 +127,16 @@ class TLVFactory(object):
                     map32.putElement(self.getTlv(buf), self.getTlv(buf))
                 tlv = TLVMap(code, map32)
             elif code is AMQPType.ARRAY_8:
-                array8size = buf[self.index: self.index + 1] & 0xff
+                array8size = util.getByte(buf,self.index) & 0xff
                 self.index += 1
-                array8count = buf[self.index: self.index + 1] & 0xff
+                array8count = util.getByte(buf,self.index) & 0xff
                 self.index += 1
                 arr8 = []
                 arr8constructor = self.getConstructor(buf)
                 for i in range(0,array8count):
                     arr8.append(self.getElement(arr8constructor,buf))
                 tlv = TLVArray(code, arr8)
+                #print('HERE ARRAY_8 ' + str(arr8) + ' code= ' + str(tlv.getCode()) + ' array= ' + str(tlv))
             elif code is AMQPType.ARRAY_32:
                 arr32size = util.getInt(buf[self.index:self.index+4])
                 self.index += 4
@@ -137,4 +147,8 @@ class TLVFactory(object):
                 for i in range(0, arr32count):
                     arr32.append(self.getElement(arr32constructor, buf))
                 tlv = TLVArray(code, arr32)
+
+            if isinstance(constructor,DescribedConstructor):
+                tlv.setConstructor(constructor)
+
             return tlv

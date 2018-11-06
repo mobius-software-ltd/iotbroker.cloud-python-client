@@ -1,7 +1,6 @@
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.constructor.SimpleConstructor import *
-
 from venv.iot.classes.NumericUtil import NumericUtil as util
 
 class TLVFixed(TLVAmqp):
@@ -11,17 +10,16 @@ class TLVFixed(TLVAmqp):
 
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
-        #data = bytearray(len(str(constructorBytes))+len(str(self.value)))
         data = bytearray()
         data.append(constructorBytes)
-        print('data= ' + str(data))
+        #print('data= ' + str(data) + ' constructorBytes= ' + str(constructorBytes) + ' self.value= ' + str(self.value))
         if len(str(self.value)) > 0:
             data.append(self.value)
-            #data[len(constructorBytes):len(constructorBytes)+len(self.value)-1] = self.value[0:len(self.value)-1]
+        #print('Fixed data= ' + str(data))
         return data
 
     def getLength(self):
-        return len(str(self.value)) + self.constructor.getLength()
+        return self.constructor.getLength() + 1
 
     def getValue(self):
         return self.value
@@ -48,7 +46,7 @@ class TLVFixed(TLVAmqp):
         return s
 
     def getCode(self):
-        pass
+        return self.constructor.getCode()
 
     def getConstructor(self):
         return self.constructor

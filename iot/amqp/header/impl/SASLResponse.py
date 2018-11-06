@@ -15,7 +15,7 @@ class SASLResponse(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCode.OUTCOME
+            self.code = HeaderCodeClear.OUTCOME
         if doff is not None:
             self.doff = doff
         else:

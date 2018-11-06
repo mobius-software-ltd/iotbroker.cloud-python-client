@@ -9,11 +9,11 @@ from venv.iot.amqp.tlv.impl.TLVFixed import *
 from venv.iot.amqp.tlv.impl.TLVList import *
 
 class SASLInit(AMQPHeader):
-    def __init__(self,code,doff,type,channel,mechanism, initialRespone,hostName):
+    def __init__(self,code,doff,type,channel,mechanism,initialRespone,hostName):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCode.INIT
+            self.code = HeaderCodeClear.INIT
         if doff is not None:
             self.doff = doff
         else:

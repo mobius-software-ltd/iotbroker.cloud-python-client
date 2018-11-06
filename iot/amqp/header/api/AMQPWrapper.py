@@ -248,8 +248,10 @@ class AMQPWrapper(object):
             raise ValueError('Wrapper cannot wrap null array')
         array = TLVArray(None,None)
         for obj in input:
-            array.addElement(self.wrap(obj))
-        #print('array ' + str(array))
+            res = self.wrap(obj)
+            #print('res ' + str(res))
+            array.addElement(res)
+        #print('array ' + str(array.getConstructor().getCode()))
         return array
 
     def convertUInt(self, i):
