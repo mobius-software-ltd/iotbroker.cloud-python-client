@@ -111,6 +111,8 @@ class LoadingForm(wx.Frame):
 
             if account is not None:
                 print('connection to: ' + account.serverHost+":"+ str(account.port))
+                if account.cleanSession:
+                    datamanage.clear()
 
                 if account.protocol == 1:
                     self.app.client = MQTTclient(account, self.app.gui)
@@ -258,8 +260,9 @@ class AccountsForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-            if isinstance( self.app.client.clientFactory, WSSocketClientFactory):
-                self.app.client.clientFactory.ws.closeFlag = False
+            if isinstance(self.app.client,CoapClient) != True:
+                if isinstance( self.app.client.clientFactory, WSSocketClientFactory):
+                    self.app.client.clientFactory.ws.closeFlag = False
         reactor.stop()
 
 class LoginForm(wx.Frame):
@@ -551,16 +554,22 @@ class LoginForm(wx.Frame):
 
         if AccountValidation.valid(account):
             datamanage = datamanager()
-            datamanage.add_entity(account)
-            account = datamanage.get_account_clientID(clientID)
-            datamanage.set_default_account_clientID(account.id)
 
-            self.Hide()
-            next = LoadingForm(None, -1, "Loading", self.app)
-            next.Show()
+            previous = datamanage.get_account_clientID(account.clientID)
+            if previous is None:
+                datamanage.add_entity(account)
+                account = datamanage.get_account_clientID(clientID)
+                datamanage.set_default_account_clientID(account.id)
+                self.Hide()
+                next = LoadingForm(None, -1, "Loading", self.app)
+                next.Show()
+            else:
+                wx.MessageBox("Wrong value for clientID='" + str(account.clientID) + "'. This one is already in use", 'Warning', wx.OK | wx.ICON_WARNING)
         else:
-            wx.MessageBox('Please, fill in all required fileds: Username, Password, ClientID, Host, Port, Keepalive', 'Warning',
-                          wx.OK | wx.ICON_WARNING)
+            if int(account.keepAlive) <= 0 or int(account.keepAlive) > 65535:
+                wx.MessageBox('Wrong value for Keepalive', 'Warning', wx.OK | wx.ICON_WARNING)
+            else:
+                wx.MessageBox('Please, fill in all required fileds: Username, Password, ClientID, Host, Port', 'Warning', wx.OK | wx.ICON_WARNING)
 
     def onClose(self, event):
         if self.app.client is not None:
@@ -570,7 +579,6 @@ class LoginForm(wx.Frame):
         reactor.stop()
 
 def getNextImageID(count):
-    print('here')
     imID = 0
     while True:
         yield imID
@@ -885,41 +893,48 @@ class TopicsPanel(wx.Panel):
         qos = self.comboQos.GetValue()
 
         if name is not None and name != '':
-            #ADD to list
-            self.nameText.SetValue('');
-            self.comboQos.SetValue('0');
+            datamanage = datamanager()
+            account = datamanage.get_default_account()
+            previous = datamanage.get_topic_by_name_and_accountID(name,account.id)
+            if previous is None:
+                #ADD to list
+                self.nameText.SetValue('');
+                self.comboQos.SetValue('0');
 
-            i = self.list.GetItemCount()
-            bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
-            self.btnDel = wx.BitmapButton(self.list, id=i, bitmap=bmp,
-                                          size=(bmp.GetWidth() + 12, bmp.GetHeight() + 10), style=wx.NO_BORDER)
+                i = self.list.GetItemCount()
+                bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
+                self.btnDel = wx.BitmapButton(self.list, id=i, bitmap=bmp,
+                                              size=(bmp.GetWidth() + 12, bmp.GetHeight() + 10), style=wx.NO_BORDER)
 
-            self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
-            self.list.InsertStringItem(i, str(name))
-            if (i % 2) == 0:
-                self.list.SetItemBackgroundColour(i, wx.Colour(255, 255, 255))
+                self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
+                self.list.InsertStringItem(i, str(name))
+                if (i % 2) == 0:
+                    self.list.SetItemBackgroundColour(i, wx.Colour(255, 255, 255))
+                else:
+                    self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
+
+                qosBmp = None
+                if platform.system() == 'Linux':
+                    qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
+                    if int(qos) == 1:
+                        qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
+                    if int(qos) == 2:
+                        qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+                else:
+                    qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
+                    if int(qos) == 1:
+                        qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
+                    if int(qos) == 2:
+                        qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
+                self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
+                self.list.SetItemWindow(i, 1, self.imageCtrlQos)
+                self.list.SetItemWindow(i, 2, self.btnDel)
+                # SEND SUBSCRIBE _________________________________________________________________________________SEND SUBSCRIBE
+                self.app.client.subscribeTo(name, int(qos))
+                #self.timer.Start(1)
             else:
-                self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
-
-            qosBmp = None
-            if platform.system() == 'Linux':
-                qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
-                if int(qos) == 1:
-                    qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
-                if int(qos) == 2:
-                    qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
-            else:
-                qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
-                if int(qos) == 1:
-                    qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
-                if int(qos) == 2:
-                    qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
-            self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
-            self.list.SetItemWindow(i, 1, self.imageCtrlQos)
-            self.list.SetItemWindow(i, 2, self.btnDel)
-            # SEND SUBSCRIBE _________________________________________________________________________________SEND SUBSCRIBE
-            self.app.client.subscribeTo(name, int(qos))
-            #self.timer.Start(1)
+                wx.MessageBox("Wrong value for TopicName= '" + str(name) + "'. This one is already in use",
+                              'Warning', wx.OK | wx.ICON_WARNING)
         else:
             wx.MessageBox('Please, fill in all required fields: TopicName', 'Warning',
                           wx.OK | wx.ICON_WARNING)
@@ -1297,7 +1312,8 @@ class MyApp(wx.App, UIClient):
         self.frame.Show(True)
         datamanage = datamanager()
         datamanage.create_db()
-        datamanage.clear()
+        datamanage.clearAccountsDefault()
+        #datamanage.clear()
         datamanage.clear_default_account()
         return True
 
@@ -1355,12 +1371,15 @@ class MyApp(wx.App, UIClient):
         self.showMainForm()
 
     def subackReceived(self, topic, qos, returnCode):
-        #print('App subackReceived' + str(topic) + ' ' + str(qos))
+        #print('App subackReceived ' + str(topic) + ' ' + str(qos))
         #store topic
         datamanage = datamanager()
         account = datamanage.get_default_account()
         if isinstance(topic, MQTopic):
             topicToDB = TopicEntity(topicName = topic.getName(), qos=qos.getValue(), accountentity_id = account.id)
+            datamanage.add_entity(topicToDB)
+        else:
+            topicToDB = TopicEntity(topicName=topic, qos=qos.getValue(), accountentity_id=account.id)
             datamanage.add_entity(topicToDB)
 
     def unsubackReceived(self, listTopics):

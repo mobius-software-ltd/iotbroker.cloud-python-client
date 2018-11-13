@@ -167,8 +167,7 @@ class datamanager():
         Base.metadata.bind = engine
         DBSession = sessionmaker(bind=engine)
         session = DBSession()
-        result = session.query(AccountEntity).filter(
-            AccountEntity.isDefault == True).first()
+        result = session.query(AccountEntity).filter(AccountEntity.isDefault == True).first()
         return result
 
     def uncheck_default_account_clientID(self,id):
@@ -239,6 +238,15 @@ class datamanager():
         result = session.query(TopicEntity).filter( TopicEntity.topicName == name).first()
         return result
 
+    def get_topic_by_name_and_accountID(self,name,id):
+        engine = create_engine(self.path)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        session = DBSession()
+        result = session.query(TopicEntity).filter(
+            TopicEntity.accountentity_id == id and TopicEntity.topicName == name).first()
+        return result
+
     def get_messages_all_accountID(self,id):
         engine = create_engine(self.path)
         Base.metadata.bind = engine
@@ -252,8 +260,16 @@ class datamanager():
         Base.metadata.bind = engine
         DBSession = sessionmaker(bind=engine)
         session = DBSession()
-        session.query(AccountEntity).update({"isDefault": False})
         session.query(TopicEntity).delete()
         session.query(MessageEntity).delete()
+        session.commit()
+        session.close()
+
+    def clearAccountsDefault(self):
+        engine = create_engine(self.path)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        session = DBSession()
+        session.query(AccountEntity).update({"isDefault": False})
         session.commit()
         session.close()
