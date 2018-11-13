@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.classes.QoSType import *
 from venv.iot.mqttsn.mqttsn_classes.Flag import *
 from venv.iot.mqttsn.mqttsn_classes.Flags import *
@@ -84,10 +103,8 @@ class Flags():
         flags.append(1) #Flag.ID_TOPIC
 
         for flag in flags:
-            #print('flagsByte=' + str(flagsByte) + ' flag=' + str(flag) + ' flagsByte and flag=' + str(flagsByte and flag))
             if ((flagsByte & flag) == flag):
                 bitmask.append(flag)
-        #print('bitmask= ' + str(bitmask))
         return self.validateAndCreate(bitmask,type)
 
     def validateAndCreate(self, bitmask, type):
@@ -214,7 +231,5 @@ class Flags():
             self.qos = qos
             self.will = will
             self.clean = clean
-            #print('qos ' + str(qos))
-            #print('topicType ' + str(topicType))
             self.topicType = topicType
             return self

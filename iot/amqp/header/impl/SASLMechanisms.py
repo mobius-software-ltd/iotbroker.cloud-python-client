@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.avps.SectionCode import *
@@ -9,14 +28,13 @@ from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.tlv.impl.TLVFixed import *
 from venv.iot.amqp.tlv.impl.TLVList import *
 
-
 class SASLMechanisms(AMQPHeader):
     def __init__(self,code,doff,type,channel,mechanisms):
 
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCode.MECHANISMS.value
+            self.code = HeaderCode.MECHANISMS
         if doff is not None:
             self.doff = doff
         else:
@@ -38,10 +56,8 @@ class SASLMechanisms(AMQPHeader):
             raise ValueError("At least one SASL Mechanism must be specified")
         wrapper = AMQPWrapper()
         list.addElement(0,wrapper.wrapArray(self.mechanisms))
-        #print('SASLMechanismsm.toArgumentsList ' + str(list))
         constructor = DescribedConstructor(list.getCode(), TLVFixed(AMQPType.SMALL_ULONG, 0x40))
         list.setConstructor(constructor)
-        #print('SASLMechanisms.toArgumentsList ' + str(list.getConstructor().getCode().value))
         return list
 
     def fromArgumentsList(self, list):
@@ -49,10 +65,9 @@ class SASLMechanisms(AMQPHeader):
             size = len(list.getList())
             if size > 0:
                 element = list.getList()[0]
-                if element is None:
+                if element is None and not element.isNull():
                     raise ValueError("Received malformed SASL-Init header: mechanism can't be null")
                 unwrapper = AMQPUnwrapper()
-                #print('fromArgumentsList element ' + str(element))
                 self.mechanisms = unwrapper.unwrapArray(element)
 
     def toString(self):

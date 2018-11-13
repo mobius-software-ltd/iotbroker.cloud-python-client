@@ -1,6 +1,26 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.constructor.SimpleConstructor import *
+from venv.iot.amqp.constructor.DescribedConstructor import *
 
 from venv.iot.classes.NumericUtil import NumericUtil as util
 
@@ -15,8 +35,6 @@ class TLVVariable(TLVAmqp):
 
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
-        #print('Varialble constructorBytes= ' + str(constructorBytes))
-
         widthBytes = bytearray()
         if self.width == 1:
             widthBytes.append(len(self.value))
@@ -24,11 +42,14 @@ class TLVVariable(TLVAmqp):
             widthBytes = util.addInt(widthBytes, len(self.value))
 
         data = bytearray()
-        data.append(constructorBytes)
+        if isinstance(self.constructor, DescribedConstructor):
+            data += constructorBytes
+        else:
+            data.append(constructorBytes)
+
         data += widthBytes
         if len(self.value) > 0:
             data += self.value
-        #print('TLVVariable.getBytes ' + str(data) + ' length= ' + str(self.getLength()))
         return data
 
     def getLength(self):
@@ -49,5 +70,5 @@ class TLVVariable(TLVAmqp):
     def setCode(self, arg):
         pass
 
-    def setConstructor(self, arg):
-        pass
+    def setConstructor(self, constructor):
+        self.constructor = constructor

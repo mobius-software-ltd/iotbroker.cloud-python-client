@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.classes.ConnectionState import *
 from venv.iot.network.UDPClient import *
 from venv.iot.classes.IoTClient import *
@@ -6,7 +25,6 @@ from venv.iot.coap.options.CoapOptionType import *
 from venv.iot.coap.options.OptionParser import *
 from venv.iot.timers.TimersMap import *
 from venv.iot.coap.tlv.CoapTopic import *
-#import t.i.reactor only after installing wxreactor
 from twisted.internet import reactor
 
 class CoapClient(IoTClient):
@@ -27,7 +45,6 @@ class CoapClient(IoTClient):
         self.pingNum = 0
 
     def goConnect(self):
-        #print('CoapClient.goConnect')
         self.setState(ConnectionState.CONNECTING)
 
         duration = self.account.keepAlive
@@ -46,7 +63,6 @@ class CoapClient(IoTClient):
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             message = self.parser.encode(message)
-            #print('Send ' + str(message))
             self.udpClient.send(message)
         else:
             return False
@@ -55,7 +71,6 @@ class CoapClient(IoTClient):
         message = self.parser.decode(data)
         type = message.getType()
         code = message.getCode()
-        #print('CoapClient.dataReceived ' + str(type) + ' code=' + str(code))
         if (code == CoapCode.POST or code == CoapCode.PUT) and type != CoapType.ACKNOWLEDGEMENT:
             topic = None
             qosValue = None

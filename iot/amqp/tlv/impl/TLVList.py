@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.constructor.SimpleConstructor import *
@@ -50,16 +69,17 @@ class TLVList(TLVAmqp):
             self.update()
         else:
             diff = index - len(self.values)
-            while diff > 0:
-                self.addElement(element=TLVNull())
+            while diff >= 0:
+                self.addElement(None, element=TLVNull())
                 diff -= 1
             self.setElement(index, element)
 
     def setElement(self, index, element):
-        self.size -= self.values[index].getLength()
-        self.values[index] = element
-        self.size += element.getLength()
-        self.update()
+        if index < len(self.values):
+            self.size -= self.values[index].getLength()
+            self.values[index] = element
+            self.size += element.getLength()
+            self.update()
 
     def addToList(self, index, elemIndex, element):
         if self.count < index:
@@ -99,7 +119,6 @@ class TLVList(TLVAmqp):
 
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
-        #print('List constructorBytes= ' + str(constructorBytes))
 
         sizeBytes = bytearray()
         if self.width == 1:
@@ -115,24 +134,24 @@ class TLVList(TLVAmqp):
 
         valueBytes = bytearray()
         pos = 0
-        #print('values ' + str(self.values) + ' ' +str(self.values[0].getConstructor().getCode()))
         if self.values is not None:
             for tlv in self.values:
                 if isinstance(tlv, TLVAmqp):
                     tlvBytes = tlv.getBytes()
-                    valueBytes += tlvBytes[0:len(tlvBytes)]
-                    pos += len(tlvBytes)
+
+                    if isinstance(tlvBytes,int):
+                        valueBytes = util.addByte(valueBytes,tlvBytes)
+                        pos += 1
+                    else:
+                        valueBytes += tlvBytes
+                        pos += len(tlvBytes)
 
         data = bytearray()
-        #print('constructorBytes = ' + str(constructorBytes))
         data += constructorBytes
-        #print('data= ' + str(data))
         if self.size > 0:
             data += sizeBytes
             data += countBytes
             data += valueBytes
-
-        #print('TLVList getBytes ' + str(data))
         return data
 
     def getList(self):

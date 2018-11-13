@@ -17,6 +17,7 @@ for ele in d.values():
 
 d = {'one':'1','two':'2'}
 d['three'] = 3
+d.pop('one')
 for k, v in d.items():
     print(k, ' ', v)
 
@@ -83,3 +84,13 @@ print(HeaderCode.TRANSFER.value)
 from venv.iot.amqp.constructor.SimpleConstructor import *
 constr = SimpleConstructor('123')
 print(str(constr.getLength()))
+
+import binascii
+print(int(binascii.hexlify(b'AMQP'),16))
+
+x = np.int64(0)
+#print(str(x.__class__.__name__))
+print('')
+if  isinstance(x, np.int64):
+    print('int')
+

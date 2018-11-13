@@ -1,21 +1,33 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.classes.ConnectionState import *
-
 from venv.iot.mqtt.mqtt_classes.MQConnackCode import *
 from venv.iot.mqtt.mqtt_classes.MQSubackCode import *
 from venv.iot.mqtt.mqtt_classes.Will import *
 from venv.iot.mqtt.mqtt_classes.MQTopic import *
-
 from venv.iot.network.WebSocket import *
 from autobahn.twisted.websocket import connectWS
-
 from venv.iot.classes.IoTClient import *
-
 from venv.iot.mqtt.MQParser import MQParser
 from venv.iot.timers.TimersMap import *
-
 import base64
-
-#import t.i.reactor only after installing wxreactor
 from twisted.internet import reactor
 
 class WSclient(IoTClient):
@@ -29,7 +41,6 @@ class WSclient(IoTClient):
         self.publishPackets = {}
 
     def send(self, message):
-        #print('send HERE ' + str(self.connectionState))
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             self.clientFactory.sendPacket(message)
         else:
@@ -37,16 +48,12 @@ class WSclient(IoTClient):
 
     def dataReceived(self, data):
         message = json.loads(data.decode())
-        #print('dataReceived= ' + str(message['packet']))
         process_messageType_method(self, message['packet'], message)
 
     def setState(self, ConnectionState):
-        #print('setState= ' + str(ConnectionState))
         self.connectionState = ConnectionState
 
     def goConnect(self):
-        #print('WSclient goConnect ')
-
         self.setState(ConnectionState.CONNECTING)
         if self.account.willTopic and len(self.account.willTopic)>0 is not None:
             will = {"topic": {"name": self.account.willTopic, "qos": self.account.qos},
@@ -81,8 +88,6 @@ class WSclient(IoTClient):
         self.timers.goConnectTimer(connect)
 
     def publish(self, name, qos, content, retain, dup):
-        #print('MQTTclient publish: ' + str(name) + ' ' + str(qos) + ' '+str(content) + ' ' + str(retain) +' '+ str(dup))
-
         publish = {
             "packet": 3,
             "packetID": None,
@@ -104,7 +109,6 @@ class WSclient(IoTClient):
     def unsubscribeFrom(self, topicName):
         listTopics = []
         listTopics.append(topicName)
-
         unsubscribe = {
             "packet": 10,
             "packetID": None,
@@ -117,7 +121,6 @@ class WSclient(IoTClient):
     def subscribeTo(self, name, qos):
         topic = MQTopic(name, qos)
         listMQTopics = [topic]
-
         subscribe = {
             "packet": 8,
             "packetID": None,
@@ -174,10 +177,8 @@ def processConnack(self,message):
         self.clientGUI.connackReceived(message['returnCode'])
 
 def processSuback(self,message):
-    #print('processSuback message ' + str(message))
     subscribe = self.timers.removeTimer(message['packetID'])
     if subscribe is not None:
-        #print('subscribe message ' + str(subscribe))
         name = subscribe['topics'][0]['name']
         qos = QoS(subscribe['topics'][0]['qos'])
         topic = MQTopic(name, qos)
@@ -190,7 +191,6 @@ def processUnsuback(self,message):
 
 def processPublish(self,message):
     publisherQoS = message['topic']['qos']
-    #print('publisherQoS= ' + str(publisherQoS) + ' message ' + str(message))
 
     name = message['topic']['name']
     qos = QoS(message['topic']['qos'])
@@ -202,24 +202,20 @@ def processPublish(self,message):
         puback = {"packet": 4,"packetID": message['packetID']}
         self.send(puback)
         self.clientGUI.publishReceived(topic, qos, base64.b64decode(message['content']).decode("utf-8"), message['dup'], message['retain'])
-        #self.clientGUI.publishReceived(topic, qos, message['content'], message['dup'],message['retain'])
     if publisherQoS == 2:  #EXACTLY_ONCE
         pubrec = {"packet": 5, "packetID": message['packetID']}
         self.send(pubrec)
         self.publishPackets[message['packetID']] = message
 
 def processPuback(self,message):
-    #print('processPuback ' + ' message ' + str(message))
     publish = self.timers.removeTimer(message['packetID'])
     if publish is not None:
         name = publish['topic']['name']
         qos = QoS(publish['topic']['qos'])
         topic = MQTopic(name, qos)
         self.clientGUI.pubackReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'], 0)
-        #self.clientGUI.pubackReceived(topic, qos, publish['content'], publish['dup'],publish['retain'], 0)
 
 def processPubrec(self, message):
-    #print('processPubrec ' + ' message ' + str(message))
     publish = self.timers.removeTimer(message['packetID'])
     if publish is not None:
         pubrel = {"packet": 6, "packetID": message['packetID']}
@@ -227,7 +223,6 @@ def processPubrec(self, message):
         self.publishPackets[publish['packetID']] = publish
 
 def processPubrel(self,message):
-    #print('processPubrel ' + ' message ' + str(message))
     pubrec = self.timers.removeTimer(message['packetID'])
     if pubrec is not None:
         publish = self.publishPackets.get(message['packetID'])
@@ -236,12 +231,10 @@ def processPubrel(self,message):
         topic = MQTopic(name, qos)
 
         self.clientGUI.publishReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'])
-        #self.clientGUI.publishReceived(topic, qos, publish['content'], publish['dup'],publish['retain'])
         pubcomp = {"packet": 7, "packetID": message['packetID']}
         self.send(pubcomp)
 
 def processPubcomp(self,message):
-    #print('processPubcomp ' + ' message ' + str(message))
     pubrel = self.timers.removeTimer(message['packetID'])
     if pubrel is not None:
         publish = self.publishPackets.get(message['packetID'])
@@ -250,7 +243,6 @@ def processPubcomp(self,message):
         topic = MQTopic(name, qos)
 
         self.clientGUI.pubackReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'],0)
-        #self.clientGUI.pubackReceived(topic, qos, publish['content'], publish['dup'],publish['retain'], 0)
 
 def processPingresp(self,message):
     self.clientGUI.pingrespReceived(False)
@@ -265,7 +257,6 @@ def processPingreq(self,message):
     self.clientGUI.errorReceived('received invalid message pingreq')
 
 def processDisconnect(self,message):
-    #print('processDisconnect ' + ' message ' + str(message))
     self.timers.stopAllTimers()
     self.clientGUI.disconnectReceived()
 

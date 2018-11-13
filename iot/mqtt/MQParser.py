@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.mqtt.mqtt_messages.MQConnect import *
 from venv.iot.mqtt.mqtt_messages.MQConnack import *
 from venv.iot.mqtt.mqtt_messages.MQDisconnect import *
@@ -175,7 +194,6 @@ def MQ_PUBLISH(self, message):
     data.append(firstByte)
 
     data += self.getBufferByLength()
-
     name = message.topic.name
     nameData = struct.pack('h',len(name))
     data += nameData[::-1]
@@ -185,7 +203,6 @@ def MQ_PUBLISH(self, message):
         data += struct.pack('c', ch)
 
     qos = int(message.topic.getQoS().getValue())
-    #print('HERE PARSER qos= ' + str(qos))
     if qos == 0: # AT_MOST_ONCE
         if message.packetID != 0:
             raise ValueError('Encode. Publish. Publish qos-0 must not contain packetID')
@@ -197,7 +214,6 @@ def MQ_PUBLISH(self, message):
     for ch in content:
         ch = bytes(ch, encoding = 'utf-8')
         data += struct.pack('c', ch)
-
     return data
 
 def MQ_PUBACK(self, message):
@@ -209,7 +225,6 @@ def MQ_PUBACK(self, message):
 
     packetIDdata = struct.pack('h', message.packetID)
     data += packetIDdata[::-1]
-
     return data
 
 def MQ_PUBREC(self,message):
@@ -221,7 +236,6 @@ def MQ_PUBREC(self,message):
 
     packetIDdata = struct.pack('h', message.packetID)
     data += packetIDdata[::-1]
-
     return data
 
 def MQ_PUBREL(self,message):
@@ -233,7 +247,6 @@ def MQ_PUBREL(self,message):
 
     packetIDdata = struct.pack('h', message.packetID)
     data += packetIDdata[::-1]
-
     return data
 
 def MQ_PUBCOMP(self,message):
@@ -245,7 +258,6 @@ def MQ_PUBCOMP(self,message):
 
     packetIDdata = struct.pack('h', message.packetID)
     data += packetIDdata[::-1]
-
     return data
 
 def MQ_SUBSCRIBE(self,message):
@@ -267,7 +279,6 @@ def MQ_SUBSCRIBE(self,message):
                 ch = bytes(ch, encoding='utf_8')
                 data += struct.pack('c', ch)
             data.append(topic.qos.getValue())
-
     return data
 
 def MQ_SUBACK(self,message):
@@ -284,7 +295,6 @@ def MQ_SUBACK(self,message):
     for code in message.listCodes:# list ReturnCodes, SubackCodes
         item = int(code)
         data.append(item)
-
     return data
 
 def MQ_UNSUBSCRIBE(self,message):
@@ -316,7 +326,6 @@ def MQ_UNSUBACK(self,message):
 
     packetIDdata = struct.pack('h', message.packetID)
     data += packetIDdata[::-1]
-
     return data
 
 def MQ_PINGREQ(self,message):
@@ -451,7 +460,6 @@ def MQ_CONNECT_DECODE(self):
 
     if protocolLevel != 4:
         message.setProtocolLevel = protocolLevel
-
     return message
 
 def MQ_CONNACK_DECODE(self):
@@ -470,7 +478,6 @@ def MQ_CONNACK_DECODE(self):
         raise ValueError('Decode. Connack. Invalid connack code')
 
     message = MQConnack(sessionPresent[0], connectReturnCode[0])
-
     return message
 
 def MQ_PUBLISH_DECODE(self):
@@ -518,7 +525,6 @@ def MQ_PUBLISH_DECODE(self):
     topic = MQTopic(topicName,qos)
 
     message = MQPublish(packetID,topic,content,bool(retain),bool(dup))
-
     return message
 
 def MQ_PUBACK_DECODE(self):
@@ -588,7 +594,6 @@ def MQ_SUBSCRIBE_DECODE(self):
 
     if len(listMQTopics) == 0:
         raise ValueError('Subscribe with 0 topics')
-
     message = MQSubscribe(packetID,listMQTopics)
     return message
 

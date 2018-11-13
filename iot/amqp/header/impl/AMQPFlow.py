@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.constructor.DescribedConstructor import *
@@ -14,7 +33,7 @@ class AMQPFlow(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCodeClear.FLOW
+            self.code = HeaderCode.FLOW
         if doff is not None:
             self.doff = doff
         else:
@@ -95,65 +114,65 @@ class AMQPFlow(AMQPHeader):
 
             if size > 0:
                 element = list.getList()[0]
-                if element is not None:
+                if element is not None and not element.isNull():
                     self.nextIncomingId = AMQPUnwrapper.unwrapUInt(element)
             if size > 1:
                 element = list.getList()[1]
-                if element is not None:
+                if element is not None and not element.isNull():
                     self.incomingWindow = AMQPUnwrapper.unwrapUInt(element)
                 else:
                     raise ValueError("Received malformed Flow header: incoming-window can't be null")
             if size > 2:
                 element = list.getList()[2]
-                if element is not None:
+                if element is not None and not element.isNull():
                     self.nextOutgoingId = AMQPUnwrapper.unwrapUInt(element)
                 else:
                     raise ValueError("Received malformed Begin header:next-outgoing-id can't be null")
             if size > 3:
                 element = list.getList()[3]
-                if element is not None:
+                if element is not None and not element.isNull():
                     self.outgoingWindow = AMQPUnwrapper.unwrapUInt(element)
                 else:
                     raise ValueError("Received malformed Begin header: outgoing-window can't be null")
             if size > 4:
                 element = list.getList()[4]
-                if element is not None:
+                if element is not None and not element.isNull():
                     self.handle = AMQPUnwrapper.unwrapUInt(element)
             if size > 5:
                 element = list.getList()[5]
                 if element is not None:
-                    if self.handle is not None:
+                    if self.handle is not None and not element.isNull():
                         self.deliveryCount = AMQPUnwrapper.unwrapUInt(element)
                     else:
                         raise ValueError("Received malformed Flow header: delivery-count can't be present when handle is null")
             if size > 6:
                 element = list.getList()[6]
                 if element is not None:
-                    if self.handle is not None:
+                    if self.handle is not None and not element.isNull():
                         self.linkCredit = AMQPUnwrapper.unwrapUInt(element)
                     else:
                         raise ValueError("Received malformed Flow header: link-credit can't be present when handle is null")
             if size > 7:
                 element = list.getList()[7]
                 if element is not None:
-                    if self.handle is not None:
+                    if self.handle is not None and not element.isNull():
                         self.available = AMQPUnwrapper.unwrapUInt(element)
                     else:
                         raise ValueError("Received malformed Flow header: available can't be present when handle is null")
             if size > 8:
                 element = list.getList()[8]
                 if element is not None:
-                    if self.handle is not None:
+                    if self.handle is not None and not element.isNull():
                         self.drain = AMQPUnwrapper.unwrapBool(element)
                     else:
                         raise ValueError("Received malformed Flow header: drain can't be present when handle is null")
             if size > 9:
                 element = list.getList()[9]
-                if element is not None:
+                if element is not None and not element.isNull():
                     self.echo = AMQPUnwrapper.unwrapBool(element)
             if size > 10:
                 element = list.getList()[10]
-                if element is not None:
+                if element is not None and not element.isNull():
                     self.properties = AMQPUnwrapper.unwrapMap(element)
 
     def toString(self):

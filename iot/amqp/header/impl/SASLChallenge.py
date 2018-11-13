@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.constructor.DescribedConstructor import *
@@ -13,7 +32,7 @@ class SASLChallenge(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCodeClear.CHALLENGE
+            self.code = HeaderCode.CHALLENGE
         if doff is not None:
             self.doff = doff
         else:
@@ -49,7 +68,7 @@ class SASLChallenge(AMQPHeader):
                 raise ValueError('Received malformed SASL-Challenge header. Invalid number of arguments: ' + str(size))
             if size > 0:
                 element = list.getList()[0]
-                if element is None:
+                if element is None or element.isNull():
                     raise ValueError("Received malformed SASL-Challenge header: challenge can't be null")
                 self.challenge = AMQPUnwrapper.unwrapBinary(element)
 

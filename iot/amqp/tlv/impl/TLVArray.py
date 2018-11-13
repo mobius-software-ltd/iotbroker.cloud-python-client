@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.constructor.SimpleConstructor import *
@@ -57,43 +76,34 @@ class TLVArray(TLVAmqp):
 
     def getBytes(self):
         constructorBytes = self.constructor.getBytes()
-        #print('Array constructorBytes= ' + str(constructorBytes) + ' count=' + str(self.count) + ' size=' + str(self.size) + ' width=' + str(self.width))
 
         sizeBytes = bytearray()
         if self.width == 1:
             sizeBytes = util.addByte(sizeBytes, self.size)
         elif self.width == 4:
             sizeBytes = util.addInt(sizeBytes, self.size)
-        #print('sizeBytes ' + str(sizeBytes))
 
         countBytes = bytearray()
         if self.width == 1:
             countBytes = util.addByte(countBytes, self.count)
         elif self.width != 0 and self.width == 4:
             countBytes = util.addInt(countBytes, self.count)
-        #print('countBytes ' + str(countBytes))
 
         elementConstructorBytes = self.elementConstructor.getBytes()
-        #print(str(self.size) + '' + str(self.width))
         valueBytes = bytearray()
         pos = 0
         for tlv in self.values:
             if isinstance(tlv, TLVAmqp):
                 tlvBytes = tlv.getBytes()
-                #print('elementConstructorBytes ' + str(elementConstructorBytes) + ' tlvBytes= ' + str(tlvBytes))
                 valueBytes += tlvBytes[1:len(tlvBytes)]
                 pos += len(tlvBytes) - len(str(elementConstructorBytes))-1
-        #print('valueBytes= ' + str(valueBytes))
         data = bytearray()
         data.append(constructorBytes)
-        #print('Constructor data= ' + str(data))
         if self.size > 0:
             data += sizeBytes
             data += countBytes
             data = util.addByte(data,elementConstructorBytes)
             data += valueBytes
-
-        #print('TLVArray.getBytes ' + str(data))
         return data
 
     def getElements(self):
@@ -126,6 +136,5 @@ class TLVArray(TLVAmqp):
     def setCode(self, arg):
         pass
 
-    def setConstructor(self, arg):
-        #self.constructor = arg
-        pass
+    def setConstructor(self, constructor):
+        self.constructor = constructor

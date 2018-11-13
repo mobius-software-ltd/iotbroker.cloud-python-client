@@ -1,5 +1,25 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.timers.TimerTask import *
 from venv.iot.coap.tlv.CoapMessage import *
+from venv.iot.amqp.header.impl.AMQPTransfer import *
 
 class TimersMap():
     def __init__(self, client):
@@ -51,24 +71,31 @@ class TimersMap():
         if len(self.timersMap) == 1000:
             raise ValueError('TimersMap : Outgoing identifier overflow')
 
-        if str(type(message).__name__) != 'dict':
-            if message.packetID == 0:
-                message.packetID = self.getNewPacketID()
-                if isinstance(message, CoapMessage):
-                    message.token = str(message.packetID)
-
+        if isinstance(message, AMQPTransfer):
+            message.setDeliveryId(np.int64(self.getNewPacketID()))
             timer = TimerTask(message, 3, self.client)
-            self.timersMap[message.packetID] = timer
+            self.timersMap[message.getDeliveryId()] = timer
             timer.start()
-            return message.packetID
+            return message.getDeliveryId()
         else:
-            if message['packetID'] == None:
-                message['packetID'] = self.getNewPacketID()
+            if str(type(message).__name__) != 'dict':
+                if message.packetID == 0:
+                    message.packetID = self.getNewPacketID()
+                    if isinstance(message, CoapMessage):
+                        message.token = str(message.packetID)
 
-            timer = TimerTask(message, 3, self.client)
-            self.timersMap[message['packetID']] = timer
-            timer.start()
-            return message['packetID']
+                timer = TimerTask(message, 3, self.client)
+                self.timersMap[message.packetID] = timer
+                timer.start()
+                return message.packetID
+            else:
+                if message['packetID'] == None:
+                    message['packetID'] = self.getNewPacketID()
+
+                timer = TimerTask(message, 3, self.client)
+                self.timersMap[message['packetID']] = timer
+                timer.start()
+                return message['packetID']
 
     def removeTimer(self, id):
         timer = self.timersMap.get(id)

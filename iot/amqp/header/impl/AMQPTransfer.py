@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.avps.ReceiveCode import *
@@ -6,7 +25,7 @@ from venv.iot.amqp.constructor.DescribedConstructor import *
 from venv.iot.amqp.header.api.AMQPHeader import *
 from venv.iot.amqp.header.api.AMQPUnwrapper import *
 from venv.iot.amqp.header.api.AMQPWrapper import *
-from venv.iot.amqp.header.api.HeaderFactory import *
+from venv.iot.amqp.header.api.HeaderFactoryOutcome import *
 from venv.iot.amqp.sections.AMQPSection import *
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.tlv.impl.TLVFixed import *
@@ -19,7 +38,7 @@ class AMQPTransfer(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCodeClear.TRANSFER
+            self.code = HeaderCode.TRANSFER
         if doff is not None:
             self.doff = doff
         else:
@@ -48,36 +67,37 @@ class AMQPTransfer(AMQPHeader):
 
     def toArgumentsList(self):
         list = TLVList(None,None)
-
+        wrapper = AMQPWrapper()
         if self.handle == None:
             raise ValueError("Transfer header's handle can't be null")
-        list.addElement(0,AMQPWrapper.wrap(self.handle))
+        list.addElement(0,wrapper.wrap(self.handle))
         if self.deliveryId is not None:
-            list.addElement(1, AMQPWrapper.wrap(self.deliveryId))
+            list.addElement(1, wrapper.wrap(self.deliveryId))
         if self.deliveryTag is not None:
-            list.addElement(2, AMQPWrapper.wrap(self.deliveryTag))
+            list.addElement(2, wrapper.wrap(self.deliveryTag))
         if self.messageFormat is not None and isinstance(self.messageFormat,AMQPMessageFormat):
-            list.addElement(3, AMQPWrapper.wrap(self.messageFormat.encode()))
+            list.addElement(3, wrapper.wrap(self.messageFormat.encode()))
         if self.settled is not None:
-            list.addElement(4, AMQPWrapper.wrap(self.settled))
+            list.addElement(4, wrapper.wrap(self.settled))
         if self.more is not None:
-            list.addElement(5, AMQPWrapper.wrap(self.more))
+            list.addElement(5, wrapper.wrap(self.more))
         if self.rcvSettleMode is not None and isinstance(self.rcvSettleMode,ReceiveCode):
-            list.addElement(6, AMQPWrapper.wrap(self.rcvSettleMode.value))
+            list.addElement(6, wrapper.wrap(self.rcvSettleMode.value))
         if self.state is not None and isinstance(self.state, AMQPState):
-            list.addElement(7, AMQPWrapper.wrap(self.state.toArgumentsList()))
+            list.addElement(7, wrapper.wrap(self.state.toArgumentsList()))
         if self.resume is not None:
-            list.addElement(8, AMQPWrapper.wrap(self.resume))
+            list.addElement(8, wrapper.wrap(self.resume))
         if self.aborted is not None:
-            list.addElement(9, AMQPWrapper.wrap(self.aborted))
+            list.addElement(9, wrapper.wrap(self.aborted))
         if self.batchable is not None:
-            list.addElement(10, AMQPWrapper.wrap(self.batchable))
+            list.addElement(10, wrapper.wrap(self.batchable))
 
         constructor = DescribedConstructor(list.getCode(),TLVFixed(AMQPType.SMALL_ULONG, self.code.value))
         list.setConstructor(constructor)
         return list
 
     def fromArgumentsList(self, list):
+        unwrapper = AMQPUnwrapper()
         if isinstance(list, TLVList):
             size = len(list.getList())
             if size == 0:
@@ -86,53 +106,53 @@ class AMQPTransfer(AMQPHeader):
                 raise ValueError('Received malformed Transfer header. Invalid number of arguments: ' + str(size))
             if size > 0:
                 element = list.getList()[0]
-                if element is None:
+                if element is None and not element.isNull():
                     raise ValueError("Received malformed Transfer header: handle can't be null")
-                self.handle = AMQPUnwrapper.unwrapUInt(element)
+                self.handle = unwrapper.unwrapUInt(element)
             if size > 1:
                 element = list.getList()[1]
-                if element is not None:
-                    self.deliveryId = AMQPUnwrapper.unwrapUInt(element)
+                if element is not None and not element.isNull():
+                    self.deliveryId = unwrapper.unwrapUInt(element)
             if size > 2:
                 element = list.getList()[2]
-                if element is not None:
-                    self.deliveryTag = AMQPUnwrapper.unwrapBinary(element)
+                if element is not None and not element.isNull():
+                    self.deliveryTag = unwrapper.unwrapBinary(element)
             if size > 3:
                 element = list.getList()[3]
-                if element is not None:
-                    self.messageFormat = AMQPMessageFormat(AMQPUnwrapper.unwrapUInt(element))
+                if element is not None and not element.isNull():
+                    self.messageFormat = AMQPMessageFormat(unwrapper.unwrapUInt(element))
             if size > 4:
                 element = list.getList()[4]
-                if element is not None:
-                    self.settled = AMQPUnwrapper.unwrapBool(element)
+                if element is not None and not element.isNull():
+                    self.settled = unwrapper.unwrapBool(element)
             if size > 5:
                 element = list.getList()[5]
-                if element is not None:
-                    self.more = AMQPUnwrapper.unwrapBool(element)
+                if element is not None and not element.isNull():
+                    self.more = unwrapper.unwrapBool(element)
             if size > 6:
                 element = list.getList()[6]
-                if element is not None:
-                    self.rcvSettleMode = ReceiveCode(AMQPUnwrapper.unwrapUByte(element))
+                if element is not None and not element.isNull():
+                    self.rcvSettleMode = ReceiveCode(unwrapper.unwrapUByte(element))
             if size > 7:
                 element = list.getList()[7]
-                if element is not None and isinstance(element,TLVAmqp):
+                if element is not None and not element.isNull() and isinstance(element,TLVAmqp):
                     code = element.getCode()
                     if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
                         raise ValueError("Expected type 'STATE' - received: " + str(element.getCode()))
-                    self.state = HeaderFactory.getState(element)
+                    self.state = HeaderFactoryOutcome.getState(element)
                     self.state.fromArgumentsList(element)
             if size > 8:
                 element = list.getList()[8]
-                if element is not None:
-                    self.resume = AMQPUnwrapper.unwrapBool(element)
+                if element is not None and not element.isNull():
+                    self.resume = unwrapper.unwrapBool(element)
             if size > 9:
                 element = list.getList()[9]
-                if element is not None:
-                    self.aborted = AMQPUnwrapper.unwrapBool(element)
+                if element is not None and not element.isNull():
+                    self.aborted = unwrapper.unwrapBool(element)
             if size > 10:
                 element = list.getList()[10]
-                if element is not None:
-                    self.batchable = AMQPUnwrapper.unwrapBool(element)
+                if element is not None and not element.isNull():
+                    self.batchable = unwrapper.unwrapBool(element)
 
     def toString(self):
         return "AMQPTransfer [handle=" + str(self.handle) + ", deliveryId=" + str(self.deliveryId) + ", deliveryTag=" + str(self.deliveryTag) + ", messageFormat=" + str(self.messageFormat) + ", settled=" + str(self.settled) + ", more=" + str(self.more) + ", rcvSettleMode=" + str(self.rcvSettleMode) + ", state=" + str(self.state) + ", resume=" + str(self.resume) + ", aborted=" + str(self.aborted) + ", batchable=" + str(self.batchable) + ", sections=" + str(self.sections) + ", code=" + str(self.code) + ", doff=" + str(self.doff) + ", type=" + str(self.type) + ", channel=" + str(self.channel) + "]"
@@ -211,54 +231,54 @@ class AMQPTransfer(AMQPHeader):
 
     def getHeader(self):
         if self.sections is not None:
-            return self.sections(SectionCode.HEADER)
+            return self.sections[SectionCode.HEADER]
         else:
             return None
 
     def getDeliveryAnnotations(self):
         if self.sections is not None:
-            return self.sections(SectionCode.DELIVERY_ANNOTATIONS)
+            return self.sections[SectionCode.DELIVERY_ANNOTATIONS]
         else:
             return None
 
     def getMessageAnnotations(self):
         if self.sections is not None:
-            return self.sections(SectionCode.MESSAGE_ANNOTATIONS)
+            return self.sections[SectionCode.MESSAGE_ANNOTATIONS]
         else:
             return None
 
     def getProperties(self):
         if self.sections is not None:
-            return self.sections(SectionCode.PROPERTIES)
+            return self.sections[SectionCode.PROPERTIES]
         else:
             return None
 
     def getApplicationProperties(self):
         if self.sections is not None:
-            return self.sections(SectionCode.APPLICATION_PROPERTIES)
+            return self.sections[SectionCode.APPLICATION_PROPERTIES]
         else:
             return None
 
     def getData(self):
         if self.sections is not None:
-            return self.sections(SectionCode.DATA)
+            return self.sections[SectionCode.DATA]
         else:
             return None
 
     def getSequence(self):
         if self.sections is not None:
-            return self.sections(SectionCode.SEQUENCE)
+            return self.sections[SectionCode.SEQUENCE]
         else:
             return None
 
     def getValue(self):
         if self.sections is not None:
-            return self.sections(SectionCode.VALUE)
+            return self.sections[SectionCode.VALUE]
         else:
             return None
 
     def getFooter(self):
         if self.sections is not None:
-            return self.sections(SectionCode.FOOTER)
+            return self.sections[SectionCode.FOOTER]
         else:
             return None

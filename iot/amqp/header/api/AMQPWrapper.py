@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.tlv.impl.TLVArray import *
@@ -17,14 +36,13 @@ class AMQPWrapper(object):
 
     def wrap(self, obj):
         result = None
-
         if obj is None:
             return TLVNull()
 
         if isinstance(obj, np.int8):
             result = self.wrapByte(obj)
         elif isinstance(obj, np.int16):
-            if obj > 0:
+            if obj >= 0:
                 result = self.wrapUByte(obj)
             else:
                 result = self.wrapShort(obj)
@@ -34,7 +52,7 @@ class AMQPWrapper(object):
             else:
                 result = self.wrapInt(obj)
         elif isinstance(obj, np.int64):
-            if obj > 0:
+            if obj >= 0:
                 result = self.wrapUInt(obj)
             else:
                 result = self.wrapLong(obj)
@@ -44,17 +62,17 @@ class AMQPWrapper(object):
             result = self.wrapString(obj)
         elif isinstance(obj, AMQPSymbol):
             result = self.wrapSymbol(obj)
-        elif isinstance(obj, bytearray):
+        elif isinstance(obj, bytearray) or isinstance(obj, bytes):
             result = self.wrapBinary(obj)
         elif isinstance(obj, bool):
             result = self.wrapBool(obj)
-        elif isinstance(obj, np.char):
+        elif isinstance(obj, np.chararray) :
             result = self.wrapChar(obj)
         elif isinstance(obj, np.float64):
             result = self.wrapDouble(obj)
         elif isinstance(obj, np.float32):
             result = self.wrapFloat(obj)
-        elif isinstance(obj, uuid):
+        elif isinstance(obj, uuid.UUID):
             result = self.wrapUuid(obj)
         elif isinstance(obj, np.datetime64):
             result = self.wrapTimestamp(obj)
@@ -67,11 +85,9 @@ class AMQPWrapper(object):
             elif len(val) == 16:
                 result = self.wrapDecimal128(obj)
         else:
-            raise ValueError('Wrapper received unrecognized type')
+            raise ValueError('Wrapper received unrecognized type ' + str(obj))
 
         return result
-
-
 
     def wrapBool(self, bool):
         value = bytearray()
@@ -249,9 +265,7 @@ class AMQPWrapper(object):
         array = TLVArray(None,None)
         for obj in input:
             res = self.wrap(obj)
-            #print('res ' + str(res))
             array.addElement(res)
-        #print('array ' + str(array.getConstructor().getCode()))
         return array
 
     def convertUInt(self, i):
@@ -259,7 +273,8 @@ class AMQPWrapper(object):
         if i == 0:
             return data
         elif i > 0 and i <= 255:
-            return i
+            data = util.addByte(data, i)
+            return data
         else:
             data = util.addInt(data, i)
             return data

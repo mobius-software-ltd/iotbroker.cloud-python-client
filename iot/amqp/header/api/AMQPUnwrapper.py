@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.tlv.impl.TLVArray import *
@@ -16,13 +35,13 @@ class AMQPUnwrapper(object):
         if isinstance(tlv, TLVAmqp):
             if tlv.getCode() != AMQPType.UBYTE:
                 raise ValueError('Error trying to parse UBYTE: received ' + str(tlv.getCode()))
-        return (tlv.getValue()[0] & 0xff)
+        return tlv.getValue()
 
     def unwrapByte(self, tlv):
         if isinstance(tlv, TLVAmqp):
             if tlv.getCode() != AMQPType.BYTE:
                 raise ValueError('Error trying to parse BYTE: received ' + str(tlv.getCode()))
-        return tlv.getValue()[0]
+        return tlv.getValue()
 
     def unwrapUShort(self, tlv):
         if isinstance(tlv, TLVAmqp):
@@ -41,54 +60,49 @@ class AMQPUnwrapper(object):
             code = tlv.getCode()
             if code not in (AMQPType.UINT,AMQPType.SMALL_UINT,AMQPType.UINT_0):
                 raise ValueError('Error trying to parse UINT: received ' + str(tlv.getCode()))
-            value = tlv.getValue()
+            value = bytes(tlv.getValue())
             if len(value) == 0:
                 return 0
             elif len(value) == 1:
-                return (tlv.getValue()[0] & 0xff)
-            return (util.getInt(tlv.getValue()) & 0xffffffff)
+                return (tlv.getValue() & 0xff)
+
+            return (tlv.getValue())
 
     def unwrapInt(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
             if code not in (AMQPType.INT,AMQPType.SMALL_INT):
                 raise ValueError('Error trying to parse INT: received ' + str(tlv.getCode()))
-            value = tlv.getValue()
+            value = bytes(tlv.getValue())
             if len(value) == 0:
                 return 0
-            elif len(value) == 1:
-                return tlv.getValue()[0]
-            return util.getInt(tlv.getValue())
+            return tlv.getValue()
 
     def unwrapULong(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
             if code not in (AMQPType.ULONG,AMQPType.SMALL_ULONG,AMQPType.ULONG_0):
                 raise ValueError('Error trying to parse ULONG: received ' + str(tlv.getCode()))
-            value = tlv.getValue()
+            value = bytes(tlv.getValue())
             if len(value) == 0:
                 return 0
-            elif len(value) == 1:
-                return (tlv.getValue()[0] & 0xff)
-            return util.getLong(tlv.getValue())
+            return (tlv.getValue())
 
     def unwrapLong(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
             if code not in (AMQPType.LONG,AMQPType.SMALL_LONG):
                 raise ValueError('Error trying to parse LONG: received ' + str(tlv.getCode()))
-            value = tlv.getValue()
+            value = bytes(tlv.getValue())
             if len(value) == 0:
                 return 0
-            elif len(value) == 1:
-                return tlv.getValue()[0]
-            return util.getLong(tlv.getValue())
+            return tlv.getValue()[0]
 
     def unwrapBool(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
             if code  == AMQPType.BOOLEAN:
-                val = tlv.getValue()[0]
+                val = tlv.getValue()
                 if val == 0:
                     return False
                 elif val == 1:
@@ -192,7 +206,6 @@ class AMQPUnwrapper(object):
     def unwrapArray(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            #print('code = ' + str(code))
             if code not in (AMQPType.ARRAY_8,AMQPType.ARRAY_32):
                 raise ValueError('Error trying to parse ARRAY: received ' + str(code))
             result = []

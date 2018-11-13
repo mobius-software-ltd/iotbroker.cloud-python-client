@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.DistributionMode import *
 from venv.iot.amqp.avps.TerminusDurability import *
@@ -5,7 +24,7 @@ from venv.iot.amqp.avps.TerminusExpiryPolicy import *
 from venv.iot.amqp.constructor.DescribedConstructor import *
 from venv.iot.amqp.header.api.AMQPUnwrapper import *
 from venv.iot.amqp.header.api.AMQPWrapper import *
-from venv.iot.amqp.header.api.HeaderFactory import *
+from venv.iot.amqp.header.api.HeaderFactoryOutcome import *
 from venv.iot.amqp.header.api.Parsable import *
 from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.wrappers.AMQPSymbol import *
@@ -24,103 +43,107 @@ class AMQPSource(Parsable):
         self.defaultOutcome = defaultOutcome
         self.outcomes = outcomes
         self.capabilities = capabilities
-        self.headerFactory = HeaderFactory(0)
         self.index = 0
 
     def toArgumentsList(self):
         list = TLVList(None,None)
-
+        wrapper = AMQPWrapper()
         if self.address is not None:
-            list.addElement(0, AMQPWrapper.wrap(self.address))
-        if self.durable is not None and isinstance(self.durable,TerminusDurability):
-            list.addElement(1, AMQPWrapper.wrap(self.durable.value))
-        if self.expiryPeriod is not None and isinstance(self.expiryPeriod, TerminusExpiryPolicy):
-            list.addElement(2, AMQPWrapper.wrap(AMQPSymbol(self.expiryPeriod.value)))
+            list.addElement(0, wrapper.wrap(self.address))
+        if self.durable is not None:
+            list.addElement(1, wrapper.wrap(self.durable))
+        if self.expiryPeriod is not None:
+            list.addElement(2, wrapper.wrap(AMQPSymbol(self.expiryPeriod.value)))
         if self.timeout is not None:
-            list.addElement(3, AMQPWrapper.wrap(self.timeout))
+            list.addElement(3, wrapper.wrap(self.timeout))
         if self.dynamic is not None:
-            list.addElement(4, AMQPWrapper.wrap(self.dynamic))
-
+            list.addElement(4, wrapper.wrap(self.dynamic))
         if self.dynamicNodeProperties is not None and isinstance(self.dynamicNodeProperties,dict):
             if self.dynamic is not None:
                 if self.dynamic:
-                    list.addElement(5, AMQPWrapper.wrapMap(self.dynamicNodeProperties))
+                    list.addElement(5, wrapper.wrapMap(self.dynamicNodeProperties))
                 else:
                     raise ValueError("Source's dynamic-node-properties can't be specified when dynamic flag is false")
             else:
                 raise ValueError("Source's dynamic-node-properties can't be specified when dynamic flag is not set")
 
         if self.distributionMode is not None and isinstance(self.distributionMode,DistributionMode):
-            list.addElement(6, AMQPWrapper.wrap(AMQPSymbol(self.distributionMode.value)))
+            list.addElement(6, wrapper.wrap(AMQPSymbol(self.distributionMode.value)))
         if self.filter is not None and isinstance(self.filter, dict):
-            list.addElement(7, AMQPWrapper.wrapMap(self.filter))
+            list.addElement(7, wrapper.wrapMap(self.filter))
         if self.defaultOutcome is not None and isinstance(self.defaultOutcome,AMQPOutcome):
             list.addElement(8, self.defaultOutcome.toArgumentsList())
         if self.outcomes is not None and len(self.outcomes) > 0:
-            list.addElement(9, AMQPWrapper.wrapArray(self.outcomes))
+            list.addElement(9, wrapper.wrapArray(self.outcomes))
         if self.capabilities is not None and len(self.capabilities) > 0:
-            list.addElement(10, AMQPWrapper.wrapArray(self.capabilities))
+            list.addElement(10, wrapper.wrapArray(self.capabilities))
 
         constructor = DescribedConstructor(list.getCode(),TLVFixed(AMQPType.SMALL_ULONG, 0x28))
         list.setConstructor(constructor)
         return list
 
     def fromArgumentsList(self, list):
+        unwrapper = AMQPUnwrapper()
         if isinstance(list, TLVList):
             if len(list.getList()) > 0 :
                 element = list.getList()[0]
-                if element is not None:
-                    self.address = AMQPUnwrapper.unwrapString(element)
+                if element is not None and not element.isNull():
+                    self.address = unwrapper.unwrapString(element)
             if len(list.getList()) > 1 :
                 element = list.getList()[1]
-                if element is not None:
-                    self.durable = TerminusDurability(AMQPUnwrapper.unwrapInt(element))
+                if element is not None and not element.isNull():
+                    self.durable = TerminusDurability(unwrapper.unwrapUInt(element))
             if len(list.getList()) > 2 :
                 element = list.getList()[2]
-                if element is not None:
-                    self.expiryPeriod = TerminusExpiryPolicy(AMQPUnwrapper.unwrapSymbol(element))
+                if element is not None and not element.isNull():
+                    self.expiryPeriod = TerminusExpiryPolicy(unwrapper.unwrapSymbol(element))
             if len(list.getList()) > 3 :
                 element = list.getList()[3]
-                if element is not None:
-                    self.timeout = AMQPUnwrapper.unwrapUInt(element)
+                if element is not None and not element.isNull():
+                    self.timeout = unwrapper.unwrapUInt(element)
             if len(list.getList()) > 4 :
                 element = list.getList()[4]
-                if element is not None:
-                    self.dynamic = AMQPUnwrapper.unwrapBool(element)
+                if element is not None and not element.isNull():
+                    self.dynamic = unwrapper.unwrapBool(element)
             if len(list.getList()) > 5 :
                 element = list.getList()[5]
-                if element is not None:
+                if element is not None and not element.isNull():
                     if self.dynamic is not None:
-                        self.dynamicNodeProperties = AMQPUnwrapper.unwrapMap(element)
+                        if self.dynamic:
+                            self.dynamicNodeProperties = unwrapper.unwrapMap(element)
+                        else:
+                            raise ValueError("Received malformed Source: dynamic-node-properties can't be specified when dynamic flag is false")
                     else:
-                        raise ValueError("Received malformed Source: dynamic-node-properties can't be specified when dynamic flag is false")
-                else:
-                    raise ValueError("Received malformed Source: dynamic-node-properties can't be specified when dynamic flag is not set")
+                        raise ValueError("Received malformed Source: dynamic-node-properties can't be specified when dynamic flag is not set")
+
             if len(list.getList()) > 6 :
                 element = list.getList()[6]
-                if element is not None:
-                    self.distributionMode = DistributionMode(AMQPUnwrapper.unwrapSymbol(element))
+                if element is not None and not element.isNull():
+                    self.distributionMode = DistributionMode(unwrapper.unwrapSymbol(element))
             if len(list.getList()) > 7:
                 element = list.getList()[7]
-                if element is not None:
-                    self.filter = AMQPUnwrapper.unwrapMap(element)
+                if element is not None and not element.isNull():
+                    self.filter = unwrapper.unwrapMap(element)
+
             if len(list.getList()) > 8:
                 element = list.getList()[8]
-                if element is not None and isinstance(element,TLVAmqp):
+                if element is not None and not element.isNull() and isinstance(element,TLVAmqp):
                     code = element.getCode()
                     if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
                         raise ValueError('Expected type OUTCOME - received: ' + element.getCode())
-                self.defaultOutcome = self.headerFactory.getOutcome(element)
-                self.index = self.headerFactory.getIndex()
+
+
+                self.defaultOutcome = HeaderFactoryOutcome.getOutcome(element)
                 self.defaultOutcome.fromArgumentsList(element)
+
             if len(list.getList()) > 9:
                 element = list.getList()[9]
-                if element is not None:
-                    self.outcomes = AMQPUnwrapper.unwrapArray(element)
+                if element is not None and not element.isNull():
+                    self.outcomes = unwrapper.unwrapArray(element)
             if len(list.getList()) > 10:
                 element = list.getList()[10]
-                if element is not None:
-                    self.capabilities = AMQPUnwrapper.unwrapArray(element)
+                if element is not None and not element.isNull():
+                    self.capabilities = unwrapper.unwrapArray(element)
 
     def toString(self):
         return 'AMQPSource [address=' + str(self.address) + ', durable=' + str(self.durable) + ', expiryPeriod=' + str(self.expiryPeriod) + ', timeout=' + str(self.timeout) + ', dynamic=' + str(self.dynamic) + ', dynamicNodeProperties=' + str(self.dynamicNodeProperties) + ', distributionMode=' + str(self.distributionMode) + ', filter=' + str(self.filter) + ', defaultOutcome=' + str(self.defaultOutcome) + ', outcomes=' + str(self.outcomes) + ', capabilities=' + str(self.capabilities) + ']'

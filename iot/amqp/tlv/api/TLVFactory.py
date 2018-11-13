@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.constructor.DescribedConstructor import *
 from venv.iot.amqp.constructor.SimpleConstructor import *
@@ -18,10 +37,8 @@ class TLVFactory(object):
         return self.index
 
     def getTlv(self, buf):
-        #print('TLVFactory ' + str(buf) + ' ' + str(self.index))
         constructor = self.getConstructor(buf)
         tlv = self.getElement(constructor, buf)
-        #print('TLVFactory Tlv ' + str(tlv))
         return tlv
 
     def getConstructor(self, buf):
@@ -37,13 +54,11 @@ class TLVFactory(object):
         else:
             code = AMQPType(codeByte & 0xff)
             constructor = SimpleConstructor(code)
-        #print('getConstructor ' + str(constructor))
         return constructor
 
     def getElement(self, constructor, buf):
         tlv = None
         code = constructor.getCode()
-        #print('getElement ' + str(code))
         if isinstance(code, AMQPType):
             if code == AMQPType.NULL:
                 tlv = TLVNull()
@@ -71,31 +86,27 @@ class TLVFactory(object):
                 tlv = TLVFixed(code, value16)
             elif code in (AMQPType.STRING_8, AMQPType.SYMBOL_8, AMQPType.BINARY_8):
                 varlen = util.getByte(buf,self.index) & 0xff
-                varValue8 = buf[self.index: self.index + int(varlen)+1]
+                self.index += 1
+                varValue8 = buf[self.index: self.index + int(varlen)]
                 self.index += int(varlen)
-                #print('HERE SYMBOL_8' + str(varValue8) + str(varlen))
-                tlv = TLVFixed(code, varValue8)
+                tlv = TLVVariable(code, varValue8)
             elif code in (AMQPType.STRING_32, AMQPType.SYMBOL_32, AMQPType.BINARY_32):
                 var32len = util.getInt(buf[self.index:self.index+4])
                 self.index += 4
                 varValue32 = buf[self.index: self.index + int(var32len)]
                 self.index += int(var32len)
-                tlv = TLVFixed(code, varValue32)
+                tlv = TLVVariable(code, varValue32)
             elif code is AMQPType.LIST_0:
                 tlv = TLVList(None, None)
             elif code is AMQPType.LIST_8:
-
                 list8size = util.getByte(buf,self.index) & 0xff
                 self.index += 1
                 list8count = util.getByte(buf,self.index) & 0xff
-
                 self.index += 1
                 list8values = []
                 for i in range(0,list8count):
                     entity = self.getTlv(buf)
-                    #print('entity ' + str(entity))
                     list8values.append(entity)
-                #print('HERE LIST_8 ' + str(list8values[0].getElements()) + ' ' + str(list8values[0].getCode()))
                 tlv = TLVList(code, list8values)
             elif code is AMQPType.LIST_32:
                 list32size = util.getInt(buf[self.index:self.index+4])
@@ -136,7 +147,6 @@ class TLVFactory(object):
                 for i in range(0,array8count):
                     arr8.append(self.getElement(arr8constructor,buf))
                 tlv = TLVArray(code, arr8)
-                #print('HERE ARRAY_8 ' + str(arr8) + ' code= ' + str(tlv.getCode()) + ' array= ' + str(tlv))
             elif code is AMQPType.ARRAY_32:
                 arr32size = util.getInt(buf[self.index:self.index+4])
                 self.index += 4

@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.avps.SectionCode import *
@@ -29,6 +48,15 @@ from venv.iot.amqp.header.impl.SASLChallenge import *
 from venv.iot.amqp.header.impl.SASLInit import *
 from venv.iot.amqp.header.impl.SASLOutcome import *
 from venv.iot.amqp.header.impl.SASLResponse import *
+from venv.iot.amqp.header.impl.AMQPOpen import *
+from venv.iot.amqp.header.impl.AMQPBegin import *
+from venv.iot.amqp.header.impl.AMQPEnd import *
+from venv.iot.amqp.header.impl.AMQPClose import *
+from venv.iot.amqp.header.impl.AMQPAttach import *
+from venv.iot.amqp.header.impl.AMQPTransfer import *
+from venv.iot.amqp.header.impl.AMQPDetach import *
+from venv.iot.amqp.header.impl.AMQPDisposition import *
+from venv.iot.amqp.header.impl.AMQPFlow import *
 
 class HeaderFactory(object):
     def __init__(self, index):
@@ -45,32 +73,34 @@ class HeaderFactory(object):
         list = self.tlvFactory.getTlv(buf)
         self.index = self.tlvFactory.getIndex()
 
+
         if list is not None and isinstance(list,TLVAmqp):
             code  = list.getCode()
+
             if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
                 raise ValueError('Received amqp-header with malformed arguments')
 
             byteCode = list.getConstructor().getDescriptorCode()
-            code = HeaderCodeClear(byteCode)
+            code = HeaderCode(byteCode)
 
-            if code == HeaderCodeClear.ATTACH:
-                header = AMQPAttach()
-            elif code == HeaderCodeClear.BEGIN:
-                header = AMQPBegin()
-            elif code == HeaderCodeClear.CLOSE:
-                header = AMQPClose()
-            elif code == HeaderCodeClear.DETACH:
-                header = AMQPDetach()
-            elif code == HeaderCodeClear.DISPOSITION:
-                header = AMQPDisposition()
-            elif code == HeaderCodeClear.END:
-                header = AMQPEnd()
-            elif code == HeaderCodeClear.FLOW:
-                header = AMQPFlow()
-            elif code == HeaderCodeClear.OPEN:
-                header = AMQPOpen()
-            elif code == HeaderCodeClear.TRANSFER:
-                header = AMQPTransfer()
+            if code == HeaderCode.ATTACH:
+                header = AMQPAttach(None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None)
+            elif code == HeaderCode.BEGIN:
+                header = AMQPBegin(None,None,None,None,None,None,None,None,None,None,None,None)
+            elif code == HeaderCode.CLOSE:
+                header = AMQPClose(None,None,None,None,None)
+            elif code == HeaderCode.DETACH:
+                header = AMQPDetach(None,None,None,None,None,None,None)
+            elif code == HeaderCode.DISPOSITION:
+                header = AMQPDisposition(None,None,None,None,None,None,None,None,None,None)
+            elif code == HeaderCode.END:
+                header = AMQPEnd(None,None,None,None,None)
+            elif code == HeaderCode.FLOW:
+                header = AMQPFlow(None,None,None,None,None,None,None,None,None,None,None,None,None,None,None)
+            elif code == HeaderCode.OPEN:
+                header = AMQPOpen(None,None,None,None,None,None,None,None,None,None,None,None,None,None)
+            elif code == HeaderCode.TRANSFER:
+                header = AMQPTransfer(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
             if isinstance(header, AMQPHeader):
                 header.fromArgumentsList(list)
@@ -78,23 +108,15 @@ class HeaderFactory(object):
         return None
 
     def getSASL(self, buf):
-        #print('getSASL ' + str(buf) + ' ' +str(self.index))
         list = self.tlvFactory.getTlv(buf)
-        #print('EXIT')
         self.index = self.tlvFactory.getIndex()
-        #print('list ' + str(self.index))
         if list is not None and isinstance(list,TLVAmqp):
-
             code  = list.getCode()
             if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
                 raise ValueError('Received sasl-header with malformed arguments')
-
             byteCode = list.getConstructor().getDescriptorCode()
-            #print('list.getConstructor() ' + str(list.getValue()))
             code = HeaderCode(byteCode)
-            #print('code ' + str(code))
 
-            #header = HeaderCode.emptySASL()
             if code == HeaderCode.CHALLENGE:
                 header = SASLChallenge(None,None,None,None,None)
             elif code == HeaderCode.INIT:
@@ -112,8 +134,8 @@ class HeaderFactory(object):
 
     def getSection(self, buf):
         value = self.tlvFactory.getTlv(buf)
-        self.index = self.tlvFactory.getIndex()
         section = None
+        self.index = self.tlvFactory.getIndex()
         byteCode = value.getConstructor().getDescriptorCode()
         code = SectionCode(byteCode)
         if code == SectionCode.APPLICATION_PROPERTIES:
@@ -136,42 +158,6 @@ class HeaderFactory(object):
             section = AMQPValue(None)
         else:
             raise ValueError('Received header with unrecognized message section code')
-        if section is not None:
-            section.fill(value)
-            return section
 
-    def getState(self, list):
-        state = None
-        if isinstance(list, TLVList):
-            byteCode = list.getConstructor().getDescriptorCode()
-            code = StateCode(byteCode)
-            if code == StateCode.ACCEPTED:
-                state = AMQPAccepted()
-            elif code == StateCode.MODIFIED:
-                state = AMQPModified(None,None,None)
-            elif code == StateCode.RECEIVED:
-                state = AMQPReceived(None,None)
-            elif code == StateCode.REJECTED:
-                state = AMQPRejected(None)
-            elif code == StateCode.RELEASED:
-                state = AMQPReleased()
-            else:
-                raise ValueError('Received header with unrecognized state code')
-        return state
-
-    def getOutcome(self, list):
-        outcome = None
-        if isinstance(list, TLVList):
-            byteCode = list.getConstructor().getDescriptorCode()
-            code = StateCode(byteCode)
-            if code == StateCode.ACCEPTED:
-                outcome = AMQPAccepted()
-            elif code == StateCode.MODIFIED:
-                outcome = AMQPModified(None,None,None)
-            elif code == StateCode.REJECTED:
-                outcome = AMQPRejected(None)
-            elif code == StateCode.RELEASED:
-                outcome = AMQPReleased()
-            else:
-                raise ValueError('Received header with unrecognized outcome code')
-        return outcome
+        section.fill(value)
+        return section

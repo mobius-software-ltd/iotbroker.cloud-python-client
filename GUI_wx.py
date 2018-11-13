@@ -1,9 +1,28 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 import wx
 import time
 import sys
 
 from database import AccountEntity, TopicEntity, MessageEntity, Base, datamanager
-from venv.iot.classes.AccountValidation import  *
+from venv.iot.classes.AccountValidation import *
 
 from twisted.python import log
 from twisted.internet import wxreactor
@@ -19,6 +38,8 @@ from venv.iot.mqtt.MQTTclient import *
 from venv.iot.mqttsn.MQTTSNclient import *
 from venv.iot.coap.CoapClient import *
 from venv.iot.websocket.WSclient import *
+from venv.iot.amqp.AMQPclient import *
+
 import platform
 import time
 
@@ -84,14 +105,11 @@ class LoadingForm(wx.Frame):
 
         if self.count == 100:
             self.timer.Stop()
-            #print("timer stopped")
 
-            #if default account exists when connect else show accountsForm
             datamanage = datamanager()
             account = datamanage.get_default_account()
 
             if account is not None:
-                #print('Default account: ' + str(account.clientID) + ' qos= ' + str(account.qos))
                 print('connection to: ' + account.serverHost+":"+ str(account.port))
 
                 if account.protocol == 1:
@@ -108,8 +126,6 @@ class LoadingForm(wx.Frame):
                    self.app.client = CoapClient(account, self.app.gui)
                    self.app.client.goConnect()
                    self.Hide()
-                   #next = MainForm(None, -1, "Main", self.app.gui)
-                   #next.Show()
 
                 if account.protocol == 4:
                     self.app.client = WSclient(account, self.app.gui)
@@ -117,8 +133,12 @@ class LoadingForm(wx.Frame):
                     time.sleep(1.5)
                     self.Hide()
 
+                if account.protocol == 5:
+                    self.app.client = AMQPclient(account, self.app.gui)
+                    self.app.client.goConnect()
+                    self.Hide()
+
             else:
-                #print("show AccountsForm")
                 self.Hide()
                 next = AccountsForm(None, 1, "Accounts List", self.app)
                 next.Show()
@@ -157,7 +177,6 @@ class AccountsForm(wx.Frame):
 
         self.list = ULC.UltimateListCtrl(panelList, wx.ID_ANY, agwStyle=ULC.ULC_NO_HEADER|wx.LC_REPORT|wx.LC_SINGLE_SEL|ULC.ULC_HAS_VARIABLE_ROW_HEIGHT)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnConnect, self.list)
-        #self.list.SetFont(boldfont)
 
         self.list.InsertColumn(0, "Account")
         self.list.InsertColumn(1, "Button")
@@ -926,7 +945,6 @@ class TopicsPanel(wx.Panel):
             self.gauge.SetValue(self.count)
             self.gauge.Update()
 
-            #print("Suback or Unsuback is not received. Please, check state of your connection to server")
             wx.MessageBox('Suback or Unsuback is not received. Please, check state of your connection to server', 'Warning',
                           wx.OK | wx.ICON_WARNING)
 
@@ -1302,10 +1320,15 @@ class MyApp(wx.App, UIClient):
 
         if isinstance(topic, FullTopic):
             topicName = topic.getValue()
+        elif isinstance(topic,str):
+            topicName = topic
         else:
             topicName = topic.getName()
 
-        message = MessageEntity(content = bytes(content, encoding='utf_8'), qos = qos.getValue(), topicName = topicName,
+        if isinstance(content,str):
+            content = bytes(content, encoding='utf_8')
+
+        message = MessageEntity(content = content, qos = qos.getValue(), topicName = topicName,
                                 incoming = True, isRetain = retainFlag, isDub = dup, accountentity_id = account.id)
         datamanage.add_entity(message)
         #print('Message stored to DB ' + str(message))

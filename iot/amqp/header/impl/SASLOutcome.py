@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.avps.OutcomeCode import *
@@ -14,7 +33,7 @@ class SASLOutcome(AMQPHeader):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCodeClear.OUTCOME
+            self.code = HeaderCode.OUTCOME
         if doff is not None:
             self.doff = doff
         else:
@@ -45,6 +64,7 @@ class SASLOutcome(AMQPHeader):
         return list
 
     def fromArgumentsList(self, list):
+        unwrapper = AMQPUnwrapper()
         if isinstance(list, TLVList):
             size = len(list.getList())
             if size == 0:
@@ -54,14 +74,14 @@ class SASLOutcome(AMQPHeader):
 
             if size > 0:
                 element = list.getList()[0]
-                if element is None:
+                if element is None or element.isNull():
                     raise ValueError("Received malformed SASL-Outcome header: code can't be null")
-                self.outcomeCode = OutcomeCode(AMQPUnwrapper.unwrapUByte(element)).value
+                self.outcomeCode = OutcomeCode(unwrapper.unwrapUByte(element)).value
 
             if size > 1:
                 element = list.getList()[1]
                 if element is not None:
-                    self.additionalData = AMQPUnwrapper.unwrapBinary(element)
+                    self.additionalData = unwrapper.unwrapBinary(element)
 
 
     def toString(self):

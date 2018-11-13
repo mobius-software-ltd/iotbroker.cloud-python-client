@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.sections.AMQPSection import *
 from venv.iot.amqp.header.api.AMQPWrapper import *
 from venv.iot.amqp.header.api.AMQPUnwrapper import *
@@ -9,9 +28,10 @@ class AMQPData(AMQPSection):
         self.data = data
 
     def getValue(self):
+        wrapper = AMQPWrapper()
         bin = None
         if self.data is not None:
-            bin = AMQPWrapper.wrap(self.data)
+            bin = wrapper.wrap(self.data)
         else:
             bin = TLVNull()
         constructor = DescribedConstructor(bin.getCode(), TLVFixed(AMQPType.SMALL_ULONG, 0x75))
@@ -19,8 +39,9 @@ class AMQPData(AMQPSection):
         return bin
 
     def fill(self, value):
+        unwrapper = AMQPUnwrapper()
         if value is not None:
-            self.data = AMQPUnwrapper.unwrapBinary(value)
+            self.data = unwrapper.unwrapBinary(value)
 
     def getCode(self):
         return SectionCode.DATA

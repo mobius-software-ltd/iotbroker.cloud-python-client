@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.avps.ReceiveCode import *
@@ -50,47 +69,53 @@ class AMQPAttach(AMQPHeader):
 
     def toArgumentsList(self):
         list = TLVList(None,None)
+        wrapper = AMQPWrapper()
 
         if self.name is None:
             raise ValueError("Attach header's name can't be null")
-        list.addElement(0, AMQPWrapper.wrapString(self.name))
+        list.addElement(0, wrapper.wrapString(self.name))
+
         if self.handle is None:
             raise ValueError("Attach header's handle can't be null")
-        list.addElement(1, AMQPWrapper.wrap(self.handle))
+        list.addElement(1, wrapper.wrap(self.handle))
+
         if self.role is None:
             raise ValueError("Attach header's role can't be null")
-        if isinstance(self.role,RoleCode):
-            list.addElement(2, AMQPWrapper.wrap(self.role.value))
-        if self.sndSettleMode is not None and isinstance(self.sndSettleMode,SendCode):
-            list.addElement(3, AMQPWrapper.wrap(self.sndSettleMode.value))
-        if self.rcvSettleMode is not None and isinstance(self.rcvSettleMode,ReceiveCode):
-            list.addElement(4, AMQPWrapper.wrap(self.rcvSettleMode.value))
+
+        list.addElement(2, wrapper.wrap(self.role.value))
+        if self.sndSettleMode is not None:
+            list.addElement(3, wrapper.wrap(self.sndSettleMode))
+        if self.rcvSettleMode is not None:
+            list.addElement(4, wrapper.wrap(self.rcvSettleMode))
         if self.source is not None and isinstance(self.source,AMQPSource):
             list.addElement(5,self.source.toArgumentsList())
         if self.target is not None and isinstance(self.target,AMQPTarget):
             list.addElement(6,self.target.toArgumentsList())
         if self.unsettled is not None and len(self.unsettled) > 0:
-            list.addElement(7, AMQPWrapper.wrapMap(self.unsettled))
+            list.addElement(7, wrapper.wrapMap(self.unsettled))
         if self.incompleteUnsettled is not None:
-            list.addElement(8,AMQPWrapper.wrap(self.incompleteUnsettled))
+            list.addElement(8,wrapper.wrap(self.incompleteUnsettled))
+
         if self.initialDeliveryCount is not None:
-            list.addElement(9,AMQPWrapper.wrap(self.initialDeliveryCount))
+            list.addElement(9,wrapper.wrap(self.initialDeliveryCount))
         elif self.role == RoleCode.SENDER:
             raise ValueError("Sender's attach header must contain a non-null initial-delivery-count value")
+
         if self.maxMessageSize is not None:
-            list.addElement(10,AMQPWrapper.wrap(self.maxMessageSize))
+            list.addElement(10,wrapper.wrap(self.maxMessageSize))
         if self.offeredCapabilities is not None and len(self.offeredCapabilities) > 0:
-            list.addElement(11, AMQPWrapper.wrapArray(self.offeredCapabilities))
+            list.addElement(11, wrapper.wrapArray(self.offeredCapabilities))
         if self.desiredCapabilities is not None and len(self.desiredCapabilities) > 0:
-            list.addElement(12, AMQPWrapper.wrapArray(self.desiredCapabilities))
+            list.addElement(12, wrapper.wrapArray(self.desiredCapabilities))
         if self.properties is not None and len(self.properties) > 0:
-            list.addElement(13, AMQPWrapper.wrapMap(self.properties))
+            list.addElement(13, wrapper.wrapMap(self.properties))
 
         constructor = DescribedConstructor(list.getCode(),TLVFixed(AMQPType.SMALL_ULONG, self.code.value))
         list.setConstructor(constructor)
         return list
 
     def fromArgumentsList(self, list):
+        unwrapper = AMQPUnwrapper()
         if isinstance(list, TLVList):
             size = len(list.getList())
             if size < 3:
@@ -100,33 +125,33 @@ class AMQPAttach(AMQPHeader):
 
             if size > 0:
                 element = list.getList()[0]
-                if element is not None:
-                    self.name = AMQPUnwrapper.unwrapString(element)
+                if element is not None and not element.isNull():
+                    self.name = unwrapper.unwrapString(element)
                 else:
                     raise ValueError("Received malformed Attach header: name can't be null")
             if size > 1:
                 element = list.getList()[1]
-                if element is not None:
-                    self.handle = AMQPUnwrapper.unwrapUInt(element)
+                if element is not None and not element.isNull():
+                    self.handle = unwrapper.unwrapUInt(element)
                 else:
                     raise ValueError("Received malformed Attach header: handle can't be null")
             if size > 2:
                 element = list.getList()[2]
-                if element is not None:
-                    self.role = RoleCode(AMQPUnwrapper.unwrapBool(element))
+                if element is not None and not element.isNull():
+                    self.role = RoleCode(unwrapper.unwrapBool(element))
                 else:
                     raise ValueError("Received malformed Attach header: role can't be null")
             if size > 3:
                 element = list.getList()[3]
-                if element is not None:
-                    self.sndSettleMode = SendCode(AMQPUnwrapper.unwrapUByte(element))
+                if element is not None and not element.isNull():
+                    self.sndSettleMode = SendCode(unwrapper.unwrapUByte(element))
             if size > 4:
                 element = list.getList()[4]
-                if element is not None:
-                    self.rcvSettleMode = ReceiveCode(AMQPUnwrapper.unwrapUByte(element))
+                if element is not None and not element.isNull():
+                    self.rcvSettleMode = ReceiveCode(unwrapper.unwrapUByte(element))
             if size > 5:
                 element = list.getList()[5]
-                if element is not None and isinstance(element,TLVAmqp):
+                if element is not None and not element.isNull() and isinstance(element,TLVAmqp):
                     code = element.getCode()
                     if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
                         raise ValueError('Expected type SOURCE - received: ' + str(element.getCode()))
@@ -134,7 +159,7 @@ class AMQPAttach(AMQPHeader):
                     self.source.fromArgumentsList(element)
             if size > 6:
                 element = list.getList()[6]
-                if element is not None and isinstance(element, TLVAmqp):
+                if element is not None and not element.isNull() and isinstance(element, TLVAmqp):
                     code = element.getCode()
                     if code not in (AMQPType.LIST_0, AMQPType.LIST_8, AMQPType.LIST_32):
                         raise ValueError('Expected type TARGET - received: ' + str(element.getCode()))
@@ -142,34 +167,34 @@ class AMQPAttach(AMQPHeader):
                     self.target.fromArgumentsList(element)
             if size > 7:
                 element = list.getList()[7]
-                if element is not None:
-                    self.unsettled = AMQPUnwrapper.unwrapMap(element)
+                if element is not None and not element.isNull():
+                    self.unsettled = unwrapper.unwrapMap(element)
             if size > 8:
                 element = list.getList()[8]
-                if element is not None:
-                    self.incompleteUnsettled = AMQPUnwrapper.unwrapBool(element)
+                if element is not None and not element.isNull():
+                    self.incompleteUnsettled = unwrapper.unwrapBool(element)
             if size > 9:
                 element = list.getList()[9]
-                if element is not None:
-                    self.initialDeliveryCount = AMQPUnwrapper.unwrapUInt(element)
+                if element is not None and not element.isNull():
+                    self.initialDeliveryCount = unwrapper.unwrapUInt(element)
                 elif self.role == RoleCode.SENDER:
                     raise ValueError('Received an attach header with a null initial-delivery-count')
             if size > 10:
                 element = list.getList()[10]
-                if element is not None:
-                    self.maxMessageSize = AMQPUnwrapper.unwrapULong(element)
+                if element is not None and not element.isNull():
+                    self.maxMessageSize = unwrapper.unwrapULong(element)
             if size > 11:
                 element = list.getList()[11]
-                if element is not None:
-                    self.offeredCapabilities = AMQPUnwrapper.unwrapArray(element)
+                if element is not None and not element.isNull():
+                    self.offeredCapabilities = unwrapper.unwrapArray(element)
             if size > 12:
                 element = list.getList()[12]
-                if element is not None:
-                    self.desiredCapabilities = AMQPUnwrapper.unwrapArray(element)
+                if element is not None and not element.isNull():
+                    self.desiredCapabilities = unwrapper.unwrapArray(element)
             if size > 13:
-                element = list.getList()[12]
-                if element is not None:
-                    self.properties = AMQPUnwrapper.unwrapMap(element)
+                element = list.getList()[13]
+                if element is not None and not element.isNull():
+                    self.properties = unwrapper.unwrapMap(element)
 
     def toString(self):
         return "AMQPAttach [name=" + str(self.name) + ", handle=" + str(self.handle) + ", role=" + str(self.role) + ", sndSettleMode=" + str(self.sndSettleMode) + ", rcvSettleMode=" + str(self.rcvSettleMode) + ", source=" + str(self.source) + ", target=" + str(self.target) + ", unsettled=" + str(self.unsettled) + ", incompleteUnsettled=" + str(self.incompleteUnsettled) + ", initialDeliveryCount=" + str(self.initialDeliveryCount) + ", maxMessageSize=" + str(self.maxMessageSize) + ", offeredCapabilities=" + str(self.offeredCapabilities) + ", desiredCapabilities=" + str(self.desiredCapabilities) + ", properties=" + str(self.properties) + ", code=" + str(self.code) + ", doff=" + str(self.doff) + ", type=" + str(self.type) + ", channel=" + str(self.channel) + "]"

@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.amqp.avps.AMQPType import *
 from venv.iot.amqp.avps.HeaderCode import *
 from venv.iot.amqp.constructor.DescribedConstructor import *
@@ -8,13 +27,14 @@ from venv.iot.amqp.tlv.api.TLVAmqp import *
 from venv.iot.amqp.tlv.impl.TLVFixed import *
 from venv.iot.amqp.tlv.impl.TLVList import *
 from venv.iot.amqp.tlv.impl.TLVNull import *
+from venv.iot.amqp.tlv.impl.AMQPError import *
 
 class AMQPEnd(AMQPHeader):
     def __init__(self,code,doff,type,channel,error):
         if code is not None:
             self.code = code
         else:
-            self.code = HeaderCodeClear.END
+            self.code = HeaderCode.END
         if doff is not None:
             self.doff = doff
         else:
@@ -44,9 +64,10 @@ class AMQPEnd(AMQPHeader):
     def fromArgumentsList(self, list):
         if isinstance(list, TLVList):
             size = len(list.getList())
+            print('list.getList()= ' + str(list.getList()))
             if size > 0:
                 element = list.getList()[0]
-                if element is not None and isinstance(element,TLVAmqp):
+                if element is not None and isinstance(element,TLVAmqp) and isinstance(element,TLVNull) != True:
                     code = element.getCode()
                     if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
                         raise ValueError("Expected type 'ERROR' - received: " + str(element.getCode()))

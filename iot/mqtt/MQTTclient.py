@@ -1,3 +1,22 @@
+"""
+ # Mobius Software LTD
+ # Copyright 2015-2018, Mobius Software LTD
+ #
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU Lesser General Public License as
+ # published by the Free Software Foundation; either version 2.1 of
+ # the License, or (at your option) any later version.
+ #
+ # This software is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ # Lesser General Public License for more details.
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this software; if not, write to the Free
+ # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+"""
 from venv.iot.mqtt.mqtt_messages.MQConnect import *
 from venv.iot.mqtt.mqtt_messages.MQConnack import *
 from venv.iot.mqtt.mqtt_messages.MQDisconnect import *
@@ -12,22 +31,15 @@ from venv.iot.mqtt.mqtt_messages.MQSuback import *
 from venv.iot.mqtt.mqtt_messages.MQSubscribe import *
 from venv.iot.mqtt.mqtt_messages.MQUnsuback import *
 from venv.iot.mqtt.mqtt_messages.MQUnsubscribe import *
-
 from venv.iot.classes.ConnectionState import *
-
 from venv.iot.mqtt.mqtt_classes.MQConnackCode import *
 from venv.iot.mqtt.mqtt_classes.MQSubackCode import *
 from venv.iot.mqtt.mqtt_classes.Will import *
 from venv.iot.mqtt.mqtt_classes.MQTopic import *
-
 from venv.iot.network.TCPClient import ClientFactory
-
 from venv.iot.classes.IoTClient import *
-
 from venv.iot.mqtt.MQParser import MQParser
 from venv.iot.timers.TimersMap import *
-
-#import t.i.reactor only after installing wxreactor
 from twisted.internet import reactor
 
 class MQTTclient(IoTClient):
@@ -93,7 +105,6 @@ class MQTTclient(IoTClient):
         connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
 
     def publish(self, name, qos, content, retain, dup):
-        #print('MQTTclient publish: ' + str(name) + ' ' + str(qos) + ' '+str(content) + ' ' + str(retain) +' '+ str(dup))
         topic = MQTopic(name, qos)
         publish = MQPublish(0, topic, content, retain, dup)
         if(qos == 0):
@@ -167,8 +178,6 @@ def processUnsuback(self,message):
 
 def processPublish(self,message):
     publisherQoS = message.topic.qos.getValue()
-    print('publisherQoS= ' + str(publisherQoS.getValue()))
-
     if publisherQoS.getValue() == 0:
         self.clientGUI.publishReceived(message.topic, publisherQoS, message.content, message.dup, message.retain)
     if publisherQoS.getValue() == 1:  #AT_LEAST_ONCE
