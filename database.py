@@ -120,6 +120,14 @@ class datamanager():
         session.commit()
         session.close()
 
+    def update_topic(self, id, qos):
+        engine = create_engine(self.path)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        session = DBSession()
+        session.query(TopicEntity).filter(TopicEntity.id==id).update({"qos": qos})
+        session.commit()
+
     def delete_message(self,id):
         engine = create_engine(self.path)
         Base.metadata.bind = engine
@@ -243,9 +251,12 @@ class datamanager():
         Base.metadata.bind = engine
         DBSession = sessionmaker(bind=engine)
         session = DBSession()
-        result = session.query(TopicEntity).filter(
-            TopicEntity.accountentity_id == id and TopicEntity.topicName == name).first()
-        return result
+        result = session.query(TopicEntity).filter(TopicEntity.topicName == name).all()
+        for topic in result:
+            if isinstance(topic,TopicEntity):
+                if topic.accountentity_id == id:
+                    return topic
+        return None
 
     def get_messages_all_accountID(self,id):
         engine = create_engine(self.path)
@@ -262,6 +273,16 @@ class datamanager():
         session = DBSession()
         session.query(TopicEntity).delete()
         session.query(MessageEntity).delete()
+        session.commit()
+        session.close()
+
+    def clear_by_id(self, id):
+        engine = create_engine(self.path)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        session = DBSession()
+        session.query(TopicEntity).filter(TopicEntity.accountentity_id == id).delete()
+        #session.query(MessageEntity).delete()
         session.commit()
         session.close()
 

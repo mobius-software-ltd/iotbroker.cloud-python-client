@@ -112,7 +112,8 @@ class LoadingForm(wx.Frame):
             if account is not None:
                 print('connection to: ' + account.serverHost+":"+ str(account.port))
                 if account.cleanSession:
-                    datamanage.clear()
+                    #datamanage.clear()
+                    datamanage.clear_by_id(account.id)
 
                 if account.protocol == 1:
                     self.app.client = MQTTclient(account, self.app.gui)
@@ -896,6 +897,11 @@ class TopicsPanel(wx.Panel):
             datamanage = datamanager()
             account = datamanage.get_default_account()
             previous = datamanage.get_topic_by_name_and_accountID(name,account.id)
+            if isinstance(previous, TopicEntity):
+                if previous.qos != int(qos):
+                    datamanage.delete_topic_name(name)
+                    previous = None
+                           
             if previous is None:
                 #ADD to list
                 self.nameText.SetValue('');
@@ -1005,7 +1011,7 @@ class MessagesPanel(wx.Panel):
         if messages is not None:
             if len(messages) > 0:
                 for item in messages:
-                    self.list.InsertStringItem(i, str(item.topicName) + '\n' + str(item.content))
+                    self.list.InsertStringItem(i, str(item.topicName) + '\n' + str(item.content.decode('utf-8')))
 
                     if platform.system() == 'Linux':
                         if item.incoming:
