@@ -2,3 +2,4 @@ lib/
 __pycache__/
 lib64
 bin/
+iotbroker.db
