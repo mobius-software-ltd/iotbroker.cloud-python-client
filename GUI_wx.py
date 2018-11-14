@@ -269,20 +269,26 @@ class AccountsForm(wx.Frame):
 class LoginForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
         self.app = app
-        wx.Frame.__init__(self, parent, ID, title,size=wx.Size(360, 540))
+        wx.Frame.__init__(self, parent, ID, title,size=wx.Size(360, 640))
         self.Centre()
         self.SetBackgroundStyle(wx.BG_STYLE_ERASE)
 
         self.Bind(wx.EVT_CLOSE, self.onClose)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
-        topPanel = wx.Panel(self, size=wx.Size(360, 600))
+        topPanel = wx.Panel(self, size=wx.Size(360, 650))
+
+        self.certificatePath = wx.TextCtrl(topPanel)
+        self.certificatePath.Hide()
 
         panel1 = wx.Panel(self, -1,size=wx.Size(360,210))
         panel1.SetBackgroundColour((255, 255, 255))
 
         panel2 = wx.Panel(self, -1,size=wx.Size(360,210))
         panel2.SetBackgroundColour((255, 255, 255))
+
+        panel3 = wx.Panel(self, -1,size=wx.Size(360,100))
+        panel3.SetBackgroundColour((255, 255, 255))
 
         fontBold = wx.Font(10, wx.SWISS, wx.NORMAL, wx.BOLD)
         font = wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL)
@@ -499,6 +505,60 @@ class LoginForm(wx.Frame):
 
         panel2.SetSizer(panel2_vertical)
 
+        security = wx.StaticText(topPanel, -1, "  security:")
+        security.SetFont(fontBold)
+
+        self.imageCtrlEnabled = wx.StaticBitmap(panel3, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.enabledLabel = wx.StaticText(panel3, -1, "Enabled:")
+        self.enabledLabel.SetFont(font)
+        self.enabledCheck = wx.CheckBox(panel3)
+
+        self.imageCtrlCert = wx.StaticBitmap(panel3, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.certLabel = wx.StaticText(panel3, -1, "Certificate:")
+        self.certLabel.SetFont(font)
+        self.certBtn = wx.Button(panel3, label="File...")
+        self.certBtn.Bind(wx.EVT_BUTTON, self.onCertificate)
+
+        self.imageCtrlSecPasw = wx.StaticBitmap(panel3, wx.ID_ANY, wx.Bitmap(imgSettings))
+        self.secPaswLabel = wx.StaticText(panel3, -1, "Password:")
+        self.secPaswLabel.SetFont(font)
+        self.secPaswText = wx.TextCtrl(panel3, size=wx.Size(150, 30))
+
+        panel3_vertical = wx.BoxSizer(wx.VERTICAL)
+        enabled_horizontal = wx.BoxSizer(wx.HORIZONTAL)
+        certificate_horizontal = wx.BoxSizer(wx.HORIZONTAL)
+        certPasw_horizontal = wx.BoxSizer(wx.HORIZONTAL)
+
+        enabled_horizontal.AddSpacer(10)
+        enabled_horizontal.Add(self.imageCtrlEnabled)
+        enabled_horizontal.AddSpacer(10)
+        enabled_horizontal.Add(self.enabledLabel)
+        enabled_horizontal.AddSpacer(210)
+        enabled_horizontal.Add(self.enabledCheck, 1, wx.RIGHT, 20)
+
+        certificate_horizontal.AddSpacer(10)
+        certificate_horizontal.Add(self.imageCtrlCert)
+        certificate_horizontal.AddSpacer(10)
+        certificate_horizontal.Add(self.certLabel)
+        certificate_horizontal.AddSpacer(150)
+        certificate_horizontal.Add(self.certBtn, 1, wx.RIGHT, 20)
+
+        certPasw_horizontal.AddSpacer(10)
+        certPasw_horizontal.Add(self.imageCtrlSecPasw)
+        certPasw_horizontal.AddSpacer(10)
+        certPasw_horizontal.Add(self.secPaswLabel)
+        certPasw_horizontal.AddSpacer(75)
+        certPasw_horizontal.Add(self.secPaswText, 1, wx.RIGHT, 20)
+
+        panel3_vertical.AddSpacer(5)
+        panel3_vertical.Add(enabled_horizontal)
+        panel3_vertical.AddSpacer(5)
+        panel3_vertical.Add(certificate_horizontal)
+        panel3_vertical.AddSpacer(5)
+        panel3_vertical.Add(certPasw_horizontal)
+
+        panel3.SetSizer(panel3_vertical)
+
         # BUTTON
         self.btn = wx.Button(topPanel, label="Log In", size=wx.Size(360, 50), style = wx.NO_BORDER)
         self.btn.SetBackgroundColour(wx.Colour(30, 144, 255))
@@ -514,6 +574,10 @@ class LoginForm(wx.Frame):
         sizer.Add(settings)
         sizer.AddSpacer(5)
         sizer.Add(panel2,0,wx.EXPAND|wx.ALL,border=0)
+        sizer.AddSpacer(5)
+        sizer.Add(security)
+        sizer.AddSpacer(5)
+        sizer.Add(panel3, 0, wx.EXPAND | wx.ALL, border=0)
         sizer.Add(self.btn)
 
         topPanel.SetSizer(sizer)
@@ -521,6 +585,15 @@ class LoginForm(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(topPanel)
         self.SetSizer(vbox)
+
+    def onCertificate(self, event):
+        openFileDialog = wx.FileDialog(self, "Open", "", "",
+                                       "Certificate files (*.pem)|*.pem",
+                                       wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+
+        openFileDialog.ShowModal()
+        self.certificatePath.SetValue(openFileDialog.GetPath())
+        openFileDialog.Destroy()
 
     def OnEraseBackground(self, evt):
         dc = evt.GetDC()
@@ -545,29 +618,43 @@ class LoginForm(wx.Frame):
         will = self.willText.GetValue()
         willT = self.willTText.GetValue()
         qos = self.comboQos.GetValue()
+        enabled = self.enabledCheck.GetValue()
+        certPath = self.certificatePath.GetValue()
+        self.certificatePath.SetValue('')
+        certPasw = self.secPaswText.GetValue()
 
         account = AccountEntity(protocol=protocol, username=name, password=password, clientID=clientID,
                                 serverHost=serverHost,
                                 port=serverPort, cleanSession=cleanSession, keepAlive=keepAlive, will=will, willTopic=willT,
                                 isRetain=True,
-                                qos=qos, isDefault=False)
-
+                                qos=qos, isDefault=False, isSecure=enabled, certPath=certPath, certPasw=certPasw)
 
         if AccountValidation.valid(account):
             datamanage = datamanager()
 
             previous = datamanage.get_account_clientID(account.clientID)
             if previous is None:
-                datamanage.add_entity(account)
-                account = datamanage.get_account_clientID(clientID)
-                datamanage.set_default_account_clientID(account.id)
-                self.Hide()
-                next = LoadingForm(None, -1, "Loading", self.app)
-                next.Show()
+                if enabled != True:
+                    datamanage.add_entity(account)
+                    account = datamanage.get_account_clientID(clientID)
+                    datamanage.set_default_account_clientID(account.id)
+                    self.Hide()
+                    next = LoadingForm(None, -1, "Loading", self.app)
+                    next.Show()
+                elif enabled and certPath != '':
+                    account.port = 8883
+                    datamanage.add_entity(account)
+                    account = datamanage.get_account_clientID(clientID)
+                    datamanage.set_default_account_clientID(account.id)
+                    self.Hide()
+                    next = LoadingForm(None, -1, "Loading", self.app)
+                    next.Show()
+                else:
+                    wx.MessageBox("Wrong value for certificate. Choose the correct one",'Warning', wx.OK | wx.ICON_WARNING)
             else:
                 wx.MessageBox("Wrong value for clientID='" + str(account.clientID) + "'. This one is already in use", 'Warning', wx.OK | wx.ICON_WARNING)
         else:
-            if int(account.keepAlive) <= 0 or int(account.keepAlive) > 65535:
+            if account.keepAlive is '' or (int(account.keepAlive) <= 0 or int(account.keepAlive)) > 65535:
                 wx.MessageBox('Wrong value for Keepalive', 'Warning', wx.OK | wx.ICON_WARNING)
             else:
                 wx.MessageBox('Please, fill in all required fileds: Username, Password, ClientID, Host, Port', 'Warning', wx.OK | wx.ICON_WARNING)
@@ -903,38 +990,58 @@ class TopicsPanel(wx.Panel):
                     previous = None
                            
             if previous is None:
-                #ADD to list
-                self.nameText.SetValue('');
-                self.comboQos.SetValue('0');
+                index = self.isInList(name)
 
-                i = self.list.GetItemCount()
-                bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
-                self.btnDel = wx.BitmapButton(self.list, id=i, bitmap=bmp,
-                                              size=(bmp.GetWidth() + 12, bmp.GetHeight() + 10), style=wx.NO_BORDER)
+                if index is None:
+                    #ADD to list
+                    self.nameText.SetValue('');
+                    self.comboQos.SetValue('0');
 
-                self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
-                self.list.InsertStringItem(i, str(name))
-                if (i % 2) == 0:
-                    self.list.SetItemBackgroundColour(i, wx.Colour(255, 255, 255))
+                    i = self.list.GetItemCount()
+                    bmp = wx.Bitmap("./resources/ic_delete_with_background.png", wx.BITMAP_TYPE_BMP)
+                    self.btnDel = wx.BitmapButton(self.list, id=i, bitmap=bmp,
+                                                  size=(bmp.GetWidth() + 12, bmp.GetHeight() + 10), style=wx.NO_BORDER)
+
+                    self.Bind(wx.EVT_BUTTON, self.OnDelete, self.btnDel)
+                    self.list.InsertStringItem(i, str(name))
+                    if (i % 2) == 0:
+                        self.list.SetItemBackgroundColour(i, wx.Colour(255, 255, 255))
+                    else:
+                        self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
+
+                    qosBmp = None
+                    if platform.system() == 'Linux':
+                        qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 1:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 2:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+                    else:
+                        qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 1:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 2:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
+                    self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
+                    self.list.SetItemWindow(i, 1, self.imageCtrlQos)
+                    self.list.SetItemWindow(i, 2, self.btnDel)
                 else:
-                    self.list.SetItemBackgroundColour(i, wx.Colour(224, 224, 224))
+                    qosBmp = None
+                    if platform.system() == 'Linux':
+                        qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 1:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 2:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
+                    else:
+                        qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 1:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
+                        if int(qos) == 2:
+                            qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
+                    self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
+                    self.list.SetItemWindow(index, 1, self.imageCtrlQos)
 
-                qosBmp = None
-                if platform.system() == 'Linux':
-                    qosBmp = wx.Bitmap("./resources/icon_qos_0_75.png", wx.BITMAP_TYPE_BMP)
-                    if int(qos) == 1:
-                        qosBmp = wx.Bitmap("./resources/icon_qos_1_75.png", wx.BITMAP_TYPE_BMP)
-                    if int(qos) == 2:
-                        qosBmp = wx.Bitmap("./resources/icon_qos_2_75.png", wx.BITMAP_TYPE_BMP)
-                else:
-                    qosBmp = wx.Bitmap("./resources/icon_qos_0_75.bmp", wx.BITMAP_TYPE_BMP)
-                    if int(qos) == 1:
-                        qosBmp = wx.Bitmap("./resources/icon_qos_1_75.bmp", wx.BITMAP_TYPE_BMP)
-                    if int(qos) == 2:
-                        qosBmp = wx.Bitmap("./resources/icon_qos_2_75.bmp", wx.BITMAP_TYPE_BMP)
-                self.imageCtrlQos = wx.StaticBitmap(self.list, wx.ID_ANY, wx.Bitmap(qosBmp))
-                self.list.SetItemWindow(i, 1, self.imageCtrlQos)
-                self.list.SetItemWindow(i, 2, self.btnDel)
                 # SEND SUBSCRIBE _________________________________________________________________________________SEND SUBSCRIBE
                 self.app.client.subscribeTo(name, int(qos))
                 #self.timer.Start(1)
@@ -944,6 +1051,12 @@ class TopicsPanel(wx.Panel):
         else:
             wx.MessageBox('Please, fill in all required fields: TopicName', 'Warning',
                           wx.OK | wx.ICON_WARNING)
+
+    def isInList(self, name):
+        for i in range(0,self.list.GetItemCount()):
+            if str(self.list.GetItem(i,0).GetText()) == name:
+                return i
+        return None
 
     def OnDelete(self, event):
         btn = event.GetEventObject()

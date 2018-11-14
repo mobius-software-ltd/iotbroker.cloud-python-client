@@ -44,6 +44,9 @@ class AccountEntity(Base):
     isRetain =      Column(Boolean, unique=False)
     qos =           Column(Integer, nullable=False)
     isDefault =     Column(Boolean, unique=False)
+    isSecure =      Column(Boolean, unique=False)
+    certPath=       Column(String(250), nullable=False)
+    certPasw =      Column(String(50), nullable=False)
 
 class TopicEntity(Base):
     __tablename__ = 'topicentity'
@@ -258,7 +261,7 @@ class datamanager():
                     return topic
         return None
 
-    def get_messages_all_accountID(self,id):
+    def get_messages_all_accountID(self, id):
         engine = create_engine(self.path)
         Base.metadata.bind = engine
         DBSession = sessionmaker(bind=engine)
