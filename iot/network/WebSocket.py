@@ -18,8 +18,12 @@
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
 import json
-from autobahn.twisted.websocket import WebSocketClientFactory, WebSocketClientProtocol, connectWS
+from OpenSSL import SSL
+from twisted.internet import ssl
+from autobahn.twisted.websocket import WebSocketClientFactory, WebSocketClientProtocol
 from venv.iot.classes.ConnectionState import *
+import OpenSSL.crypto
+import tempfile
 
 class WebSocket(WebSocketClientProtocol):
    def __init__(self,factory,client):
@@ -32,11 +36,11 @@ class WebSocket(WebSocketClientProtocol):
        self.client.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
    def onMessage(self, msg, binary):
-      #print("Got echo: " + str(msg))
+      print("WebSocket Got echo: " + str(msg))
       self.client.dataReceived(msg)
 
    def sendPacket(self, message):
-       #print('HERE sendPacket ' + str(message))
+       print('WebSocket sendPacket ' + str(message))
        self.sendMessage(bytes(json.dumps(message),'utf-8'))
 
    def connectionLost(self, reason):
@@ -56,3 +60,28 @@ class WSSocketClientFactory(WebSocketClientFactory):
 
     def sendPacket(self, packet):
         self.ws.sendPacket(packet)
+
+class CtxFactory(ssl.ClientContextFactory):
+    def __init__(self, certificate, password):
+        self.certificate = certificate
+        if password is not None and len(password)>0:
+            self.password = password
+        else:
+            self.password = None
+
+    def getContext(self):
+        self.method = SSL.SSLv23_METHOD
+        ctx = ssl.ClientContextFactory.getContext(self)
+        if self.certificate != '':
+            fp = tempfile.NamedTemporaryFile()
+            fp.write(bytes(self.certificate,'utf-8'))
+            fp.seek(0)
+            ctx.use_certificate_chain_file(fp.name)
+            fp.seek(0)
+            if self.password is not None:
+                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), self.password)
+            else:
+                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read())
+            ctx.use_privatekey(key)
+            fp.close()
+        return ctx

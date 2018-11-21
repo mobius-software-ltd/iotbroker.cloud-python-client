@@ -17,8 +17,11 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from twisted.internet import reactor
+from OpenSSL import SSL
+from twisted.internet import ssl, reactor
 from twisted.internet.protocol import Protocol, ReconnectingClientFactory
+import OpenSSL.crypto
+import tempfile
 
 class TCPClient(Protocol):
     def __init__(self, message, client):
@@ -40,8 +43,8 @@ class TCPClient(Protocol):
     def sendMessage(self, message):
         self.message = message
         try:
-            self.transport.write(self.message)
-            #print("was sended: " + str(self.message))
+            self.transport.write(bytes(self.message))
+            #print("was sended: " + str(bytes(self.message)))
         except:
             print('TCPClient sending message ERROR')
 
@@ -66,10 +69,7 @@ class ClientFactory(ReconnectingClientFactory):
         self.tcp.sendMessage(self.message)
 
     def buildProtocol(self, addr):
-        print
-        'Connected.'
-        print
-        'Resetting reconnection delay'
+        print('Connected.')
         #self.resetDelay()
         return self.tcp
 
@@ -84,3 +84,28 @@ class ClientFactory(ReconnectingClientFactory):
         print("Connection lost - reconnect!")
         #connector.connect()
         #reactor.stop()
+
+class CtxFactory(ssl.ClientContextFactory):
+    def __init__(self, certificate, password):
+        self.certificate = certificate
+        if password is not None and len(password)>0:
+            self.password = password
+        else:
+            self.password = None
+
+    def getContext(self):
+        self.method = SSL.SSLv23_METHOD
+        ctx = ssl.ClientContextFactory.getContext(self)
+        if self.certificate != '':
+            fp = tempfile.NamedTemporaryFile()
+            fp.write(bytes(self.certificate,'utf-8'))
+            fp.seek(0)
+            ctx.use_certificate_chain_file(fp.name)
+            fp.seek(0)
+            if self.password is not None:
+                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), self.password)
+            else:
+                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read())
+            ctx.use_privatekey(key)
+            fp.close()
+        return ctx

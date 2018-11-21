@@ -64,9 +64,16 @@ class WSclient(IoTClient):
             will = None
             willFlag = False
 
-        url = 'ws://' + str(self.account.serverHost) + ':' + str(self.account.port) + '/ws'
-        self.clientFactory = WSSocketClientFactory(url, self)
-        connectWS(self.clientFactory)
+        if self.account.isSecure:
+            url = 'wss://' + str(self.account.serverHost) + ':' + str(self.account.port) + '/ws'
+            self.clientFactory = WSSocketClientFactory(url, self)
+            #self.clientFactory.setProtocolOptions(openHandshakeTimeout=10)
+            ctx = CtxFactory(self.account.certificate, self.account.certPasw)
+            connectWS(self.clientFactory, ctx, int(self.account.keepAlive) * 2)
+        else:
+            url = 'ws://' + str(self.account.serverHost) + ':' + str(self.account.port) + '/ws'
+            self.clientFactory = WSSocketClientFactory(url, self)
+            connectWS(self.clientFactory, None, int(self.account.keepAlive) * 2)
 
         if self.account.username is not None and len(self.account.username)>0:
             usernameFlag = True

@@ -45,7 +45,7 @@ class AccountEntity(Base):
     qos =           Column(Integer, nullable=False)
     isDefault =     Column(Boolean, unique=False)
     isSecure =      Column(Boolean, unique=False)
-    certPath=       Column(String(250), nullable=False)
+    certificate =   Column(String(10000), nullable=False)
     certPasw =      Column(String(50), nullable=False)
 
 class TopicEntity(Base):

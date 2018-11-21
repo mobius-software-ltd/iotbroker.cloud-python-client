@@ -30,30 +30,22 @@ from venv.iot.amqp.header.impl.AMQPTransfer import *
 from venv.iot.amqp.header.impl.AMQPAttach import *
 from venv.iot.amqp.header.impl.AMQPDisposition import *
 from venv.iot.amqp.header.impl.AMQPDetach import *
-
 from venv.iot.amqp.sections.AMQPData import *
 from venv.iot.amqp.terminus.AMQPSource import *
 from venv.iot.amqp.wrappers.AMQPMessageFormat import *
 from venv.iot.amqp.avps.OutcomeCode import *
-
 from venv.iot.classes.NumericUtil import NumericUtil as util
-
 from venv.iot.classes.ConnectionState import *
 from venv.iot.mqtt.mqtt_classes.MQConnackCode import *
 from venv.iot.mqtt.mqtt_classes.MQSubackCode import *
 from venv.iot.mqtt.mqtt_classes.Will import *
 from venv.iot.mqtt.mqtt_classes.MQTopic import *
-
-from venv.iot.network.TCPClient import ClientFactory
-
+from venv.iot.network.TCPClient import *
 from venv.iot.classes.IoTClient import *
-
 from venv.iot.amqp.AMQPParser import AMQPParser
 from venv.iot.timers.TimersMap import *
-
 #import t.i.reactor only after installing wxreactor
-from twisted.internet import reactor
-
+from twisted.internet import ssl, reactor
 import numpy as np
 
 class AMQPclient(IoTClient):
@@ -98,7 +90,13 @@ class AMQPclient(IoTClient):
         self.setState(ConnectionState.CONNECTING)
         header = AMQPProtoHeader(3)  # SASL = 3
         self.clientFactory = ClientFactory(self.parser.encode(header), self)
-        connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
+
+        if self.account.isSecure:
+                ctx = CtxFactory(self.account.certificate, self.account.certPasw)
+                reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
+        else:
+            connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
+
         self.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
     def publish(self, name, qos, content, retain, dup):
@@ -345,18 +343,39 @@ def processDisposition(self, message):
                     qos = QoS(1)
                     self.clientGUI.publishReceived(topic, qos, transfer.getData().getData(), False, False)
 
+def processFlow(self, message):
+    #print('processFlow= ' + str(message))
+    pass
+
+def processInit(self, message):
+    raise ValueError("received invalid message init")
+
+def processChallenge(self, message):
+    raise ValueError("received invalid message challenge")
+
+def processResponse(self, message):
+    raise ValueError("received invalid message response")
+
+def processPing(self, message):
+    pass
+
 switcherProcess = {
-    254: processProto,
-    64: processMechanisms,
-    68: processOutcome,
     16: processOpen,
     17: processBegin,
     18: processAttach,
-    24: processClose,
+    19: processFlow,
+    20: processTransfer,
     21: processDisposition,
     22: processDetach,
     23: processEnd,
-    20: processTransfer,
+    24: processClose,
+    64: processMechanisms,
+    65: processInit,
+    66: processChallenge,
+    67: processResponse,
+    68: processOutcome,
+    254: processProto,
+    255: processPing,
 }
 
 def process_messageType_method(self, argument, message):

@@ -19,6 +19,7 @@
 """
 from venv.iot.classes.ConnectionState import *
 from venv.iot.network.UDPClient import *
+from venv.iot.network.DTLSClient import *
 from venv.iot.classes.IoTClient import *
 from venv.iot.mqttsn.SNParser import *
 from venv.iot.timers.TimersMap import *
@@ -73,12 +74,18 @@ class MQTTSNclient(IoTClient):
 
         if self.timers is not None:
             self.timers.stopAllTimers()
-        self.timers.goConnectTimer(connect)
+        #self.timers.goConnectTimer(connect)
 
         self.parser.setMessage(connect)
         message = self.parser.encode()
-        self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
-        reactor.listenUDP(0, self.udpClient)
+
+        if self.account.isSecure:
+            self.udpClient = DTLSClient(self.account.serverHost, self.account.port, self.account.certPath, self)
+            self.udpClient.startProtocol()
+        else:
+            self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
+            reactor.listenUDP(0, self.udpClient)
+        print('before sending message')
         self.udpClient.send(message)
 
     def publish(self, topicName, qosValue, content, retain, dup):

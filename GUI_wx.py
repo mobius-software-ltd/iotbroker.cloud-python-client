@@ -149,8 +149,9 @@ class LoadingForm(wx.Frame):
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-            if isinstance(self.app.client.clientFactory, WSSocketClientFactory):
-                self.app.client.clientFactory.ws.closeFlag = False
+            if isinstance(self.app.client, MQTTSNclient) != True:
+                if isinstance(self.app.client.clientFactory, WSSocketClientFactory):
+                    self.app.client.clientFactory.ws.closeFlag = False
 
         reactor.stop()
 
@@ -278,8 +279,8 @@ class LoginForm(wx.Frame):
 
         topPanel = wx.Panel(self, size=wx.Size(360, 650))
 
-        self.certificatePath = wx.TextCtrl(topPanel)
-        self.certificatePath.Hide()
+        self.certificate = wx.TextCtrl(topPanel)
+        self.certificate.Hide()
 
         panel1 = wx.Panel(self, -1,size=wx.Size(360,210))
         panel1.SetBackgroundColour((255, 255, 255))
@@ -516,7 +517,7 @@ class LoginForm(wx.Frame):
         self.imageCtrlCert = wx.StaticBitmap(panel3, wx.ID_ANY, wx.Bitmap(imgSettings))
         self.certLabel = wx.StaticText(panel3, -1, "Certificate:")
         self.certLabel.SetFont(font)
-        self.certBtn = wx.Button(panel3, label="File...")
+        self.certBtn = wx.Button(panel3, label="Cert...")
         self.certBtn.Bind(wx.EVT_BUTTON, self.onCertificate)
 
         self.imageCtrlSecPasw = wx.StaticBitmap(panel3, wx.ID_ANY, wx.Bitmap(imgSettings))
@@ -587,6 +588,7 @@ class LoginForm(wx.Frame):
         self.SetSizer(vbox)
 
     def onCertificate(self, event):
+        """
         openFileDialog = wx.FileDialog(self, "Open", "", "",
                                        "Certificate files (*.pem)|*.pem",
                                        wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
@@ -594,6 +596,13 @@ class LoginForm(wx.Frame):
         openFileDialog.ShowModal()
         self.certificatePath.SetValue(openFileDialog.GetPath())
         openFileDialog.Destroy()
+        """
+        dlg = wx.TextEntryDialog(self, 'Enter certificate', 'Certificate Entry',style=wx.TE_MULTILINE|wx.OK)
+        dlg.SetClientSize(wx.Size(360, 500))
+
+        if dlg.ShowModal() == wx.ID_OK:
+            self.certificate.SetValue(dlg.GetValue())
+        dlg.Destroy()
 
     def OnEraseBackground(self, evt):
         dc = evt.GetDC()
@@ -619,38 +628,36 @@ class LoginForm(wx.Frame):
         willT = self.willTText.GetValue()
         qos = self.comboQos.GetValue()
         enabled = self.enabledCheck.GetValue()
-        certPath = self.certificatePath.GetValue()
-        self.certificatePath.SetValue('')
+        certificate = self.certificate.GetValue()
+        self.certificate.SetValue('')
         certPasw = self.secPaswText.GetValue()
 
         account = AccountEntity(protocol=protocol, username=name, password=password, clientID=clientID,
                                 serverHost=serverHost,
                                 port=serverPort, cleanSession=cleanSession, keepAlive=keepAlive, will=will, willTopic=willT,
                                 isRetain=True,
-                                qos=qos, isDefault=False, isSecure=enabled, certPath=certPath, certPasw=certPasw)
+                                qos=qos, isDefault=False, isSecure=enabled, certificate=certificate, certPasw=certPasw)
 
         if AccountValidation.valid(account):
             datamanage = datamanager()
 
             previous = datamanage.get_account_clientID(account.clientID)
             if previous is None:
-                if enabled != True:
-                    datamanage.add_entity(account)
-                    account = datamanage.get_account_clientID(clientID)
-                    datamanage.set_default_account_clientID(account.id)
-                    self.Hide()
-                    next = LoadingForm(None, -1, "Loading", self.app)
-                    next.Show()
-                elif enabled and certPath != '':
-                    account.port = 8883
-                    datamanage.add_entity(account)
-                    account = datamanage.get_account_clientID(clientID)
-                    datamanage.set_default_account_clientID(account.id)
-                    self.Hide()
-                    next = LoadingForm(None, -1, "Loading", self.app)
-                    next.Show()
-                else:
-                    wx.MessageBox("Wrong value for certificate. Choose the correct one",'Warning', wx.OK | wx.ICON_WARNING)
+                if enabled:
+                    """
+                    if account.protocol == 1: #MQTT
+                        account.port = 8883
+                    elif account.protocol == 4: #WebSockets
+                        account.port = 18443
+                    elif account.protocol == 5: #AMQP
+                        account.port = 5673
+                    """
+                datamanage.add_entity(account)
+                account = datamanage.get_account_clientID(clientID)
+                datamanage.set_default_account_clientID(account.id)
+                self.Hide()
+                next = LoadingForm(None, -1, "Loading", self.app)
+                next.Show()
             else:
                 wx.MessageBox("Wrong value for clientID='" + str(account.clientID) + "'. This one is already in use", 'Warning', wx.OK | wx.ICON_WARNING)
         else:
@@ -1438,6 +1445,8 @@ class MyApp(wx.App, UIClient):
 
     def timeout(self):
         print("GUI timeout")
+        #wx.MessageBox('Timeout for connection ended', 'Warning',
+         #             wx.OK | wx.ICON_WARNING)
 
     def showMainForm(self):
         self.frame = MainForm(None, -1, "Main", self)
@@ -1519,7 +1528,10 @@ class MyApp(wx.App, UIClient):
 
     def disconnectReceived(self):
         #print('MyApp disconnectReceived')
-        pass
+        wx.MessageBox('Disconnect received from server', 'Warning',
+                      wx.OK | wx.ICON_WARNING)
+        self.frame = AccountsForm(None, 1, "Accounts List", self)
+        self.frame.Show(True)
 
     def errorReceived(self, text):
         #print('MyApp errorReceived: ' + text)

@@ -36,11 +36,11 @@ from venv.iot.mqtt.mqtt_classes.MQConnackCode import *
 from venv.iot.mqtt.mqtt_classes.MQSubackCode import *
 from venv.iot.mqtt.mqtt_classes.Will import *
 from venv.iot.mqtt.mqtt_classes.MQTopic import *
-from venv.iot.network.TCPClient import ClientFactory
+from venv.iot.network.TCPClient import *
 from venv.iot.classes.IoTClient import *
 from venv.iot.mqtt.MQParser import MQParser
 from venv.iot.timers.TimersMap import *
-from twisted.internet import reactor
+from twisted.internet import ssl, reactor
 
 class MQTTclient(IoTClient):
     def __init__(self, account, client):
@@ -102,7 +102,11 @@ class MQTTclient(IoTClient):
         self.timers.goConnectTimer(connect)
         self.parser.setMessage(connect)
         self.clientFactory = ClientFactory(self.parser.encode(), self)
-        connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
+        if self.account.isSecure:
+                ctx = CtxFactory(self.account.certificate, self.account.certPasw)
+                reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
+        else:
+            connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
 
     def publish(self, name, qos, content, retain, dup):
         topic = MQTopic(name, qos)
@@ -162,6 +166,8 @@ def processConnack(self,message):
     if message.returnCode == 0: #MQ_ACCEPTED
         self.setState(ConnectionState.CONNECTION_ESTABLISHED)
         self.clientGUI.connackReceived(message.returnCode)
+    else:
+        self.clientGUI.disconnectReceived()
 
 def processSuback(self,message):
     subscribe = self.timers.removeTimer(message.packetID)

@@ -18,13 +18,16 @@
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
 from venv.iot.classes.ConnectionState import *
-from twisted.internet.protocol import DatagramProtocol
 import socket
+import OpenSSL
 from OpenSSL import SSL
-from twisted.internet import ssl
+from OpenSSL._util import (
+    ffi as _ffi,
+    lib as _lib)
 
-class UDPClient(DatagramProtocol):
-    def __init__(self, host, port, client):
+
+class DTLSClient(object):
+    def __init__(self, host, port, path, client):
         try:
             socket.inet_aton(host)
             self.host = host
@@ -32,19 +35,48 @@ class UDPClient(DatagramProtocol):
             self.host = socket.gethostbyname(host)
         self.port = port
         self.client = client
+        self.path = path
+        self.sock = None
 
     def startProtocol(self):
-        self.transport.connect(self.host, self.port)
+        DTLSv1_METHOD = 7
+        #DTLSv1_2_METHOD = 8
+        SSL.Context._methods[DTLSv1_METHOD] = getattr(_lib, "DTLSv1_client_method")
+        ctx = SSL.Context(DTLSv1_METHOD)
+        ctx.set_cipher_list('ALL:COMPLEMENTOFALL')
+
+        if self.path != '':
+            ctx.use_certificate_chain_file(self.path)
+            ctx.use_privatekey_file(self.path)
+        self.sock = SSL.Connection(ctx, socket.socket(socket.AF_INET, socket.SOCK_DGRAM))
+        addr = (self.host, self.port)
+        self.sock.connect(addr)
+
+        try:
+            self.sock.do_handshake()
+        except OpenSSL.SSL.WantReadError:
+            print("HANDSHAKE ERROR")
+
         print("connection to host %s port %d  was established" % (self.host, self.port))
         self.client.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
+        while 1:
+            print('in while loop')
+            data = self.sock.recv(4048)
+            if data and len(data)>0:
+                self.datagramReceived(data, addr)
+
+        self.connectionClosed()
+
+
     def send(self, message):
-        #print("we send: " + str(message))
-        self.transport.write(message)  # no need for address
+        print("we send: " + str(message))
+        self.sock.send(bytes(message))  # no need for address
 
     def datagramReceived(self, data, addr):
-        #print("received %r from %s:%d" % (data, self.host, self.port))
+        print("received %r from %s:%d" % (data, self.host, self.port))
         self.client.dataReceived(data)
 
-    def connectionRefused(self):
-        print("No one listening on this port")
+    def connectionClosed(self):
+        print("Connection closed")
+        self.sock.close()

@@ -33,7 +33,6 @@ class TimersMap():
     def goConnectTimer(self, message):
         if self.connectTimer is not None:
             self.connectTimer.stop()
-
         self.connectTimer = TimerTask(message, 3, self.client)
         self.connectTimer.start()
 

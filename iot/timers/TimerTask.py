@@ -20,6 +20,9 @@
 from threading import Timer
 from venv.iot.classes.ConnectionState import *
 from venv.iot.mqtt.mqtt_messages.MQPublish import *
+from venv.iot.mqtt.mqtt_messages.MQPingreq import *
+from venv.iot.mqttsn.mqttsn_messages.SNPingreq import *
+from venv.iot.amqp.header.impl.AMQPPing import *
 
 class TimerTask():
     def __init__(self, message, period, client):
@@ -29,12 +32,17 @@ class TimerTask():
         self.status = None
         self.isTimeoutTask = False
         self.client = client
-        self.client.send(self.message)
+        if self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
+            self.client.send(self.message)
+        self.count = 5
 
     def handle_function(self):
         self.onTimedEvent()
         self.timer = Timer(self.period, self.handle_function)
         self.timer.start()
+        self.count -= 1
+        if self.count == 0 and isinstance(self.message,MQPingreq) != True and isinstance(self.message,SNPingreq) != True and isinstance(self.message,AMQPPing) != True:
+            self.client.timeoutMethod()
 
     def getPeriod(self):
         return self.period

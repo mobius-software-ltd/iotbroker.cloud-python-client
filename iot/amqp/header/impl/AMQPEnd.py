@@ -64,7 +64,7 @@ class AMQPEnd(AMQPHeader):
     def fromArgumentsList(self, list):
         if isinstance(list, TLVList):
             size = len(list.getList())
-            print('list.getList()= ' + str(list.getList()))
+            #print('list.getList()= ' + str(list.getList()))
             if size > 0:
                 element = list.getList()[0]
                 if element is not None and isinstance(element,TLVAmqp) and isinstance(element,TLVNull) != True:

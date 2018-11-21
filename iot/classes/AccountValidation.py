@@ -27,7 +27,7 @@ class AccountValidation:
                 return False
 
         if account.protocol == 2:
-            if (account.username and account.password and account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<64800):
+            if (account.username and account.password and account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<65535):
                 return True
             else:
                 return False
