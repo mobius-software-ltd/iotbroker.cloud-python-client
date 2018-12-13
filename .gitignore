@@ -3,3 +3,4 @@ __pycache__/
 lib64
 bin/
 *.db
+*.pyc
