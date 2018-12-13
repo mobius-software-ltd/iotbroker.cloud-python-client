@@ -22,6 +22,7 @@ from venv.iot.classes.ConnectionState import *
 from venv.iot.mqtt.mqtt_messages.MQPublish import *
 from venv.iot.mqtt.mqtt_messages.MQPingreq import *
 from venv.iot.mqttsn.mqttsn_messages.SNPingreq import *
+from venv.iot.mqttsn.mqttsn_messages.SNSubscribe import *
 from venv.iot.amqp.header.impl.AMQPPing import *
 
 class TimerTask():

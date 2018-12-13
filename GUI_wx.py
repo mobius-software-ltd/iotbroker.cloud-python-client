@@ -23,6 +23,7 @@ import sys
 
 from database import AccountEntity, TopicEntity, MessageEntity, Base, datamanager
 from venv.iot.classes.AccountValidation import *
+from gi.repository import GLib
 
 from twisted.python import log
 from twisted.internet import wxreactor
@@ -144,12 +145,12 @@ class LoadingForm(wx.Frame):
             else:
                 self.Hide()
                 next = AccountsForm(None, 1, "Accounts List", self.app)
-                next.Show()
+                GLib.idle_add(lambda: next.Show())
 
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-            if isinstance(self.app.client, MQTTSNclient) != True:
+            if isinstance(self.app.client, MQTTSNclient) != True and isinstance(self.app.client, CoapClient) != True:
                 if isinstance(self.app.client.clientFactory, WSSocketClientFactory):
                     self.app.client.clientFactory.ws.closeFlag = False
 
@@ -239,7 +240,7 @@ class AccountsForm(wx.Frame):
         account = datamanage.set_default_account_clientID(clientID)
         self.Hide()
         next = LoadingForm(None, -1, "Loading", self.app)
-        next.Show()
+        GLib.idle_add(lambda: next.Show())
 
     def OnDelete(self, event):
         btn = event.GetEventObject()
@@ -257,12 +258,12 @@ class AccountsForm(wx.Frame):
     def OnCreate(self, event):
         self.Hide()
         next = LoginForm(None, -1, "Login", self.app)
-        next.Show()
+        GLib.idle_add(lambda: next.Show())
 
     def onClose(self, event):
         if self.app.client is not None:
             self.app.client.timers.stopAllTimers()
-            if isinstance(self.app.client,CoapClient) != True:
+            if isinstance(self.app.client,CoapClient) != True and isinstance(self.app.client,MQTTSNclient) != True:
                 if isinstance( self.app.client.clientFactory, WSSocketClientFactory):
                     self.app.client.clientFactory.ws.closeFlag = False
         reactor.stop()
@@ -657,7 +658,7 @@ class LoginForm(wx.Frame):
                 datamanage.set_default_account_clientID(account.id)
                 self.Hide()
                 next = LoadingForm(None, -1, "Loading", self.app)
-                next.Show()
+                GLib.idle_add(lambda: next.Show())
             else:
                 wx.MessageBox("Wrong value for clientID='" + str(account.clientID) + "'. This one is already in use", 'Warning', wx.OK | wx.ICON_WARNING)
         else:
@@ -1374,7 +1375,7 @@ class SendPanel(wx.Panel):
                 datamanage.add_entity(message)
 
         self.app.frame.Hide()
-        self.app.showMainForm()
+        GLib.idle_add(lambda: self.app.showMainForm())
 
     def OnTimer(self, event):
         self.count = self.count+1
@@ -1445,19 +1446,21 @@ class MyApp(wx.App, UIClient):
 
     def timeout(self):
         print("GUI timeout")
-        #wx.MessageBox('Timeout for connection ended', 'Warning',
-         #             wx.OK | wx.ICON_WARNING)
+        self.frame = AccountsForm(None, -1, "Accounts", self)
+        GLib.idle_add(lambda: self.frame.Show(True))
 
     def showMainForm(self):
         self.frame = MainForm(None, -1, "Main", self)
         self.frame.Show()
 
     def connackReceived(self, returnCode):
-        #print('App connackReceived')
-        self.showMainForm()
+        print('App connackReceived')
+        #self.showMainForm()
+        GLib.idle_add(lambda: self.showMainForm())
+
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        #print('App publishReceived ' + str(content))
+        print('App publishReceived ' + str(content))
         #store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -1477,7 +1480,7 @@ class MyApp(wx.App, UIClient):
         datamanage.add_entity(message)
         #print('Message stored to DB ' + str(message))
         self.frame.Hide()
-        self.showMainForm()
+        GLib.idle_add(lambda: self.showMainForm())
 
     def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode):
         #print('App pubackReceived')
@@ -1496,10 +1499,9 @@ class MyApp(wx.App, UIClient):
         datamanage.add_entity(message)
         #print('App pubackReceived entity was saved')
         self.frame.Hide()
-        self.showMainForm()
+        GLib.idle_add(lambda: self.showMainForm())
 
     def subackReceived(self, topic, qos, returnCode):
-        #print('App subackReceived ' + str(topic) + ' ' + str(qos))
         #store topic
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -1518,20 +1520,20 @@ class MyApp(wx.App, UIClient):
             datamanage.delete_topic_name(name)
             #print('Topic deleted from DB ' + str(name))
         self.frame.Hide()
-        self.showMainForm()
+        GLib.idle_add(lambda: self.showMainForm())
 
     def pingrespReceived(self,coapFlag):
         #print('MyApp pingresp Received')
         if coapFlag:
             self.frame.Hide()
-            self.showMainForm()
+            GLib.idle_add(lambda: self.showMainForm())
 
     def disconnectReceived(self):
         #print('MyApp disconnectReceived')
         wx.MessageBox('Disconnect received from server', 'Warning',
                       wx.OK | wx.ICON_WARNING)
         self.frame = AccountsForm(None, 1, "Accounts List", self)
-        self.frame.Show(True)
+        GLib.idle_add(lambda: self.frame.Show(True))
 
     def errorReceived(self, text):
         #print('MyApp errorReceived: ' + text)

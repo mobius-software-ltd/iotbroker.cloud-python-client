@@ -24,7 +24,7 @@ class Will(object):
         self.retain = retain
 
     def getLength(self):
-        totalLength=0;
+        totalLength=0
         if self.topic.getLength()>0:
             totalLength+=self.topic.getLength() + 2
 

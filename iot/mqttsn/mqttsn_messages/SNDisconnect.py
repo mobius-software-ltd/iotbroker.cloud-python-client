@@ -19,7 +19,7 @@
 """
 from venv.iot.mqttsn.mqttsn_classes.MQTTSN_messageType import *
 
-class SNDisonnect(object):
+class SNDisconnect(object):
     def __init__(self, duration):
         self.duration = duration
 

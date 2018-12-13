@@ -469,7 +469,7 @@ def PINGREQ(self,message):
 def DISCONNECT(self,message):
     data = bytearray()
     data = addByte(data, message.getLength())
-    if isinstance(message, SNDisonnect):
+    if isinstance(message, SNDisconnect):
         data = addByte(data, int(message.getType()))
         if message.getLength() > 2:
             data = addShort(data, message.getDuration())
@@ -799,7 +799,7 @@ def DISCONNECT_DECODE(self):
     duration = 0
     if self.index < self.length:
         duration = getShort(data[self.index:self.index + 2])
-    message = SNDisonnect(duration)
+    message = SNDisconnect(duration)
     return message
 
 def WILL_TOPIC_UPD_DECODE(self):

@@ -19,12 +19,21 @@
 """
 from venv.iot.classes.ConnectionState import *
 from venv.iot.network.UDPClient import *
-from venv.iot.network.DTLSClient import *
+from venv.iot.network.pyDTLSClient import *
 from venv.iot.classes.IoTClient import *
 from venv.iot.mqttsn.SNParser import *
 from venv.iot.timers.TimersMap import *
 from venv.iot.mqttsn.mqttsn_classes.ReturnCode import *
 from twisted.internet import reactor
+import asyncio
+import tempfile
+import ssl
+from socket import socket, AF_INET, SOCK_DGRAM
+from logging import basicConfig, DEBUG
+basicConfig(level=DEBUG)  # set now for dtls import code
+from dtls import do_patch, wrapper
+do_patch()
+from threading import Thread
 
 class MQTTSNclient(IoTClient):
     def __init__(self, account, client):
@@ -37,15 +46,17 @@ class MQTTSNclient(IoTClient):
         self.udpClient = None
         self.timers = TimersMap(self)
         self.forPublish = {}
-        self.registerID = 0
+        self.registerID = 1
         self.publishPackets = {}
         self.topics = {}
+        self.loop = None
+        self.udpThread = None
 
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             self.parser.setMessage(message)
             message = self.parser.encode()
-            self.udpClient.send(message)
+            self.udpClient.sendMessage(message)
         else:
             return False
 
@@ -74,19 +85,36 @@ class MQTTSNclient(IoTClient):
 
         if self.timers is not None:
             self.timers.stopAllTimers()
-        #self.timers.goConnectTimer(connect)
 
         self.parser.setMessage(connect)
         message = self.parser.encode()
 
         if self.account.isSecure:
-            self.udpClient = DTLSClient(self.account.serverHost, self.account.port, self.account.certPath, self)
-            self.udpClient.startProtocol()
+            self.loop = asyncio.get_event_loop()
+
+            fp = tempfile.NamedTemporaryFile()
+            fp.write(bytes(self.account.certificate, 'utf-8'))
+            fp.seek(0)
+            sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name,ca_certs=fp.name)
+            addr = (self.account.serverHost, self.account.port)
+            sock_wrapped.connect(addr)
+            datagram = self.loop.create_datagram_endpoint(
+                lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=sock_wrapped)
+            fp.close()
+            transport, protocol = self.loop.run_until_complete(datagram)
+            self.udpClient = protocol
+            self.setState(ConnectionState.CONNECTION_ESTABLISHED)
         else:
             self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
             reactor.listenUDP(0, self.udpClient)
-        print('before sending message')
-        self.udpClient.send(message)
+
+        if self.account.isSecure:
+            self.udpThread = Thread(target=self.loop.run_forever)
+            self.udpThread.daemon = True
+            self.udpThread.start()
+            #self.udpClient.sendMessage(message)
+        #else:
+        self.timers.goConnectTimer(connect)
 
     def publish(self, topicName, qosValue, content, retain, dup):
         qos = QoS(qosValue)
@@ -113,9 +141,9 @@ class MQTTSNclient(IoTClient):
 
     def disconnectWith(self, duration):
         if duration is not None and duration > 0:
-            self.send(SNDisonnect(duration))
+            self.send(SNDisconnect(duration))
         else:
-            self.send(SNDisonnect(0))
+            self.send(SNDisconnect(0))
         self.timers.stopAllTimers()
 
     def timeoutMethod(self):
@@ -133,12 +161,16 @@ class MQTTSNclient(IoTClient):
         if self.client != None:
             self.client.stop()
             self.setState(ConnectionState.CONNECTION_LOST)
+        self.loop.close()
+        self.udpThread.exit()
 
     def connected(self):
         self.setState(ConnectionState.CHANNEL_ESTABLISHED)
 
     def connectFailed(self):
         self.setState(ConnectionState.CHANNEL_FAILED)
+        self.loop.close()
+        self.udpThread.exit()
 
 #__________________________________________________________________________________________
 def processADVERTISE(self,message):
@@ -156,8 +188,8 @@ def processCONNECT(self,message):
 def processCONNACK(self,message):
     self.setState(ConnectionState.CONNECTION_ESTABLISHED)
     self.timers.stopConnectTimer()
-    self.timers.goPingTimer(SNPingreq(self.account.clientID), self.account.keepAlive)
     self.clientGUI.connackReceived(message.getCode())
+    self.timers.goPingTimer(SNPingreq(self.account.clientID), self.account.keepAlive)
 
 def processWILL_TOPIC_REQ(self,message):
     qos = QoS(self.account.qos)

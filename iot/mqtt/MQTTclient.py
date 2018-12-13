@@ -65,24 +65,11 @@ class MQTTclient(IoTClient):
         message = self.parser.decode(data)
         process_messageType_method(self, message.getType(), message)
 
-    def setListener(self,ClientListener):
-        self.listener = ClientListener
-
     def setState(self, ConnectionState):
         self.connectionState = ConnectionState
 
-    def createChannel(self):
-        self.setState(ConnectionState.CHANNEL_CREATING)
-        isSuccess = self.client.connect(self.host,self.port)
-        if isSuccess != True:
-            self.setState(ConnectionState.CHANNEL_FAILED)
-        return isSuccess
-
     def isConnected(self):
         return self.connectionState == ConnectionState.CONNECTION_ESTABLISHED
-
-    def getConnectionState(self):
-        return self.connectionState
 
     def closeChannel(self):
         if self.client != None:
@@ -107,6 +94,7 @@ class MQTTclient(IoTClient):
                 reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
         else:
             connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
+        self.send(connect)
 
     def publish(self, name, qos, content, retain, dup):
         topic = MQTopic(name, qos)
@@ -115,7 +103,7 @@ class MQTTclient(IoTClient):
             self.send(publish)
         else:
             if(qos in [1,2]):
-                self.timers.goMessageTimer(publish);
+                self.timers.goMessageTimer(publish)
 
     def unsubscribeFrom(self, topicName):
         listTopics = []
@@ -140,8 +128,8 @@ class MQTTclient(IoTClient):
         self.timers.stopAllTimers()
         self.clientGUI.timeout()
 
-    def PacketReceived(self,ProtocolMessage):
-        ProtocolMessage.processBy()
+    #def PacketReceived(self,ProtocolMessage):
+        #ProtocolMessage.processBy()
 
     def ConnectionLost(self):
         if self.isClean == True:
@@ -151,13 +139,13 @@ class MQTTclient(IoTClient):
         if self.client != None:
             self.client.stop()
             self.setState(ConnectionState.CONNECTION_LOST)
-
+    """
     def connected(self):
         self.setState(ConnectionState.CHANNEL_ESTABLISHED)
 
     def connectFailed(self):
         self.setState(ConnectionState.CHANNEL_FAILED)
-
+    """
 #__________________________________________________________________________________________
 
 def processConnack(self,message):

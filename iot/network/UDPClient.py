@@ -38,12 +38,12 @@ class UDPClient(DatagramProtocol):
         print("connection to host %s port %d  was established" % (self.host, self.port))
         self.client.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
-    def send(self, message):
-        #print("we send: " + str(message))
-        self.transport.write(message)  # no need for address
+    def sendMessage(self, message):
+        print("we send: " + str(message))
+        self.transport.write(message)
 
     def datagramReceived(self, data, addr):
-        #print("received %r from %s:%d" % (data, self.host, self.port))
+        print("received %r from %s:%d" % (data, self.host, self.port))
         self.client.dataReceived(data)
 
     def connectionRefused(self):

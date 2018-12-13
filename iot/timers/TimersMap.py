@@ -78,12 +78,13 @@ class TimersMap():
             return message.getDeliveryId()
         else:
             if str(type(message).__name__) != 'dict':
+
                 if message.packetID == 0:
                     message.packetID = self.getNewPacketID()
                     if isinstance(message, CoapMessage):
                         message.token = str(message.packetID)
 
-                timer = TimerTask(message, 3, self.client)
+                timer = TimerTask(message, 5, self.client)
                 self.timersMap[message.packetID] = timer
                 timer.start()
                 return message.packetID

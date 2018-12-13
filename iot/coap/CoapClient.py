@@ -19,6 +19,7 @@
 """
 from venv.iot.classes.ConnectionState import *
 from venv.iot.network.UDPClient import *
+from venv.iot.network.pyDTLSClient import *
 from venv.iot.classes.IoTClient import *
 from venv.iot.coap.CoapParser import *
 from venv.iot.coap.options.CoapOptionType import *
@@ -26,6 +27,17 @@ from venv.iot.coap.options.OptionParser import *
 from venv.iot.timers.TimersMap import *
 from venv.iot.coap.tlv.CoapTopic import *
 from twisted.internet import reactor
+
+import asyncio
+import tempfile
+import ssl
+from socket import socket, AF_INET, SOCK_DGRAM
+from logging import basicConfig, DEBUG
+basicConfig(level=DEBUG)  # set now for dtls import code
+from dtls import do_patch, wrapper
+do_patch()
+from threading import Thread
+import time
 
 class CoapClient(IoTClient):
     def __init__(self, account, client):
@@ -56,14 +68,41 @@ class CoapClient(IoTClient):
         options = []
         options.append(option)
         message = CoapMessage(self.Version,CoapType.CONFIRMABLE,CoapCode.PUT,0,None,options,None)
-        self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
-        reactor.listenUDP(0, self.udpClient)
-        self.timers.goPingTimer(message,duration)
+
+        if self.account.isSecure:
+            self.loop = asyncio.get_event_loop()
+
+            fp = tempfile.NamedTemporaryFile()
+            fp.write(bytes(self.account.certificate, 'utf-8'))
+            fp.seek(0)
+            sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name,
+                                               ca_certs=fp.name)
+            addr = (self.account.serverHost, self.account.port)
+            sock_wrapped.connect(addr)
+            connect = self.loop.create_datagram_endpoint(
+                lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self,
+                                     self.loop), sock=sock_wrapped)
+            fp.close()
+            transport, protocol = self.loop.run_until_complete(connect)
+            self.udpClient = protocol
+            self.setState(ConnectionState.CONNECTION_ESTABLISHED)
+        else:
+            self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
+            reactor.listenUDP(0, self.udpClient)
+
+        if self.account.isSecure:
+            self.udpThread = Thread(target=self.loop.run_forever)
+            self.udpThread.daemon = True
+            self.udpThread.start()
+            #messageToSend = self.parser.encode(message)
+            #self.udpClient.sendMessage(messageToSend)
+        #else:
+        self.timers.goPingTimer(message, duration)
 
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             message = self.parser.encode(message)
-            self.udpClient.send(message)
+            self.udpClient.sendMessage(message)
         else:
             return False
 
