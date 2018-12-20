@@ -18,7 +18,7 @@ Frankly, **MQTT-SN** is very similar to MQTT, but it was created for avoiding th
 
 Creating large and complex systems is always associated with solving data exchange problems between their various nodes. 
 Additional difficulties are brought by such factors as the requirements for fault tolerance, 
-he geographical diversity of subsystems, the presence a lot of nodes interacting with each others. 
+the geographical diversity of subsystems, the presence a lot of nodes interacting with each others. 
 The **AMQP** protocol was developed to solve all these problems, which has three basic concepts: 
 exchange, queue and routing key. 
 
