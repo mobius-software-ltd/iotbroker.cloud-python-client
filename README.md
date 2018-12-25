@@ -72,6 +72,6 @@ the Login page in the form of pop-up window. Now you can log in and start exchan
  
 Please note that at this stage it is not possible to register as a client. You can only log in to your existing account. 
 
-IoTBroker.Cloud C Client is developed by [Mobius Software](http://mobius-software.com/).
+IoTBroker.Cloud C Client is developed by [Mobius Software](https://www.mobius-software.com/).
 
 ## [License](LICENSE.md)
