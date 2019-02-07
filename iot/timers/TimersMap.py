@@ -17,9 +17,9 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.timers.TimerTask import *
-from venv.iot.coap.tlv.CoapMessage import *
-from venv.iot.amqp.header.impl.AMQPTransfer import *
+from iot.timers.TimerTask import *
+from iot.coap.tlv.CoapMessage import *
+from iot.amqp.header.impl.AMQPTransfer import *
 
 class TimersMap():
     def __init__(self, client):

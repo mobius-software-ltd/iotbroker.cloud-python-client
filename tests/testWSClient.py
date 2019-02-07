@@ -1,6 +1,6 @@
 import json
 from twisted.internet import reactor
-from venv.iot.network.WebSocket import *
+from iot.network.WebSocket import *
 from autobahn.twisted.websocket import connectWS
 
 url = 'ws://broker.iotbroker.cloud:18080/ws'

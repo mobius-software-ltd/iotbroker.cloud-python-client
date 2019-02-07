@@ -17,23 +17,23 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.mqtt.mqtt_messages.MQConnect import *
-from venv.iot.mqtt.mqtt_messages.MQConnack import *
-from venv.iot.mqtt.mqtt_messages.MQDisconnect import *
-from venv.iot.mqtt.mqtt_messages.MQPingreq import *
-from venv.iot.mqtt.mqtt_messages.MQPingresp import *
-from venv.iot.mqtt.mqtt_messages.MQPuback import *
-from venv.iot.mqtt.mqtt_messages.MQPubcomp import *
-from venv.iot.mqtt.mqtt_messages.MQPublish import *
-from venv.iot.mqtt.mqtt_messages.MQPubrec import *
-from venv.iot.mqtt.mqtt_messages.MQPubrel import *
-from venv.iot.mqtt.mqtt_messages.MQSuback import *
-from venv.iot.mqtt.mqtt_messages.MQSubscribe import *
-from venv.iot.mqtt.mqtt_messages.MQUnsuback import *
-from venv.iot.mqtt.mqtt_messages.MQUnsubscribe import *
+from iot.mqtt.mqtt_messages.MQConnect import *
+from iot.mqtt.mqtt_messages.MQConnack import *
+from iot.mqtt.mqtt_messages.MQDisconnect import *
+from iot.mqtt.mqtt_messages.MQPingreq import *
+from iot.mqtt.mqtt_messages.MQPingresp import *
+from iot.mqtt.mqtt_messages.MQPuback import *
+from iot.mqtt.mqtt_messages.MQPubcomp import *
+from iot.mqtt.mqtt_messages.MQPublish import *
+from iot.mqtt.mqtt_messages.MQPubrec import *
+from iot.mqtt.mqtt_messages.MQPubrel import *
+from iot.mqtt.mqtt_messages.MQSuback import *
+from iot.mqtt.mqtt_messages.MQSubscribe import *
+from iot.mqtt.mqtt_messages.MQUnsuback import *
+from iot.mqtt.mqtt_messages.MQUnsubscribe import *
 
-from venv.iot.mqtt.mqtt_classes.MQTopic import *
-from venv.iot.mqtt.mqtt_classes.Will import *
+from iot.mqtt.mqtt_classes.MQTopic import *
+from iot.mqtt.mqtt_classes.Will import *
 
 import struct
 

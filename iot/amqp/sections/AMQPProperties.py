@@ -17,16 +17,16 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.sections.AMQPSection import *
-from venv.iot.amqp.header.api.AMQPWrapper import *
-from venv.iot.amqp.header.api.AMQPUnwrapper import *
-from venv.iot.amqp.constructor.DescribedConstructor import *
-from venv.iot.amqp.avps.SectionCode import *
-from venv.iot.amqp.wrappers.MessageID import *
-from venv.iot.amqp.wrappers.LongID import *
-from venv.iot.amqp.wrappers.StringID import *
-from venv.iot.amqp.wrappers.BinaryID import *
-from venv.iot.amqp.wrappers.UuidID import *
+from iot.amqp.sections.AMQPSection import *
+from iot.amqp.header.api.AMQPWrapper import *
+from iot.amqp.header.api.AMQPUnwrapper import *
+from iot.amqp.constructor.DescribedConstructor import *
+from iot.amqp.avps.SectionCode import *
+from iot.amqp.wrappers.MessageID import *
+from iot.amqp.wrappers.LongID import *
+from iot.amqp.wrappers.StringID import *
+from iot.amqp.wrappers.BinaryID import *
+from iot.amqp.wrappers.UuidID import *
 
 class AMQPProperties(AMQPSection):
     def __init__(self,messageId,userId,to,subject,replyTo,correlationId,contentType,contentEncoding,absoluteExpiryTime,creationTime,groupId,groupSequence,replyToGroupId):

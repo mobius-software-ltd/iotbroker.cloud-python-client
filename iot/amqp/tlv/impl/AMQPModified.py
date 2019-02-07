@@ -17,14 +17,14 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.avps.AMQPType import *
-from venv.iot.amqp.avps.ErrorCode import *
-from venv.iot.amqp.constructor.DescribedConstructor import *
-from venv.iot.amqp.header.api.AMQPUnwrapper import *
-from venv.iot.amqp.header.api.AMQPWrapper import *
-from venv.iot.amqp.header.api.Parsable import *
-from venv.iot.amqp.tlv.api.TLVAmqp import *
-from venv.iot.amqp.wrappers.AMQPSymbol import *
+from iot.amqp.avps.AMQPType import *
+from iot.amqp.avps.ErrorCode import *
+from iot.amqp.constructor.DescribedConstructor import *
+from iot.amqp.header.api.AMQPUnwrapper import *
+from iot.amqp.header.api.AMQPWrapper import *
+from iot.amqp.header.api.Parsable import *
+from iot.amqp.tlv.api.TLVAmqp import *
+from iot.amqp.wrappers.AMQPSymbol import *
 
 class AMQPModified(Parsable):
     def __init__(self, deliveryFailed, undeliverableHere, messageAnnotations):

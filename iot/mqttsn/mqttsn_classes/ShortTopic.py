@@ -17,8 +17,8 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.classes.Topic import *
-from venv.iot.mqttsn.mqttsn_classes.TopicType import *
+from iot.classes.Topic import *
+from iot.mqttsn.mqttsn_classes.TopicType import *
 
 class ShortTopic(Topic):
     def __init__(self, value, qos):

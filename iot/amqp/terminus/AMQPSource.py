@@ -17,18 +17,18 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.avps.AMQPType import *
-from venv.iot.amqp.avps.DistributionMode import *
-from venv.iot.amqp.avps.TerminusDurability import *
-from venv.iot.amqp.avps.TerminusExpiryPolicy import *
-from venv.iot.amqp.constructor.DescribedConstructor import *
-from venv.iot.amqp.header.api.AMQPUnwrapper import *
-from venv.iot.amqp.header.api.AMQPWrapper import *
-from venv.iot.amqp.header.api.HeaderFactoryOutcome import *
-from venv.iot.amqp.header.api.Parsable import *
-from venv.iot.amqp.tlv.api.TLVAmqp import *
-from venv.iot.amqp.wrappers.AMQPSymbol import *
-from venv.iot.amqp.tlv.impl.AMQPOutcome import *
+from iot.amqp.avps.AMQPType import *
+from iot.amqp.avps.DistributionMode import *
+from iot.amqp.avps.TerminusDurability import *
+from iot.amqp.avps.TerminusExpiryPolicy import *
+from iot.amqp.constructor.DescribedConstructor import *
+from iot.amqp.header.api.AMQPUnwrapper import *
+from iot.amqp.header.api.AMQPWrapper import *
+from iot.amqp.header.api.HeaderFactoryOutcome import *
+from iot.amqp.header.api.Parsable import *
+from iot.amqp.tlv.api.TLVAmqp import *
+from iot.amqp.wrappers.AMQPSymbol import *
+from iot.amqp.tlv.impl.AMQPOutcome import *
 
 class AMQPSource(Parsable):
     def __init__(self,address,durable,expiryPeriod,timeout,dynamic,dynamicNodeProperties,distributionMode,filter,defaultOutcome,outcomes,capabilities):

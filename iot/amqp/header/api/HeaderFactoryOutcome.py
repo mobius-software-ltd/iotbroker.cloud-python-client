@@ -17,13 +17,13 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.avps.StateCode import *
-from venv.iot.amqp.tlv.impl.TLVList import *
-from venv.iot.amqp.tlv.impl.AMQPAccepted import *
-from venv.iot.amqp.tlv.impl.AMQPModified import *
-from venv.iot.amqp.tlv.impl.AMQPReceived import *
-from venv.iot.amqp.tlv.impl.AMQPRejected import *
-from venv.iot.amqp.tlv.impl.AMQPReleased import *
+from iot.amqp.avps.StateCode import *
+from iot.amqp.tlv.impl.TLVList import *
+from iot.amqp.tlv.impl.AMQPAccepted import *
+from iot.amqp.tlv.impl.AMQPModified import *
+from iot.amqp.tlv.impl.AMQPReceived import *
+from iot.amqp.tlv.impl.AMQPRejected import *
+from iot.amqp.tlv.impl.AMQPReleased import *
 
 class HeaderFactoryOutcome(object):
 

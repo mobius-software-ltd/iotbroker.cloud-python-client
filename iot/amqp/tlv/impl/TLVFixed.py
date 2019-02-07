@@ -17,11 +17,11 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.tlv.api.TLVAmqp import *
-from venv.iot.amqp.avps.AMQPType import *
-from venv.iot.amqp.constructor.SimpleConstructor import *
-from venv.iot.amqp.constructor.DescribedConstructor import *
-from venv.iot.classes.NumericUtil import NumericUtil as util
+from iot.amqp.tlv.api.TLVAmqp import *
+from iot.amqp.avps.AMQPType import *
+from iot.amqp.constructor.SimpleConstructor import *
+from iot.amqp.constructor.DescribedConstructor import *
+from iot.classes.NumericUtil import NumericUtil as util
 import numpy as np
 
 class TLVFixed(TLVAmqp):

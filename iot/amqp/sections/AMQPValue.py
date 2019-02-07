@@ -17,11 +17,11 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.sections.AMQPSection import *
-from venv.iot.amqp.header.api.AMQPWrapper import *
-from venv.iot.amqp.header.api.AMQPUnwrapper import *
-from venv.iot.amqp.constructor.DescribedConstructor import *
-from venv.iot.amqp.avps.SectionCode import *
+from iot.amqp.sections.AMQPSection import *
+from iot.amqp.header.api.AMQPWrapper import *
+from iot.amqp.header.api.AMQPUnwrapper import *
+from iot.amqp.constructor.DescribedConstructor import *
+from iot.amqp.avps.SectionCode import *
 
 class AMQPValue(AMQPSection):
     def __init__(self, value):

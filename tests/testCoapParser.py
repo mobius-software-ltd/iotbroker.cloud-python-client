@@ -1,8 +1,8 @@
-from venv.iot.coap.CoapParser import *
-from venv.iot.coap.tlv.CoapType import *
-from venv.iot.coap.tlv.CoapCode import *
+from iot.coap.CoapParser import *
+from iot.coap.tlv.CoapType import *
+from iot.coap.tlv.CoapCode import *
 
-from venv.iot.coap.options.OptionParser import *
+from iot.coap.options.OptionParser import *
 
 parserOption = OptionParser()
 parser = CoapParser()

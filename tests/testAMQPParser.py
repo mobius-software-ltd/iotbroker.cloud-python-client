@@ -1,4 +1,4 @@
-from venv.iot.amqp.AMQPParser import *
+from iot.amqp.AMQPParser import *
 
 parser = AMQPParser()
 

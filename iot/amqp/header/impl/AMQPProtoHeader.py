@@ -17,10 +17,10 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.avps.HeaderCode import *
-from venv.iot.amqp.header.api.AMQPHeader import *
-from venv.iot.amqp.tlv.impl.TLVList import *
-from venv.iot.classes.NumericUtil import NumericUtil as util
+from iot.amqp.avps.HeaderCode import *
+from iot.amqp.header.api.AMQPHeader import *
+from iot.amqp.tlv.impl.TLVList import *
+from iot.classes.NumericUtil import NumericUtil as util
 
 class AMQPProtoHeader(AMQPHeader):
     def __init__(self,protocolId):

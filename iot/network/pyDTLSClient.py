@@ -1,4 +1,4 @@
-from venv.iot.classes.ConnectionState import *
+from iot.classes.ConnectionState import *
 import tempfile
 import ssl
 from socket import socket, AF_INET, SOCK_DGRAM

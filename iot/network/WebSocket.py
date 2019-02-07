@@ -21,7 +21,7 @@ import json
 from OpenSSL import SSL
 from twisted.internet import ssl
 from autobahn.twisted.websocket import WebSocketClientFactory, WebSocketClientProtocol
-from venv.iot.classes.ConnectionState import *
+from iot.classes.ConnectionState import *
 import OpenSSL.crypto
 import tempfile
 

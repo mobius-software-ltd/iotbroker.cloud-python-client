@@ -17,16 +17,16 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.classes.ConnectionState import *
-from venv.iot.mqtt.mqtt_classes.MQConnackCode import *
-from venv.iot.mqtt.mqtt_classes.MQSubackCode import *
-from venv.iot.mqtt.mqtt_classes.Will import *
-from venv.iot.mqtt.mqtt_classes.MQTopic import *
-from venv.iot.network.WebSocket import *
+from iot.classes.ConnectionState import *
+from iot.mqtt.mqtt_classes.MQConnackCode import *
+from iot.mqtt.mqtt_classes.MQSubackCode import *
+from iot.mqtt.mqtt_classes.Will import *
+from iot.mqtt.mqtt_classes.MQTopic import *
+from iot.network.WebSocket import *
 from autobahn.twisted.websocket import connectWS
-from venv.iot.classes.IoTClient import *
-from venv.iot.mqtt.MQParser import MQParser
-from venv.iot.timers.TimersMap import *
+from iot.classes.IoTClient import *
+from iot.mqtt.MQParser import MQParser
+from iot.timers.TimersMap import *
 import base64
 from twisted.internet import reactor
 

@@ -22,7 +22,8 @@ import time
 import sys
 
 from database import AccountEntity, TopicEntity, MessageEntity, Base, datamanager
-from venv.iot.classes.AccountValidation import *
+#from venv.iot.classes.AccountValidation import *
+from iot.classes.AccountValidation import *
 from gi.repository import GLib
 
 from twisted.python import log
@@ -35,14 +36,16 @@ wxreactor.install()
 #import t.i.reactor only after installing wxreactor
 from twisted.internet import reactor
 
-from venv.iot.mqtt.MQTTclient import *
-from venv.iot.mqttsn.MQTTSNclient import *
-from venv.iot.coap.CoapClient import *
-from venv.iot.websocket.WSclient import *
-from venv.iot.amqp.AMQPclient import *
+from iot.mqtt.MQTTclient import *
+from iot.mqttsn.MQTTSNclient import *
+from iot.coap.CoapClient import *
+from iot.websocket.WSclient import *
+from iot.amqp.AMQPclient import *
 
 import platform
 import time
+
+from iot.classes.UIClient import *
 
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 class LoadingForm(wx.Frame):
@@ -1426,8 +1429,6 @@ switch_MQTTmessageType = {
     13 : 'MQ_PINGRESP',
     14 : 'MQ_DISCONNECT'
         }
-
-from venv.iot.classes.UIClient import *
 
 class MyApp(wx.App, UIClient):
     def OnInit(self):

@@ -17,9 +17,9 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.tlv.api.TLVAmqp import *
-from venv.iot.amqp.avps.AMQPType import *
-from venv.iot.amqp.constructor.SimpleConstructor import *
+from iot.amqp.tlv.api.TLVAmqp import *
+from iot.amqp.avps.AMQPType import *
+from iot.amqp.constructor.SimpleConstructor import *
 
 class TLVNull(TLVAmqp):
     def __init__(self):

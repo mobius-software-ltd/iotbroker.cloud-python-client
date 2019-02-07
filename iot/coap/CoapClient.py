@@ -17,15 +17,15 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.classes.ConnectionState import *
-from venv.iot.network.UDPClient import *
-from venv.iot.network.pyDTLSClient import *
-from venv.iot.classes.IoTClient import *
-from venv.iot.coap.CoapParser import *
-from venv.iot.coap.options.CoapOptionType import *
-from venv.iot.coap.options.OptionParser import *
-from venv.iot.timers.TimersMap import *
-from venv.iot.coap.tlv.CoapTopic import *
+from iot.classes.ConnectionState import *
+from iot.network.UDPClient import *
+from iot.network.pyDTLSClient import *
+from iot.classes.IoTClient import *
+from iot.coap.CoapParser import *
+from iot.coap.options.CoapOptionType import *
+from iot.coap.options.OptionParser import *
+from iot.timers.TimersMap import *
+from iot.coap.tlv.CoapTopic import *
 from twisted.internet import reactor
 
 import asyncio

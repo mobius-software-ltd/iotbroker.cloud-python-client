@@ -1,6 +1,6 @@
-from venv.iot.mqttsn.mqttsn_messages.SNConnect import *
-from venv.iot.network.UDPClient import *
-from venv.iot.mqttsn.SNParser import *
+from iot.mqttsn.mqttsn_messages.SNConnect import *
+from iot.network.UDPClient import *
+from iot.mqttsn.SNParser import *
 from twisted.internet import reactor
 import socket
 

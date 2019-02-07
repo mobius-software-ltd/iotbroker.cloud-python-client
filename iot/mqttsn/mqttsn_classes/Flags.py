@@ -17,11 +17,11 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.classes.QoSType import *
-from venv.iot.mqttsn.mqttsn_classes.Flag import *
-from venv.iot.mqttsn.mqttsn_classes.Flags import *
-from venv.iot.mqttsn.mqttsn_classes.TopicType import *
-from venv.iot.mqttsn.mqttsn_classes.MQTTSN_messageType import *
+from iot.classes.QoSType import *
+from iot.mqttsn.mqttsn_classes.Flag import *
+from iot.mqttsn.mqttsn_classes.Flags import *
+from iot.mqttsn.mqttsn_classes.TopicType import *
+from iot.mqttsn.mqttsn_classes.MQTTSN_messageType import *
 
 class Flags():
     def __init__(self, dup, qos, retain, will, cleanSession, topicType):

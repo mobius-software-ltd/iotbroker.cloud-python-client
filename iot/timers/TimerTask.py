@@ -18,12 +18,12 @@
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
 from threading import Timer
-from venv.iot.classes.ConnectionState import *
-from venv.iot.mqtt.mqtt_messages.MQPublish import *
-from venv.iot.mqtt.mqtt_messages.MQPingreq import *
-from venv.iot.mqttsn.mqttsn_messages.SNPingreq import *
-from venv.iot.mqttsn.mqttsn_messages.SNSubscribe import *
-from venv.iot.amqp.header.impl.AMQPPing import *
+from iot.classes.ConnectionState import *
+from iot.mqtt.mqtt_messages.MQPublish import *
+from iot.mqtt.mqtt_messages.MQPingreq import *
+from iot.mqttsn.mqttsn_messages.SNPingreq import *
+from iot.mqttsn.mqttsn_messages.SNSubscribe import *
+from iot.amqp.header.impl.AMQPPing import *
 
 class TimerTask():
     def __init__(self, message, period, client):

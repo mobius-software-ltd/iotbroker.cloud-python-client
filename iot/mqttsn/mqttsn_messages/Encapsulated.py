@@ -17,8 +17,8 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.mqttsn.mqttsn_classes.MQTTSN_messageType import *
-from venv.iot.mqttsn.mqttsn_classes.Radius import *
+from iot.mqttsn.mqttsn_classes.MQTTSN_messageType import *
+from iot.mqttsn.mqttsn_classes.Radius import *
 
 class Encapsulated(object):
     def __init__(self, radius, wirelessNodeID, message):

@@ -1,4 +1,4 @@
-from venv.iot.coap.options.OptionParser import *
+from iot.coap.options.OptionParser import *
 
 parser = OptionParser()
 

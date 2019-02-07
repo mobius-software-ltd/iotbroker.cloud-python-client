@@ -17,14 +17,14 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.avps.AMQPType import *
-from venv.iot.amqp.tlv.api.TLVAmqp import *
-from venv.iot.amqp.tlv.impl.TLVArray import *
-from venv.iot.amqp.tlv.impl.TLVList import *
-from venv.iot.amqp.tlv.impl.TLVMap import *
-from venv.iot.amqp.wrappers.AMQPDecimal import *
-from venv.iot.amqp.wrappers.AMQPSymbol import *
-from venv.iot.classes.NumericUtil import NumericUtil as util
+from iot.amqp.avps.AMQPType import *
+from iot.amqp.tlv.api.TLVAmqp import *
+from iot.amqp.tlv.impl.TLVArray import *
+from iot.amqp.tlv.impl.TLVList import *
+from iot.amqp.tlv.impl.TLVMap import *
+from iot.amqp.wrappers.AMQPDecimal import *
+from iot.amqp.wrappers.AMQPSymbol import *
+from iot.classes.NumericUtil import NumericUtil as util
 import uuid
 
 class AMQPUnwrapper(object):

@@ -17,42 +17,42 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.mqttsn.mqttsn_messages.Advertise import *
-from venv.iot.mqttsn.mqttsn_messages.Encapsulated import *
-from venv.iot.mqttsn.mqttsn_messages.GWInfo import *
-from venv.iot.mqttsn.mqttsn_messages.Regack import *
-from venv.iot.mqttsn.mqttsn_messages.Register import *
-from venv.iot.mqttsn.mqttsn_messages.SearchGW import *
-from venv.iot.mqttsn.mqttsn_messages.SNConnack import *
-from venv.iot.mqttsn.mqttsn_messages.SNConnect import *
-from venv.iot.mqttsn.mqttsn_messages.SNDisconnect import *
-from venv.iot.mqttsn.mqttsn_messages.SNPingreq import *
-from venv.iot.mqttsn.mqttsn_messages.SNPingresp import *
-from venv.iot.mqttsn.mqttsn_messages.SNPuback import *
-from venv.iot.mqttsn.mqttsn_messages.SNPubcomp import *
-from venv.iot.mqttsn.mqttsn_messages.SNUnsuback import *
-from venv.iot.mqttsn.mqttsn_messages.SNPublish import *
-from venv.iot.mqttsn.mqttsn_messages.SNPubrec import *
-from venv.iot.mqttsn.mqttsn_messages.SNPubrel import *
-from venv.iot.mqttsn.mqttsn_messages.SNSuback import *
-from venv.iot.mqttsn.mqttsn_messages.SNSubscribe import *
-from venv.iot.mqttsn.mqttsn_messages.SNUnsubscribe import *
-from venv.iot.mqttsn.mqttsn_messages.WillMsg import *
-from venv.iot.mqttsn.mqttsn_messages.WillMsgReq import *
-from venv.iot.mqttsn.mqttsn_messages.WillMsgResp import *
-from venv.iot.mqttsn.mqttsn_messages.WillMsgUpd import *
-from venv.iot.mqttsn.mqttsn_messages.WillTopic import *
-from venv.iot.mqttsn.mqttsn_messages.WillTopicReq import *
-from venv.iot.mqttsn.mqttsn_messages.WillTopicResp import *
-from venv.iot.mqttsn.mqttsn_messages.WillTopicUpd import *
+from iot.mqttsn.mqttsn_messages.Advertise import *
+from iot.mqttsn.mqttsn_messages.Encapsulated import *
+from iot.mqttsn.mqttsn_messages.GWInfo import *
+from iot.mqttsn.mqttsn_messages.Regack import *
+from iot.mqttsn.mqttsn_messages.Register import *
+from iot.mqttsn.mqttsn_messages.SearchGW import *
+from iot.mqttsn.mqttsn_messages.SNConnack import *
+from iot.mqttsn.mqttsn_messages.SNConnect import *
+from iot.mqttsn.mqttsn_messages.SNDisconnect import *
+from iot.mqttsn.mqttsn_messages.SNPingreq import *
+from iot.mqttsn.mqttsn_messages.SNPingresp import *
+from iot.mqttsn.mqttsn_messages.SNPuback import *
+from iot.mqttsn.mqttsn_messages.SNPubcomp import *
+from iot.mqttsn.mqttsn_messages.SNUnsuback import *
+from iot.mqttsn.mqttsn_messages.SNPublish import *
+from iot.mqttsn.mqttsn_messages.SNPubrec import *
+from iot.mqttsn.mqttsn_messages.SNPubrel import *
+from iot.mqttsn.mqttsn_messages.SNSuback import *
+from iot.mqttsn.mqttsn_messages.SNSubscribe import *
+from iot.mqttsn.mqttsn_messages.SNUnsubscribe import *
+from iot.mqttsn.mqttsn_messages.WillMsg import *
+from iot.mqttsn.mqttsn_messages.WillMsgReq import *
+from iot.mqttsn.mqttsn_messages.WillMsgResp import *
+from iot.mqttsn.mqttsn_messages.WillMsgUpd import *
+from iot.mqttsn.mqttsn_messages.WillTopic import *
+from iot.mqttsn.mqttsn_messages.WillTopicReq import *
+from iot.mqttsn.mqttsn_messages.WillTopicResp import *
+from iot.mqttsn.mqttsn_messages.WillTopicUpd import *
 
-from venv.iot.mqttsn.mqttsn_classes.Flags import *
-from venv.iot.mqttsn.mqttsn_classes.Controls import *
-from venv.iot.mqttsn.mqttsn_classes.FullTopic import *
-from venv.iot.mqttsn.mqttsn_classes.ShortTopic import *
-from venv.iot.mqttsn.mqttsn_classes.IdentifierTopic import *
+from iot.mqttsn.mqttsn_classes.Flags import *
+from iot.mqttsn.mqttsn_classes.Controls import *
+from iot.mqttsn.mqttsn_classes.FullTopic import *
+from iot.mqttsn.mqttsn_classes.ShortTopic import *
+from iot.mqttsn.mqttsn_classes.IdentifierTopic import *
 
-from venv.iot.mqtt.mqtt_classes.MQTopic import *
+from iot.mqtt.mqtt_classes.MQTopic import *
 
 import struct
 

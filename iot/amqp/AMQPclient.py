@@ -17,33 +17,33 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.amqp.header.impl.AMQPProtoHeader import *
-from venv.iot.amqp.header.impl.AMQPPing import *
-from venv.iot.amqp.header.impl.AMQPOpen import *
-from venv.iot.amqp.header.impl.SASLMechanisms import *
-from venv.iot.amqp.header.impl.SASLInit import *
-from venv.iot.amqp.header.impl.SASLOutcome import *
-from venv.iot.amqp.header.impl.AMQPBegin import *
-from venv.iot.amqp.header.impl.AMQPEnd import *
-from venv.iot.amqp.header.impl.AMQPClose import *
-from venv.iot.amqp.header.impl.AMQPTransfer import *
-from venv.iot.amqp.header.impl.AMQPAttach import *
-from venv.iot.amqp.header.impl.AMQPDisposition import *
-from venv.iot.amqp.header.impl.AMQPDetach import *
-from venv.iot.amqp.sections.AMQPData import *
-from venv.iot.amqp.terminus.AMQPSource import *
-from venv.iot.amqp.wrappers.AMQPMessageFormat import *
-from venv.iot.amqp.avps.OutcomeCode import *
-from venv.iot.classes.NumericUtil import NumericUtil as util
-from venv.iot.classes.ConnectionState import *
-from venv.iot.mqtt.mqtt_classes.MQConnackCode import *
-from venv.iot.mqtt.mqtt_classes.MQSubackCode import *
-from venv.iot.mqtt.mqtt_classes.Will import *
-from venv.iot.mqtt.mqtt_classes.MQTopic import *
-from venv.iot.network.TCPClient import *
-from venv.iot.classes.IoTClient import *
-from venv.iot.amqp.AMQPParser import AMQPParser
-from venv.iot.timers.TimersMap import *
+from iot.amqp.header.impl.AMQPProtoHeader import *
+from iot.amqp.header.impl.AMQPPing import *
+from iot.amqp.header.impl.AMQPOpen import *
+from iot.amqp.header.impl.SASLMechanisms import *
+from iot.amqp.header.impl.SASLInit import *
+from iot.amqp.header.impl.SASLOutcome import *
+from iot.amqp.header.impl.AMQPBegin import *
+from iot.amqp.header.impl.AMQPEnd import *
+from iot.amqp.header.impl.AMQPClose import *
+from iot.amqp.header.impl.AMQPTransfer import *
+from iot.amqp.header.impl.AMQPAttach import *
+from iot.amqp.header.impl.AMQPDisposition import *
+from iot.amqp.header.impl.AMQPDetach import *
+from iot.amqp.sections.AMQPData import *
+from iot.amqp.terminus.AMQPSource import *
+from iot.amqp.wrappers.AMQPMessageFormat import *
+from iot.amqp.avps.OutcomeCode import *
+from iot.classes.NumericUtil import NumericUtil as util
+from iot.classes.ConnectionState import *
+from iot.mqtt.mqtt_classes.MQConnackCode import *
+from iot.mqtt.mqtt_classes.MQSubackCode import *
+from iot.mqtt.mqtt_classes.Will import *
+from iot.mqtt.mqtt_classes.MQTopic import *
+from iot.network.TCPClient import *
+from iot.classes.IoTClient import *
+from iot.amqp.AMQPParser import AMQPParser
+from iot.timers.TimersMap import *
 #import t.i.reactor only after installing wxreactor
 from twisted.internet import ssl, reactor
 import numpy as np

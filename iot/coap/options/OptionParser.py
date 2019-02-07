@@ -17,8 +17,8 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from venv.iot.coap.options.CoapOption import  *
-from venv.iot.coap.options.CoapOptionType import  *
+from iot.coap.options.CoapOption import  *
+from iot.coap.options.CoapOptionType import  *
 import struct
 
 class OptionParser(object):
