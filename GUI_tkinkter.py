@@ -123,7 +123,7 @@ class Accounts:
         self.app = app
         self.accounts = tk.Toplevel()
         center_child(self.accounts)
-        self.accounts.geometry("360x500")
+        self.accounts.geometry("360x525")
 
         self.accounts.protocol("WM_DELETE_WINDOW", self.close)
         small_font = ('Verdana', 10)
@@ -199,7 +199,7 @@ class Login:
         self.app = app
         self.login = tk.Toplevel()
         center_child(self.login)
-        self.login.geometry("360x623")
+        self.login.geometry("360x658")
 
         self.login.protocol("WM_DELETE_WINDOW", self.close)
 
@@ -214,7 +214,7 @@ class Login:
 
         gui_style = ttk.Style()
         gui_style.configure('My.TFrame', background='white', border=0)
-        gui_style.configure('My.TLabel', border=0, font=bold_font)
+        gui_style.configure('My.TLabel', border=0, font=bold_font, background='gray70', width=45)
         gui_style.configure('My.TCombobox', background='white', border=0)
 
         settingsImage = Image.open('./resources/settings34.png')
@@ -237,7 +237,7 @@ class Login:
 
         regInfo = ttk.Label(self.login, text=" registration info:", style='My.TLabel').grid(row=0, sticky='w')
         #regInfo = Label(self.login, image=self.regPhoto).grid(row=0, sticky='w')
-        regCanvas = tk.Canvas(self.login, width=359, height=200, bg='white', highlightcolor='white')
+        regCanvas = tk.Canvas(self.login, width=359, height=210, bg='white', highlightcolor='white')
         regFrame = ttk.Frame(regCanvas, style='My.TFrame')
         regCanvas.create_window(0, 0, anchor='nw', window=regFrame)
 
@@ -282,7 +282,7 @@ class Login:
         regCanvas.grid(row=1, sticky='eswn')
 
         settingsInfo = ttk.Label(self.login, text=" settings:", style='My.TLabel').grid(row=2, sticky='w')
-        setCanvas = tk.Canvas(self.login, width=359, height=200, bg='white', highlightcolor='white')
+        setCanvas = tk.Canvas(self.login, width=359, height=210, bg='white', highlightcolor='white')
         setFrame = ttk.Frame(setCanvas, style='My.TFrame')
         setCanvas.create_window(0, 0, anchor='nw', window=setFrame)
 
@@ -414,9 +414,9 @@ class NoteForm:
         self.active = active
         self.main = tk.Toplevel()
         center_child(self.main)
-        self.main.geometry("350x570")
+        self.main.geometry("350x580")
 
-        self.note = ttk.Notebook(self.main, width=349, height=520)
+        self.note = ttk.Notebook(self.main, width=349, height=530)
         self.note.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
         tab1 = Frame(self.note)
@@ -577,7 +577,7 @@ class NoteForm:
 
         messages = Label(tab3, text=" messages list:", font=bold_font).grid(row=0, sticky='w')
         # messages = Label(tab3, image=self.regPhoto).grid(row=0, sticky='w')
-        messagesCanvas = tk.Canvas(tab3, width=359, height=500, bg='white', highlightcolor='white')
+        messagesCanvas = tk.Canvas(tab3, width=359, height=510, bg='white', highlightcolor='white')
         messagesFrame = ttk.Frame(messagesCanvas, style='My.TFrame')
 
         datamanage = datamanager()
