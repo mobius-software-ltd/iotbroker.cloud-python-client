@@ -94,7 +94,7 @@ class MQTTclient(IoTClient):
                 reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
         else:
             connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
-        self.send(connect)
+        #self.send(connect)
 
     def publish(self, name, qos, content, retain, dup):
         topic = MQTopic(name, qos)
@@ -108,7 +108,7 @@ class MQTTclient(IoTClient):
     def unsubscribeFrom(self, topicName):
         listTopics = []
         listTopics.append(topicName)
-        unsubscribe = MQUnsubscribe(0,listTopics)
+        unsubscribe = MQUnsubscribe(0, listTopics)
         self.timers.goMessageTimer(unsubscribe)
 
     def subscribeTo(self, name, qos):

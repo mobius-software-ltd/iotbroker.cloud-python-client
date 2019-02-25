@@ -19,7 +19,7 @@
 """
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, LargeBinary
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, LargeBinary, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import sessionmaker
@@ -266,7 +266,7 @@ class datamanager():
         Base.metadata.bind = engine
         DBSession = sessionmaker(bind=engine)
         session = DBSession()
-        result = session.query(MessageEntity).filter(MessageEntity.accountentity_id == id).all()
+        result = session.query(MessageEntity).filter(MessageEntity.accountentity_id == id).order_by(desc(MessageEntity.id)).all()
         return result
 
     def clear(self):

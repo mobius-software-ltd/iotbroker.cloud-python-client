@@ -50,6 +50,7 @@ from iot.classes.UIClient import *
 #GUI---------------------------------------------------------------------------------------------------------------------GUI
 class LoadingForm(wx.Frame):
     def __init__(self, parent, ID, title, app):
+
         self.app = app
         wx.Frame.__init__(self, parent, ID, title,size=wx.Size(360,500))
         self.Centre()
@@ -100,12 +101,14 @@ class LoadingForm(wx.Frame):
         bmp = wx.Bitmap("./resources/iot_broker_background.png")
         dc.DrawBitmap(bmp, 0, 0)
 
+    def __del__(self):
+        self.timer.Stop()
+
     def OnTimer(self, event):
 
         self.count = self.count +1
         time.sleep(0.02)
         self.gauge.SetValue(self.count)
-        self.gauge.Update()
 
         if self.count == 100:
             self.timer.Stop()
@@ -144,11 +147,11 @@ class LoadingForm(wx.Frame):
                     self.app.client = AMQPclient(account, self.app.gui)
                     self.app.client.goConnect()
                     self.Hide()
-
             else:
                 self.Hide()
                 next = AccountsForm(None, 1, "Accounts List", self.app)
                 GLib.idle_add(lambda: next.Show())
+        self.Update()
 
     def onClose(self, event):
         if self.app.client is not None:
@@ -156,7 +159,6 @@ class LoadingForm(wx.Frame):
             if isinstance(self.app.client, MQTTSNclient) != True and isinstance(self.app.client, CoapClient) != True:
                 if isinstance(self.app.client.clientFactory, WSSocketClientFactory):
                     self.app.client.clientFactory.ws.closeFlag = False
-
         reactor.stop()
 
 class AccountsForm(wx.Frame):
