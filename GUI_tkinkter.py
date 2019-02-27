@@ -1,8 +1,16 @@
-from tkinter import *
-from tkinter import ttk
-import tkinter.messagebox as messagebox
-from PIL import ImageTk, Image
-import tkinter as tk
+try:
+    import Tkinter as tk # this is for python2
+    from Tkinter import *
+    from Tkinter import ttk
+    import Tkinter.messagebox as messagebox
+    from PIL import ImageTk, Imag
+except:
+    import tkinter as tk # this is for python3
+    from tkinter import *
+    from tkinter import ttk
+    from tkinter import font
+    import tkinter.messagebox as messagebox
+    from PIL import ImageTk, Image
 
 from database import AccountEntity, TopicEntity, MessageEntity, Base, datamanager
 from iot.classes.AccountValidation import *
@@ -123,19 +131,19 @@ class Accounts:
         self.app = app
         self.accounts = tk.Toplevel()
         center_child(self.accounts)
-        self.accounts.geometry("360x525")
+        self.accounts.geometry("369x500")
 
         self.accounts.protocol("WM_DELETE_WINDOW", self.close)
-        small_font = ('Verdana', 10)
+        small_font = font.Font(family='Verdana', size=10, weight="normal")
         buttonColor = '#%02x%02x%02x' % (30, 144, 255)
-        label = Label(self.accounts, text="Please select account", bg=buttonColor, fg='white', height=4, width=45).grid(row=0)
+        label = Label(self.accounts, text="Please select account", highlightthickness=0, bg=buttonColor, fg='white', height=4, width=52, font=small_font).grid(row=0)
 
         self.clientIDs = []
         gui_style = ttk.Style()
         gui_style.configure('My.TFrame', background='white', border=0)
-        gui_style.configure('My.TLabel', background='white', border=0, height=3, width=41, font=small_font)
+        gui_style.configure('My.TLabel', background='white', border=0, height=3, width=48, font=small_font)
 
-        canvas = tk.Canvas(self.accounts, width=359, height=370, bg='white', highlightcolor='white')
+        canvas = tk.Canvas(self.accounts, width=360, height=370, bg='white', highlightcolor='white')
         myframe = ttk.Frame(canvas,  style='My.TFrame')
 
         buttonImage = Image.open('./resources/ic_delete_with_background.png')
@@ -147,7 +155,7 @@ class Accounts:
         i = 0
         if len(accounts) > 0:
             for item in accounts:
-                text = '{}\n{}\n{}:{}'.format(item.username, item.clientID, item.serverHost, item.port)
+                text = ' {}\n {}\n {}:{}'.format(item.username, item.clientID, item.serverHost, item.port)
                 self.clientIDs.append(item.clientID)
                 txtButton = ttk.Button(myframe, text=text, style='My.TLabel', command=lambda x=i: self.connect(x)).grid(row=i+1)
                 delButton = ttk.Button(myframe, image=self.buttonPhoto, text="Del", style='My.TLabel',command=lambda x=i: self.delete(x)).grid(row=i+1, column=1)
@@ -159,7 +167,7 @@ class Accounts:
         canvas.grid(row=1, column=0, sticky='eswn')
         #vbar.grid(row=1, column=2)
 
-        button = Button(self.accounts, text="Add new account", bg=buttonColor, fg='white', activebackground=buttonColor, height=4, width=42, command=self.createAccount).grid(row=2)
+        button = Button(self.accounts, text="Add", font=small_font, highlightthickness=0, bg=buttonColor, fg='white', activebackground=buttonColor, height=4, width=49, command=self.createAccount).grid(row=2)
 
     def close(self):
         self.accounts.destroy()
@@ -199,13 +207,13 @@ class Login:
         self.app = app
         self.login = tk.Toplevel()
         center_child(self.login)
-        self.login.geometry("360x658")
+        self.login.geometry("360x627")
 
         self.login.protocol("WM_DELETE_WINDOW", self.close)
 
         buttonColor = '#%02x%02x%02x' % (30, 144, 255)
-        small_font = ('Verdana', 10)
-        bold_font = ('Verdana', 9, 'bold')
+        small_font = font.Font(family='Verdana', size=10, weight="normal")
+        bold_font = font.Font(family='Verdana', size=9, weight="bold")
         size = 34
         txtSize = 19
 
@@ -214,7 +222,7 @@ class Login:
 
         gui_style = ttk.Style()
         gui_style.configure('My.TFrame', background='white', border=0)
-        gui_style.configure('My.TLabel', border=0, font=bold_font, background='gray70', width=45)
+        gui_style.configure('My.TLabel', border=0, font=bold_font, background='gray70', width=52)
         gui_style.configure('My.TCombobox', background='white', border=0)
 
         settingsImage = Image.open('./resources/settings34.png')
@@ -235,123 +243,127 @@ class Login:
         regImage = Image.open('./resources/regInfo.png')
         self.regPhoto = ImageTk.PhotoImage(regImage)
 
+        whitebg = 'white'
+        graybg = 'gray92'
+        heightLabel = 3
+        widthLabel = 25
+
         regInfo = ttk.Label(self.login, text=" registration info:", style='My.TLabel').grid(row=0, sticky='w')
         #regInfo = Label(self.login, image=self.regPhoto).grid(row=0, sticky='w')
-        regCanvas = tk.Canvas(self.login, width=359, height=210, bg='white', highlightcolor='white')
+        regCanvas = tk.Canvas(self.login, width=359, height=210, bg=whitebg, highlightcolor=whitebg)
         regFrame = ttk.Frame(regCanvas, style='My.TFrame')
         regCanvas.create_window(0, 0, anchor='nw', window=regFrame)
 
         #Protocol line
-        protocolImg = Label(master=regFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=0, column=0)
-        protocolLabel = Label(master=regFrame, text='   Protocol:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=0, column=1)
+        protocolImg = Label(master=regFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
+        protocolLabel = Label(master=regFrame, text='   Protocol:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(row=0, column=1, sticky='w')
         self.comboProtocol = ttk.Combobox(master=regFrame, values=protocols, width=10, style='My.TCombobox')
         self.comboProtocol.current(0)
-        self.comboProtocol.grid(row=0, column=2)
+        self.comboProtocol.grid(row=0, column=2, sticky='e')
 
         # Username line
-        userImg = Label(master=regFrame, image=self.userPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=1, column=0)
-        userLabel = Label(master=regFrame, text='   Username:', bd=0, height=2, width=20, anchor="w", bg='gray95').grid(row=1, column=1)
-        self.nameText = Entry(master=regFrame, width=txtSize, font=small_font, bg='gray95')
-        self.nameText.grid(row=1, column=2)
+        userImg = Label(master=regFrame, image=self.userPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1, column=0)
+        userLabel = Label(master=regFrame, text='   Username:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=graybg).grid(row=1, column=1, sticky='w')
+        self.nameText = Entry(master=regFrame, width=txtSize, font=small_font, bg=graybg)
+        self.nameText.grid(row=1, column=2, sticky='w')
 
         # Password line
-        paswImg = Label(master=regFrame, image=self.paswPhoto, bd=0, height=size, width=size, bg='white').grid(row=2,column=0)
-        paswLabel = Label(master=regFrame, text='   Password:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=2, column=1)
-        self.paswText = Entry(master=regFrame, width=txtSize, font=small_font, bg='white', show=False)
+        paswImg = Label(master=regFrame, image=self.paswPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=2,column=0)
+        paswLabel = Label(master=regFrame, text='   Password:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(row=2, column=1, sticky='w')
+        self.paswText = Entry(master=regFrame, width=txtSize, font=small_font, bg=whitebg, show=False)
         self.paswText.grid(row=2, column=2)
 
         # ClientID line
-        idImg = Label(master=regFrame, image=self.idPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=3,column=0)
-        idLabel = Label(master=regFrame, text='   Client ID:', bd=0, height=2, width=20, anchor="w", bg='gray95').grid(row=3, column=1)
-        self.idText = Entry(master=regFrame, width=txtSize, font=small_font, bg='gray95')
+        idImg = Label(master=regFrame, image=self.idPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=3,column=0)
+        idLabel = Label(master=regFrame, text='   Client ID:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=graybg).grid(row=3, column=1, sticky='w')
+        self.idText = Entry(master=regFrame, width=txtSize, font=small_font, bg=graybg)
         self.idText.grid(row=3, column=2)
 
         # Host line
-        hostImg = Label(master=regFrame, image=self.hostPhoto, bd=0, height=size, width=size, bg='white').grid(row=4, column=0)
-        hostLabel = Label(master=regFrame, text='   Server host:', bd=0, height=2, width=20, anchor="w", bg='white').grid(
-            row=4, column=1)
-        self.hostText = Entry(master=regFrame, width=txtSize, font=small_font, bg='white')
+        hostImg = Label(master=regFrame, image=self.hostPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=4, column=0)
+        hostLabel = Label(master=regFrame, text='   Server host:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(
+            row=4, column=1, sticky='w')
+        self.hostText = Entry(master=regFrame, width=txtSize, font=small_font, bg=whitebg)
         self.hostText.grid(row=4, column=2)
 
         # Port line
-        portImg = Label(master=regFrame, image=self.hostPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=5,column=0)
-        portLabel = Label(master=regFrame, text='   Port:', bd=0, height=2, width=20, anchor="w",bg='gray95').grid(row=5, column=1)
-        self.portText = Entry(master=regFrame, width=txtSize, font=small_font, bg='gray95')
+        portImg = Label(master=regFrame, image=self.hostPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=5,column=0)
+        portLabel = Label(master=regFrame, text='   Port:', bd=0, height=heightLabel, width=widthLabel, anchor="w",bg=graybg).grid(row=5, column=1, sticky='w')
+        self.portText = Entry(master=regFrame, width=txtSize, font=small_font, bg=graybg)
         self.portText.grid(row=5, column=2)
 
         regCanvas.grid(row=1, sticky='eswn')
 
         settingsInfo = ttk.Label(self.login, text=" settings:", style='My.TLabel').grid(row=2, sticky='w')
-        setCanvas = tk.Canvas(self.login, width=359, height=210, bg='white', highlightcolor='white')
+        setCanvas = tk.Canvas(self.login, width=359, height=210, bg=whitebg, highlightcolor=whitebg)
         setFrame = ttk.Frame(setCanvas, style='My.TFrame')
         setCanvas.create_window(0, 0, anchor='nw', window=setFrame)
 
         # Clean line
-        portImg = Label(master=setFrame, image=self.cleanPhoto, bd=0, height=size, width=size, bg='white').grid(row=0,column=0)
-        portLabel = Label(master=setFrame, text='   Clean session:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=0, column=1)
-        self.cleanCheck = Checkbutton(master=setFrame, width=txtSize-2, variable=self.varClean, bd=0, anchor='e', bg='white', activebackground='white', highlightbackground='white', highlightthickness=0)
+        portImg = Label(master=setFrame, image=self.cleanPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0,column=0)
+        portLabel = Label(master=setFrame, text='   Clean session:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(row=0, column=1)
+        self.cleanCheck = Checkbutton(master=setFrame, width=txtSize-2, variable=self.varClean, bd=0, anchor='e', bg=whitebg, activebackground=whitebg, highlightbackground=whitebg, highlightthickness=0)
         self.cleanCheck.grid(row=0, column=2)
 
         # Keepalive line
-        keepImg = Label(master=setFrame, image=self.keepPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=1,column=0)
-        keepLabel = Label(master=setFrame, text='   Keepalive:', bd=0, height=2, width=20, anchor="w",bg='gray95').grid(row=1, column=1)
-        self.keepText = Entry(master=setFrame, width=txtSize, font=small_font, bg='gray95')
+        keepImg = Label(master=setFrame, image=self.keepPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,column=0)
+        keepLabel = Label(master=setFrame, text='   Keepalive:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=graybg).grid(row=1, column=1)
+        self.keepText = Entry(master=setFrame, width=txtSize, font=small_font, bg=graybg)
         self.keepText.grid(row=1, column=2)
 
         # Will line
-        willImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=2, column=0)
-        willLabel = Label(master=setFrame, text='   Will:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=2, column=1)
-        self.willText = Entry(master=setFrame, width=txtSize, font=small_font, bg='white')
+        willImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=2, column=0)
+        willLabel = Label(master=setFrame, text='   Will:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(row=2, column=1)
+        self.willText = Entry(master=setFrame, width=txtSize, font=small_font, bg=whitebg)
         self.willText.grid(row=2, column=2)
 
         # Will topic line
-        keepImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=3,column=0)
-        keepLabel = Label(master=setFrame, text='   Will topic:', bd=0, height=2, width=20, anchor="w", bg='gray95').grid(row=3, column=1)
-        self.willTText = Entry(master=setFrame, width=txtSize, font=small_font, bg='gray95')
+        keepImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=3,column=0)
+        keepLabel = Label(master=setFrame, text='   Will topic:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=graybg).grid(row=3, column=1)
+        self.willTText = Entry(master=setFrame, width=txtSize, font=small_font, bg=graybg)
         self.willTText.grid(row=3, column=2)
 
         # Retain line
-        retImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=5,column=0)
-        retLabel = Label(master=setFrame, text='   Retain:', bd=0, height=2, width=20, anchor="w", bg='gray95').grid(row=5, column=1)
-        self.retainCheck = Checkbutton(master=setFrame, width=txtSize - 2, height=2, bd=0, anchor='e', bg='gray95',activebackground='gray95', highlightbackground='gray95', highlightthickness=0)
+        retImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=5,column=0)
+        retLabel = Label(master=setFrame, text='   Retain:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=graybg).grid(row=5, column=1)
+        self.retainCheck = Checkbutton(master=setFrame, width=txtSize - 2, height=2, bd=0, anchor='e', bg=graybg, activebackground=graybg, highlightbackground=graybg, highlightthickness=0)
         self.retainCheck.grid(row=5, column=2)
 
         # QoS line
-        qosImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=4, column=0)
-        qosLabel = Label(master=setFrame, text='   QoS:', bd=0, height=2, width=20, anchor="w",bg='white').grid(row=4, column=1)
+        qosImg = Label(master=setFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=4, column=0)
+        qosLabel = Label(master=setFrame, text='   QoS:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(row=4, column=1)
         self.comboQos = ttk.Combobox(master=setFrame, values=qos, width=10, style='My.TCombobox')
         self.comboQos.current(0)
-        self.comboQos.grid(row=4, column=2)
+        self.comboQos.grid(row=4, column=2, sticky='e')
 
         setCanvas.grid(row=3, sticky='eswn')
 
         security = ttk.Label(self.login, text=" security:", style='My.TLabel').grid(row=4, sticky='w')
-        secCanvas = tk.Canvas(self.login, width=359, height=100, bg='white', highlightcolor='white')
+        secCanvas = tk.Canvas(self.login, width=359, height=100, bg=whitebg, highlightcolor=whitebg)
         secFrame = ttk.Frame(secCanvas, style='My.TFrame')
         secCanvas.create_window(0, 0, anchor='nw', window=secFrame)
 
         # Enable line
-        enableImg = Label(master=secFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=0,column=0)
-        enableLabel = Label(master=secFrame, text='   Enabled:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=0, column=1)
-        self.enabledCheck = Checkbutton(master=secFrame, width=txtSize - 2, variable=self.varEnabled, bd=0, anchor='e', bg='white', activebackground='white', highlightbackground='white', highlightthickness=0)
+        enableImg = Label(master=secFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
+        enableLabel = Label(master=secFrame, text='   Enabled:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(row=0, column=1)
+        self.enabledCheck = Checkbutton(master=secFrame, width=txtSize - 2, variable=self.varEnabled, bd=0, anchor='e', bg=whitebg, activebackground=whitebg, highlightbackground=whitebg, highlightthickness=0)
         self.enabledCheck.grid(row=0, column=2)
 
         # Certificate line
-        certImg = Label(master=secFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=1,column=0)
-        certLabel = Label(master=secFrame, text='   Certificate:', bd=0, height=2, width=20, anchor="w", bg='gray95').grid(row=1, column=1)
-        self.certificate = Entry(master=secFrame, width=txtSize, font=small_font, bg='gray95')
+        certImg = Label(master=secFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1, column=0)
+        certLabel = Label(master=secFrame, text='   Certificate:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=graybg).grid(row=1, column=1)
+        self.certificate = Entry(master=secFrame, width=txtSize, font=small_font, bg=graybg)
         self.certificate.grid(row=1, column=2)
 
         # Certificate Password line
-        paswImg = Label(master=secFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=2,column=0)
-        paswLabel = Label(master=secFrame, text='   Password:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=2, column=1)
-        self.secPaswText = Entry(master=secFrame, width=txtSize, font=small_font, bg='white', show=False)
+        paswImg = Label(master=secFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=2, column=0)
+        paswLabel = Label(master=secFrame, text='   Password:', bd=0, height=heightLabel, width=widthLabel, anchor="w", bg=whitebg).grid(row=2, column=1)
+        self.secPaswText = Entry(master=secFrame, width=txtSize, font=small_font, bg=whitebg, show=False)
         self.secPaswText.grid(row=2, column=2)
 
         secCanvas.grid(row=5, sticky='eswn')
 
-        button = Button(self.login, text="Log In", bg=buttonColor, fg='white', activebackground=buttonColor,
-                        height=4, width=42, command=self.loginIn).grid(row=6)
+        button = Button(self.login, text="Log In", highlightthickness=0, bg=buttonColor, fg=whitebg, activebackground=buttonColor,height=4, width=49, command=self.loginIn).grid(row=6)
 
     def close(self):
         self.login.destroy()
@@ -414,9 +426,9 @@ class NoteForm:
         self.active = active
         self.main = tk.Toplevel()
         center_child(self.main)
-        self.main.geometry("350x580")
+        self.main.geometry("350x570")
 
-        self.note = ttk.Notebook(self.main, width=349, height=530)
+        self.note = ttk.Notebook(self.main, width=349, height=520)
         self.note.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
         tab1 = Frame(self.note)
@@ -477,16 +489,16 @@ class NoteForm:
                         self.qosPhoto = self.photo2
 
                     if (i % 2) == 0:
-                        Label(master=topicsFrame, text=topicName, bd=0, height=2, width=31, bg='white', anchor="w").grid(row=i + 1, column=0, sticky='w')
+                        Label(master=topicsFrame, text=topicName, bd=0, height=2, width=36, bg='white', anchor="w").grid(row=i + 1, column=0, sticky='w')
                         Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg='white').grid(row=i + 1, column=1, sticky='w')
 
                         gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background='white')
                         ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2)
                     else:
-                        Label(master=topicsFrame, text=topicName, bd=0, height=2, width=31, bg='gray95', anchor="w").grid(row=i + 1, column=0, sticky='w')
-                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg='gray95').grid(row=i + 1, column=1,sticky='w')
+                        Label(master=topicsFrame, text=topicName, bd=0, height=2, width=36, bg='gray92', anchor="w").grid(row=i + 1, column=0, sticky='w')
+                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg='gray92').grid(row=i + 1, column=1, sticky='w')
 
-                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background='gray95')
+                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background='gray92')
                         ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2)
                     i += 1
 
@@ -508,70 +520,70 @@ class NoteForm:
         txtSize = 18
 
         # Topic Name line tab1
-        nameImg = Label(master=newFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=0, column=0)
-        nameLabel = Label(master=newFrame, text='   Topic:', bd=0, height=2, width=20, anchor="w", bg='gray95').grid(row=0, column=1)
-        self.nameText = Entry(master=newFrame, width=txtSize, font=small_font, bg='gray95')
+        nameImg = Label(master=newFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray92').grid(row=0, column=0)
+        nameLabel = Label(master=newFrame, text='   Topic:', bd=0, height=2, width=25, anchor="w", bg='gray92').grid(row=0, column=1)
+        self.nameText = Entry(master=newFrame, width=txtSize, font=small_font, bg='gray92')
         self.nameText.grid(row=0, column=2)
 
         # QoS line tab1
         qosImg = Label(master=newFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=1, column=0)
-        qosLabel = Label(master=newFrame, text='   QoS:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=1, column=1)
+        qosLabel = Label(master=newFrame, text='   QoS:', bd=0, height=2, width=25, anchor="w", bg='white').grid(row=1, column=1)
         self.comboQos = ttk.Combobox(master=newFrame, values=qos, width=10, style='My.TCombobox')
         self.comboQos.current(0)
-        self.comboQos.grid(row=1, column=2)
+        self.comboQos.grid(row=1, column=2, sticky='e')
 
         newCanvas.create_window(0, 0, anchor='nw', window=newFrame)
         newCanvas.grid(row=3, column=0, sticky='eswn')
 
-        button = Button(tab1, text="Add", bg=buttonColor, fg='white', activebackground=buttonColor,
-                        height=4, width=42, command=self.createTopic).grid(row=4)
+        button = Button(tab1, text="Add", highlightthickness=0, bg=buttonColor, fg='white', activebackground=buttonColor,
+                        height=4, width=49, command=self.createTopic, font=small_font).grid(row=4, sticky='w')
         # TOPICS FORM END
         # SEND FORM
 
         send = Label(tab2, text=" send new message:", font=bold_font).grid(row=0, sticky='w')
         # send = Label(tab2, image=self.regPhoto).grid(row=0, sticky='w')
 
-        sendCanvas = tk.Canvas(tab2, width=359, height=432, bg='white', highlightcolor='white')
+        sendCanvas = tk.Canvas(tab2, width=359, height=440, bg='white', highlightcolor='white')
         sendFrame = ttk.Frame(sendCanvas, style='My.TFrame')
 
         # Content line tab2
         contentImg = Label(master=sendFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=0, column=0)
-        contentLabel = Label(master=sendFrame, text='   Content:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=0, column=1)
+        contentLabel = Label(master=sendFrame, text='   Content:', bd=0, height=3, width=25, anchor="w", bg='white').grid(row=0, column=1, sticky='w')
         self.contentText = Entry(master=sendFrame, width=txtSize, font=small_font, bg='white')
-        self.contentText.grid(row=0, column=2)
+        self.contentText.grid(row=0, column=2, sticky='e')
 
         # Topic line tab2
-        topicImg = Label(master=sendFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=1, column=0)
-        topicLabel = Label(master=sendFrame, text='   Topic:', bd=0, height=2, width=20, anchor="w",bg='gray95').grid(row=1, column=1)
-        self.nameText2 = Entry(master=sendFrame, width=txtSize, font=small_font, bg='gray95')
+        topicImg = Label(master=sendFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray92').grid(row=1, column=0)
+        topicLabel = Label(master=sendFrame, text='   Topic:', bd=0, height=3, width=25, anchor="w",bg='gray92').grid(row=1, column=1)
+        self.nameText2 = Entry(master=sendFrame, width=txtSize, font=small_font, bg='gray92')
         self.nameText2.grid(row=1, column=2)
 
         # QoS line tab1
         qosImg = Label(master=sendFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=2,column=0)
-        qosLabel = Label(master=sendFrame, text='   QoS:', bd=0, height=2, width=20, anchor="w", bg='white').grid(row=2, column=1)
+        qosLabel = Label(master=sendFrame, text='   QoS:', bd=0, height=3, width=25, anchor="w", bg='white').grid(row=2, column=1)
         self.comboQos2 = ttk.Combobox(master=sendFrame, values=qos, width=10, style='My.TCombobox')
         self.comboQos2.current(0)
-        self.comboQos2.grid(row=2, column=2)
+        self.comboQos2.grid(row=2, column=2, sticky='e')
 
         self.varRetain = BooleanVar()
         self.varDuplicate = BooleanVar()
 
         # Retain line
-        retainImg = Label(master=sendFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray95').grid(row=3, column=0)
-        retainLabel = Label(master=sendFrame, text='   Retain:', bd=0, height=2, width=20, anchor="w", bg='gray95').grid(row=3, column=1)
-        self.retainCheck = Checkbutton(master=sendFrame, height=2, width=txtSize - 2, variable=self.varRetain, bd=0, anchor='e',bg='gray95', activebackground='gray95', highlightbackground='gray95',highlightthickness=0)
+        retainImg = Label(master=sendFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='gray92').grid(row=3, column=0)
+        retainLabel = Label(master=sendFrame, text='   Retain:', bd=0, height=3, width=25, anchor="w", bg='gray92').grid(row=3, column=1)
+        self.retainCheck = Checkbutton(master=sendFrame, height=3, width=txtSize - 2, variable=self.varRetain, bd=0, anchor='e',bg='gray92', activebackground='gray92', highlightbackground='gray92',highlightthickness=0)
         self.retainCheck.grid(row=3, column=2)
 
         # Duplicate line
         dupImg = Label(master=sendFrame, image=self.settingsPhoto, bd=0, height=size, width=size, bg='white').grid(row=4, column=0)
-        dupLabel = Label(master=sendFrame, text='   Duplicate:', bd=0, height=2, width=20, anchor="w",bg='white').grid(row=4, column=1)
-        self.dupCheck = Checkbutton(master=sendFrame, height=2, width=txtSize - 2, variable=self.varDuplicate, bd=0,anchor='e', bg='white', activebackground='white', highlightbackground='white', highlightthickness=0)
+        dupLabel = Label(master=sendFrame, text='   Duplicate:', bd=0, height=3, width=25, anchor="w", bg='white').grid(row=4, column=1)
+        self.dupCheck = Checkbutton(master=sendFrame, height=2, width=txtSize - 2, variable=self.varDuplicate, bd=0, anchor='e', bg='white', activebackground='white', highlightbackground='white', highlightthickness=0)
         self.dupCheck.grid(row=4, column=2)
 
         sendCanvas.create_window(0, 0, anchor='nw', window=sendFrame)
         sendCanvas.grid(row=1, column=0, sticky='eswn')
 
-        button = Button(tab2, text="Send", bg=buttonColor, fg='white', activebackground=buttonColor,height=4, width=42, command=self.sendTopic).grid(row=2)
+        button = Button(tab2, text="Send", font=small_font, highlightthickness=0, bg=buttonColor, fg='white', activebackground=buttonColor, height=4, width=49, command=self.sendTopic).grid(row=2)
         # SEND FORM END
         # MESSAGES FORM
 
@@ -623,10 +635,10 @@ class NoteForm:
                             self.photo = self.photo2out
 
                     if (i % 2) == 0:
-                        Label(master=messagesFrame, text=text, bd=0, height=3, width=34, anchor="w", bg='white', justify=LEFT).grid(row=0+i, column=0)
+                        Label(master=messagesFrame, text=text, bd=0, height=3, width=38, anchor="w", bg='white', justify=LEFT, font =small_font).grid(row=0+i, column=0)
                         Label(master=messagesFrame, image=self.photo, bd=0, bg='white').grid(row=0+i, column=1)
                     else:
-                        Label(master=messagesFrame, text=text, bd=0, height=3, width=34, anchor="w", bg='gray95', justify=LEFT).grid(row=0+i, column=0)
+                        Label(master=messagesFrame, text=text, bd=0, height=3, width=38, anchor="w", bg='gray92', justify=LEFT, font =small_font).grid(row=0+i, column=0)
                         Label(master=messagesFrame, image=self.photo, bd=0, bg='white').grid(row=0+i, column=1)
                     i += 1
 

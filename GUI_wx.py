@@ -180,8 +180,9 @@ class AccountsForm(wx.Frame):
         panelBtn = wx.Panel(self, -1, size=wx.Size(360, 50))
 
         self.text = wx.Button(panelText, label="Please select account", size=wx.Size(360, 50), style = wx.NO_BORDER)
-        self.text.BitmapFocus = self.text.BitmapCurrent
+        self.text.BitmapFocus = self.text.BitmapCurrent = self.text.BitmapDisabled
         self.text.SetBackgroundColour(wx.Colour(30, 144, 255))
+        self.text.Enable(False)
         self.text.SetFont(wx.Font(12, wx.SWISS, wx.NORMAL, wx.NORMAL))
         self.text.SetForegroundColour((255, 255, 255))
 
