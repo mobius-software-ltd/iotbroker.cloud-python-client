@@ -882,5 +882,9 @@ switch_protocol = {
 
 if __name__ == '__main__':
     log.startLogging(sys.stdout)
-    Main().startDisplay()
+    try:
+        Main().startDisplay()
+    except Exception as inst:
+        print(type(inst))
+
 
