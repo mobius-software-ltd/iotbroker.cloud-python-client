@@ -90,11 +90,10 @@ class MQTTclient(IoTClient):
         self.parser.setMessage(connect)
         self.clientFactory = ClientFactory(self.parser.encode(), self)
         if self.account.isSecure:
-                ctx = CtxFactory(self.account.certificate, self.account.certPasw)
-                reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
+            ctx = CtxFactory(self.account.certificate, self.account.certPasw)
+            reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
         else:
-            connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
-        #self.send(connect)
+            reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
 
     def publish(self, name, qos, content, retain, dup):
         topic = MQTopic(name, qos)
@@ -128,9 +127,6 @@ class MQTTclient(IoTClient):
         self.timers.stopAllTimers()
         self.clientGUI.timeout()
 
-    #def PacketReceived(self,ProtocolMessage):
-        #ProtocolMessage.processBy()
-
     def ConnectionLost(self):
         if self.isClean == True:
             self.clearAccountTopics()
@@ -139,20 +135,13 @@ class MQTTclient(IoTClient):
         if self.client != None:
             self.client.stop()
             self.setState(ConnectionState.CONNECTION_LOST)
-    """
-    def connected(self):
-        self.setState(ConnectionState.CHANNEL_ESTABLISHED)
+#_____________________________________________________________________________________
 
-    def connectFailed(self):
-        self.setState(ConnectionState.CHANNEL_FAILED)
-    """
-#__________________________________________________________________________________________
-
-def processConnack(self,message):
+def processConnack(self, message):
     self.timers.stopConnectTimer()
-    self.timers.goPingTimer(MQPingreq(), self.account.keepAlive)
     if message.returnCode == 0: #MQ_ACCEPTED
         self.setState(ConnectionState.CONNECTION_ESTABLISHED)
+        self.timers.goPingTimer(MQPingreq(), self.account.keepAlive)
         self.clientGUI.connackReceived(message.returnCode)
     else:
         self.clientGUI.disconnectReceived()

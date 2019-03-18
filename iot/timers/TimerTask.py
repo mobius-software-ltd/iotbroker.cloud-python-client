@@ -42,7 +42,7 @@ class TimerTask():
         self.timer = Timer(self.period, self.handle_function)
         self.timer.start()
         self.count -= 1
-        if self.count == 0 and isinstance(self.message,MQPingreq) != True and isinstance(self.message,SNPingreq) != True and isinstance(self.message,AMQPPing) != True:
+        if self.count == 0 and isinstance(self.message, MQPingreq)!=True and isinstance(self.message, SNPingreq)!=True and isinstance(self.message,AMQPPing)!=True:
             self.client.timeoutMethod()
 
     def getPeriod(self):
