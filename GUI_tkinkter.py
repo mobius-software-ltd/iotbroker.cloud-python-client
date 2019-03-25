@@ -12,8 +12,6 @@ except:
     import tkinter.messagebox as messagebox
     from PIL import Image, ImageFont, ImageDraw, ImageTk
 
-#import textwrap
-
 from database import AccountEntity, TopicEntity, MessageEntity, Base, datamanager
 from iot.classes.AccountValidation import *
 
@@ -24,6 +22,8 @@ from iot.websocket.WSclient import *
 from iot.amqp.AMQPclient import *
 
 from twisted.internet import tksupport, reactor
+
+import textwrap
 
 # for Custom Font Usage
 font_bold="fonts/ClearSans-Bold.ttf"
@@ -39,7 +39,7 @@ def truetype_font(font_path, size):
     return ImageFont.truetype(font_path, size)
 
 class CustomFont_Label(Label):
-    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None,
+    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None, strings_number=1,
                  **kwargs):
         if truetype_font is None:
             if font_path is None:
@@ -50,7 +50,7 @@ class CustomFont_Label(Label):
 
         width, height = truetype_font.getsize(text)
 
-        image = Image.new("RGBA", (width, height), color=(0, 0, 0, 0))
+        image = Image.new("RGBA", (width, height*strings_number), color=(0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
 
         draw.text((0, 0), text, font=truetype_font, fill=foreground, align='left')
@@ -79,18 +79,10 @@ class CustomFont_Button(Button):
         self._photoimage = ImageTk.PhotoImage(image)
         Button.__init__(self, master, image=self._photoimage, **kwargs)
 
-def center_child(win):
-    #win.update_idletasks()
-    width = win.winfo_width() + 160
-    frm_width = win.winfo_rootx() - win.winfo_x()
-    win_width = width + 2 * frm_width
-    height = win.winfo_height() + 300
-    titlebar_height = win.winfo_rooty() - win.winfo_y()
-    win_height = height + titlebar_height + frm_width
-    x = win.winfo_screenwidth() // 2 - win_width // 2
-    y = win.winfo_screenheight() // 2 - win_height // 2
+def center_child(win, width, height):
+    x = win.winfo_screenwidth() // 2 - width // 2
+    y = win.winfo_screenheight() // 2 - height // 2
     win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
-    win.deiconify()
 
 class Main_screen(Frame):
     def __init__(self, master):
@@ -179,7 +171,7 @@ class Main_screen(Frame):
         self.createNote(1, 1)
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        #print('App publishReceived ' + str(content))
+        #print('App publishReceived content=' + str(content)+ 'topic=' + str(topic))
         # store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -212,11 +204,10 @@ class Main_screen(Frame):
 class Loading(Frame):
     def __init__(self, master, main):
         self.master = master
-        self.master.geometry("360x450")
+        center_child(self.master, 360, 450)
         self.master.title("Loading...")
         self.main = main
         Frame.__init__(self, self.master)
-        #center_child(self.master)
         self.grid()
 
         canvas = Canvas(self, bg='red', width=360, height=450)
@@ -278,11 +269,11 @@ class Loading(Frame):
 
 class Accounts(Frame):
     def __init__(self, master, main):
-        master.geometry("360x455")
+        self.master = master
+        center_child(self.master, 360, 455)
         master.title("iotbroker.cloud")
         self.main = main
         Frame.__init__(self, master)
-        #center_child(master)
         self.grid()
 
         master.protocol("WM_DELETE_WINDOW", self.close)
@@ -355,11 +346,11 @@ class Accounts(Frame):
 class Login(Frame):
 
     def __init__(self, master, main, protocol):
-        master.geometry("360x660")
+        self.master = master
+        center_child(self.master, 360, 660)
         master.title("Log In")
         self.main = main
         Frame.__init__(self, master)
-        #center_child(master)
         self.grid()
 
         #self.login.protocol("WM_DELETE_WINDOW", self.close)
@@ -639,11 +630,11 @@ class Login(Frame):
 class Certificate(Frame):
 
     def __init__(self, master, main):
-        master.geometry("200x30")
+        self.master = master
+        center_child(self.master, 360, 325)
         master.title("Certificate")
         self.main = main
         Frame.__init__(self, master)
-        center_child(master)
         self.grid()
 
         self.canvas = Canvas(self, bg='red', width=360, height=300, bd=0, highlightthickness=0)
@@ -658,11 +649,11 @@ class Certificate(Frame):
 
         canvasButton = tk.Canvas(self.master, width=52, height=4)
         canvasButton.place(x=140, y=270)
-        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)#.grid(row=2)
+        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
 
 
     def close(self):
-        text = self.TextArea.get(1.0, END)
+        text = self.TextArea.get(1.0, END).rstrip()
         self.master.destroy()
         self.main.certificate.delete(0, END)
         self.main.certificate.insert(0, text)
@@ -670,17 +661,15 @@ class Certificate(Frame):
 class NoteForm(Frame):
 
     def __init__(self, master, main, active, old):
-
-        master.geometry("355x570")
+        self.master = master
+        center_child(self.master, 355, 570)
         master.title("iotbroker.cloud")
         self.main = main
         Frame.__init__(self, master)
-        #center_child(master)
         self.grid()
 
         self.old = old
         self.active = active
-        #self.main.transient(root)
 
         self.note = ttk.Notebook(self, width=349, height=520)
         self.note.bind("<<NotebookTabChanged>>", self._on_tab_changed)
@@ -936,10 +925,15 @@ class NoteForm(Frame):
         self.photo2out = ImageTk.PhotoImage(qosImg)
 
         i = 0
+        scroll_flag = False
         if messages is not None:
             if len(messages) > 0:
                 for item in messages:
-                    text = ' ' + str(item.topicName) + '\n ' + str(item.content.decode('utf-8'))
+                    content = str(item.content.decode('utf-8'))
+                    if len(content) > 32:
+                        text = ' ' + str(item.topicName) + '\n ' + self.format_context(content)
+                    else:
+                        text = ' ' + str(item.topicName) + '\n ' + content
 
                     if item.incoming:
                         if item.qos == 0:
@@ -957,16 +951,20 @@ class NoteForm(Frame):
                             self.photo = self.photo2out
 
                     text = text + (200 - len(text)) * " "
+                    strings_number = len(content) // 32 + 2
+                    if strings_number > 2:
+                        strings_number += 7
+                        scroll_flag = True
                     if (i % 2) == 0:
-                        CustomFont_Label(messagesFrame, text=text, font_path=font_medium, size=16, width=250, height=40, bg=whitebg).grid(row=i, column=0)
+                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16, strings_number=strings_number, width=250, height=20*strings_number, bg=whitebg).grid(row=i, column=0)
                         Label(master=messagesFrame, image=self.photo, bd=0, bg=whitebg).grid(row=i, column=1)
                     else:
-                        CustomFont_Label(messagesFrame, text=text, font_path=font_medium, size=16, width=250, height=40, bg=graybg).grid(row=i, column=0)
+                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16, strings_number=strings_number, width=250, height=20*strings_number, bg=graybg).grid(row=i, column=0)
                         Label(master=messagesFrame, image=self.photo, bd=0, bg=whitebg).grid(row=i, column=1)
                     i += 1
 
         vbarMessages = ttk.Scrollbar(tab3, orient='vertical', command=messagesCanvas.yview)
-        if i > 10:
+        if i > 10 or scroll_flag:
             vbarMessages.place(x=335, y=30, height=490)
             vbarMessages.set(1, 1)
 
@@ -994,6 +992,13 @@ class NoteForm(Frame):
         self.note.select(self.active)
         self.note.grid(row=0, column=0)
 
+    def format_context(self, text):
+        data = textwrap.wrap(text, 32)
+        result = ''
+        for piece in data:
+            result += piece+'\n'
+        return result
+
     def delete(self, id):
         #self.main.destroy()
         topicName = self.topicNames[id]
@@ -1001,7 +1006,7 @@ class NoteForm(Frame):
         self.main.client.unsubscribeFrom(topicName)
 
     def sendTopic(self):
-        print('Send topic')
+        #print('Send topic')
         datamanage = datamanager()
         content = str.encode(self.contentText.get())
         name = self.nameText2.get()
@@ -1029,7 +1034,7 @@ class NoteForm(Frame):
             self.main.createNote(0, 4)
 
     def createTopic(self):
-        print('Create topic')
+        #print('Create topic')
         name = self.nameText.get()
         qos = self.comboQos.get()
 

@@ -486,9 +486,9 @@ def MQ_PUBLISH_DECODE(self):
     fixedHeaderTuple = struct.unpack('B', data[0:1])
     fixedHeader = fixedHeaderTuple[0]
 
-    dataLengthGet = struct.unpack('B', data[1:2])
+    dataLengthGet = struct.unpack('h', data[1:3])
     dataLength = dataLengthGet[0]
-
+    #print('dataLength= ' + str(dataLength))
     fixedHeader &= 0xf
     dup = ((fixedHeader >> 3) & 1) == 1
 
@@ -501,14 +501,21 @@ def MQ_PUBLISH_DECODE(self):
 
     retain = (fixedHeader & 1) == 1
 
-    topicNameData = data[2:4]
+    if dataLength > 255:
+        index = 3
+    else:
+        index = 2
+
+    topicNameData = data[index:index+2]
+    index += 2
     topicNameLenTuple = struct.unpack('h',topicNameData[::-1])
     topicNameLen = topicNameLenTuple[0]
-
-    topicName = data[4:4+topicNameLen].decode(encoding= 'utf-8')
+    #print('topicNameLen= ' + str(topicNameLen))
+    topicName = data[index:index+topicNameLen].decode(encoding= 'utf-8')
+    #print('topicName= ' + str(topicName))
     packetID = 0
 
-    index = 4 + topicNameLen
+    index += topicNameLen
     if qos.getValue() != 0:
         packetIDdata = data[index:index+2]
         packetIDTuple = struct.unpack('h', packetIDdata[::-1])
@@ -522,9 +529,9 @@ def MQ_PUBLISH_DECODE(self):
     if dataLength > 0:
         content = data[index:index+dataLength].decode('utf8')
 
-    topic = MQTopic(topicName,qos)
+    topic = MQTopic(topicName, qos)
 
-    message = MQPublish(packetID,topic,content,bool(retain),bool(dup))
+    message = MQPublish(packetID, topic, content, bool(retain), bool(dup))
     return message
 
 def MQ_PUBACK_DECODE(self):

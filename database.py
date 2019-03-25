@@ -149,6 +149,15 @@ class datamanager():
         session.commit()
         session.close()
 
+    def delete_message_accountID(self,id):
+        engine = create_engine(self.path)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine)
+        session = DBSession()
+        session.query(MessageEntity).filter(MessageEntity.accountentity_id==id).delete()
+        session.commit()
+        session.close()
+
     def get_account(self,id):
         engine = create_engine(self.path)
         Base.metadata.bind = engine
