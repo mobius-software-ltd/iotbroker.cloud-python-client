@@ -125,16 +125,13 @@ class MQTTclient(IoTClient):
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
-        self.clientGUI.timeout()
+        reactor.callFromThread(self.clientGUI.timeout)
 
     def ConnectionLost(self):
-        if self.isClean == True:
-            self.clearAccountTopics()
         if self.timers != None:
             self.timers.stopAllTimers()
-        if self.client != None:
-            self.client.stop()
-            self.setState(ConnectionState.CONNECTION_LOST)
+        self.clientGUI.errorReceived()
+
 #_____________________________________________________________________________________
 
 def processConnack(self, message):
@@ -183,12 +180,10 @@ def processPubrec(self, message):
         self.timers.goMessageTimer(MQPubrel(publish.packetID))
         self.publishPackets[publish.packetID] = publish
 
-def processPubrel(self,message):
-    pubrec = self.timers.removeTimer(message.packetID)
-    if pubrec is not None:
-        publish = self.publishPackets.get(message.packetID)
-        self.clientGUI.publishReceived(publish.topic, publish.topic.getQoS(), publish.content, publish.dup, publish.retain)
-        self.send(MQPubcomp(message.packetID))
+def processPubrel(self, message):
+    publish = self.publishPackets.get(message.packetID)
+    self.clientGUI.publishReceived(publish.topic, publish.topic.getQoS().getValue(), publish.content, publish.dup, publish.retain)
+    self.send(MQPubcomp(message.packetID))
 
 def processPubcomp(self,message):
     pubrel = self.timers.removeTimer(message.packetID)

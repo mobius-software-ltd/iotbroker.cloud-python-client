@@ -173,7 +173,7 @@ class Main_screen(Frame):
         self.createNote(1, 1)
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        #print('App publishReceived content=' + str(content)+ 'topic=' + str(topic))
+        #print('App publishReceived content=' + str(content)+ ' topic=' + str(topic))
         # store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -199,13 +199,14 @@ class Main_screen(Frame):
         self.note.destroy()
         #self.createAccounts()
 
-    def errorReceived(self, text):
-        #print('MyApp errorReceived: ' + text)
-        pass
+    def errorReceived(self):
+        self.loading.destroy()
+        self.createAccounts()
 
     def timeout(self):
-        print('Timeout was reached. Try to reconnect')
-        pass
+        messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
+        self.loading.destroy()
+        self.createAccounts()
 
 class Loading(Frame):
     def __init__(self, master, main):
@@ -258,7 +259,6 @@ class Loading(Frame):
             if account.protocol == 4:
                 self.main.client = WSclient(account, self.main)
                 self.main.client.goConnect()
-                time.sleep(1.5)
 
             if account.protocol == 5:
                 self.main.client = AMQPclient(account, self.main)
@@ -317,9 +317,10 @@ class Accounts(Frame):
         vbar = ttk.Scrollbar(canvas, orient='vertical', command=canvas.yview)
 
         canvas.grid(row=1, column=0, sticky='eswn')
-        if i > 10:
-            vbar.place(x=352, y=1, height=370)
+        if i > 7:
+            vbar.place(x=342, y=1, height=370)
             vbar.set(1, 1)
+            canvas.configure(scrollregion=(0, 0, 359, 1000))
 
         canvasButton = tk.Canvas(self, width=52, height=4, bg='white', highlightcolor='white')
         canvasButton.grid(row=2, column=0, sticky='eswn')
@@ -761,9 +762,10 @@ class NoteForm(Frame):
                     i += 1
 
         vbarTopics = ttk.Scrollbar(tab1, orient='vertical', command=topicsCanvas.yview)
-        if i > 11:
+        if i > 13:
             vbarTopics.place(x=335, y=30, height=350)
             vbarTopics.set(1, 1)
+            topicsCanvas.configure(scrollregion=(0, 0, 349, 1000))
 
         topicsCanvas.create_window(0, 0, anchor='nw', window=topicsFrame)
         topicsCanvas.grid(row=1, column=0, sticky='eswn')
@@ -973,6 +975,7 @@ class NoteForm(Frame):
         if i > 10 or scroll_flag:
             vbarMessages.place(x=335, y=30, height=490)
             vbarMessages.set(1, 1)
+            messagesCanvas.configure(scrollregion=(0, 0, 359, 10000))
 
         messagesCanvas.create_window(0, 0, anchor='nw', window=messagesFrame)
         messagesCanvas.grid(row=1, column=0, sticky='eswn')

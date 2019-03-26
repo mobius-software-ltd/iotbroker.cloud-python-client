@@ -181,6 +181,10 @@ class AMQPclient(IoTClient):
     def setState(self, ConnectionState):
         self.connectionState = ConnectionState
 
+    def ConnectionLost(self):
+        if self.timers != None:
+            self.timers.stopAllTimers()
+        self.clientGUI.errorReceived()
 #__________________________________________________________________________________________
 
 def processProto(self,message):

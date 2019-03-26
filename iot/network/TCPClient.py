@@ -17,6 +17,11 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
+try:
+    import Tkinter.messagebox as messagebox
+except:
+    import tkinter.messagebox as messagebox
+
 from OpenSSL import SSL
 from twisted.internet import ssl, reactor
 from twisted.internet.protocol import Protocol, ReconnectingClientFactory
@@ -77,13 +82,15 @@ class ClientFactory(ReconnectingClientFactory):
         print('Started to connect.')
 
     def clientConnectionFailed(self, connector, reason):
-        print("Connection failed - goodbye!")
-        #reactor.stop()
+        messagebox.showinfo("Warning", 'TCP connection failed')
+        print("TCP connection failed - goodbye!")
+        self.client.ConnectionLost()
 
     def clientConnectionLost(self, connector, reason):
-        print("Connection lost - reconnect!")
+        print("TCP connection lost - reconnect!")
+
+        #self.client.ConnectionLost()
         #connector.connect()
-        #reactor.stop()
 
 class CtxFactory(ssl.ClientContextFactory):
     def __init__(self, certificate, password):
