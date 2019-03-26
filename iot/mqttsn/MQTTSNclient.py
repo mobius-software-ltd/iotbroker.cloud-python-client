@@ -112,15 +112,14 @@ class MQTTSNclient(IoTClient):
             self.udpThread = Thread(target=self.loop.run_forever)
             self.udpThread.daemon = True
             self.udpThread.start()
-            #self.udpClient.sendMessage(message)
-        #else:
+
         self.timers.goConnectTimer(connect)
 
     def publish(self, topicName, qosValue, content, retain, dup):
         qos = QoS(qosValue)
         topic = FullTopic(topicName, qos)
-        register = Register(0,0,topicName)
-        publish = SNPublish(0,topic,content,dup,retain)
+        register = Register(0, 0, topicName)
+        publish = SNPublish(0, topic, content, dup, retain)
         self.registerID = self.timers.goMessageTimer(register)
         self.forPublish[self.registerID] = publish
 
@@ -188,7 +187,7 @@ def processCONNECT(self,message):
 def processCONNACK(self,message):
     self.setState(ConnectionState.CONNECTION_ESTABLISHED)
     self.timers.stopConnectTimer()
-    self.clientGUI.connackReceived(message.getCode())
+    reactor.callFromThread(self.clientGUI.connackReceived, message.getCode())
     self.timers.goPingTimer(SNPingreq(self.account.clientID), self.account.keepAlive)
 
 def processWILL_TOPIC_REQ(self,message):
@@ -223,10 +222,10 @@ def processREGACK(self,message):
             publish = self.forPublish[message.getPacketID()]
             if publish is not None:
                 self.topics[message.getTopicID()] = publish.getTopic().getValue()
-                topic = IdentifierTopic(message.getTopicID(),publish.getTopic().getQoS())
+                topic = IdentifierTopic(message.getTopicID(), publish.getTopic().getQoS())
                 publish.setPacketID(message.getPacketID())
                 publish.setTopic(topic)
-                if publish.getTopic().getQoS().getValue() ==  QoSType.AT_MOST_ONCE.value[0]:
+                if publish.getTopic().getQoS().getValue() == QoSType.AT_MOST_ONCE.value[0]:
                     self.send(publish)
                 else:
                     self.timers.goMessageTimer(publish)
@@ -245,7 +244,7 @@ def processPUBLISH(self,message):
     qos = QoS(topic.getQoS())
     topicName = self.topics[int(topic.getValue())]
     topicResult = FullTopic(topicName, qos)
-    self.clientGUI.publishReceived(topicResult,qos,message.getContent(),message.isDup(),message.isRetain())
+    reactor.callFromThread(self.clientGUI.publishReceived, topicResult, qos, message.getContent(), message.isDup(), message.isRetain())
 
 def processPUBACK(self, message):
     publish = self.timers.removeTimer(message.getPacketID())
@@ -254,7 +253,7 @@ def processPUBACK(self, message):
         qos = topic.getQoS()
         topicName = self.topics[int(topic.getValue())]
         topicResult = FullTopic(topicName, qos)
-        self.clientGUI.pubackReceived(topicResult,qos,publish.getContent(),publish.isDup(),publish.isRetain(),0)
+        reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, publish.getContent(), publish.isDup(), publish.isRetain(), 0)
         self.publishPackets[publish.getPacketID()] = None
 
 def processPUBCOMP(self, message):
@@ -266,7 +265,7 @@ def processPUBCOMP(self, message):
             qos = QoS(topic.getQoS())
             topicName = self.topics[int(topic.getValue())]
             topicResult = FullTopic(topicName, qos)
-            self.clientGUI.pubackReceived(topicResult,qos,publish.getContent(),publish.isDup(),publish.isRetain(),0)
+            reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, publish.getContent(), publish.isDup(), publish.isRetain(), 0)
             self.publishPackets[pubcomp.getPacketID()] = None
 
 def processPUBREC(self, message):
@@ -288,7 +287,7 @@ def processPUBREL(self, message):
             qos = QoS(topic.getQoS())
             topicName = self.topics[int(topic.getValue())]
             topicResult = FullTopic(topicName, qos)
-            self.clientGUI.pubackReceived(topicResult,qos,publish.getContent(),publish.isDup(),publish.isRetain(),0)
+            reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, publish.getContent(), publish.isDup(), publish.isRetain(), 0)
 
 def processSUBSCRIBE(self, message):
     raise ValueError('Packet Subscribe did receive')
@@ -298,7 +297,7 @@ def processSUBACK(self, message):
         subscribe = self.timers.removeTimer(message.getPacketID())
         if subscribe is not None and isinstance(subscribe, SNSubscribe):
             self.topics[message.getPacketID()] = subscribe.getTopic().getValue()
-            self.clientGUI.subackReceived(subscribe.getTopic().getValue(), subscribe.getTopic().getQoS(), 0)
+            reactor.callFromThread(self.clientGUI.subackReceived, subscribe.getTopic().getValue(), subscribe.getTopic().getQoS(), 0)
 
 def processUNSUBSCRIBE(self, message):
     raise ValueError('Packet Unsubscribe did receive')
@@ -309,14 +308,14 @@ def processUNSUBACK(self, message):
         if unsubscribe is not None and isinstance(unsubscribe, SNUnsubscribe):
             list = []
             list.append(unsubscribe.getTopic().getValue())
-            self.clientGUI.unsubackReceived(list)
+            reactor.callFromThread(self.clientGUI.unsubackReceived, list)
 
 def processPINGREQ(self, message):
     raise ValueError('Packet Pingreq did receive')
 
 def processDISCONNECT(self, message):
     self.timers.stopAllTimers()
-    self.clientGUI.disconnectReceived()
+    reactor.callFromThread(self.clientGUI.disconnectReceived)
 
 def processWILL_TOPIC_UPD(self, message):
     raise ValueError('Packet Will topic upd did receive')

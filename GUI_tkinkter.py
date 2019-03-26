@@ -125,7 +125,9 @@ class Main_screen(Frame):
         self.app = Accounts(self.accounts, self)
 
     def pingrespReceived(self, coapFlag):
-        pass
+        if coapFlag:
+            self.loading.destroy()
+            self.createNote(0, 4)
 
     def connackReceived(self, retCode):
         self.loading.destroy()
@@ -195,10 +197,14 @@ class Main_screen(Frame):
     def disconnectReceived(self):
         messagebox.showinfo("Warning", 'Disconnect received from server')
         self.note.destroy()
-        self.createAccounts()
+        #self.createAccounts()
 
     def errorReceived(self, text):
         #print('MyApp errorReceived: ' + text)
+        pass
+
+    def timeout(self):
+        print('Timeout was reached. Try to reconnect')
         pass
 
 class Loading(Frame):

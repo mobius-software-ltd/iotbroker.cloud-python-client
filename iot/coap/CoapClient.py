@@ -37,7 +37,6 @@ basicConfig(level=DEBUG)  # set now for dtls import code
 from dtls import do_patch, wrapper
 do_patch()
 from threading import Thread
-import time
 
 class CoapClient(IoTClient):
     def __init__(self, account, client):
@@ -94,9 +93,6 @@ class CoapClient(IoTClient):
             self.udpThread = Thread(target=self.loop.run_forever)
             self.udpThread.daemon = True
             self.udpThread.start()
-            #messageToSend = self.parser.encode(message)
-            #self.udpClient.sendMessage(messageToSend)
-        #else:
         self.timers.goPingTimer(message, duration)
 
     def send(self, message):
@@ -127,7 +123,7 @@ class CoapClient(IoTClient):
                 content = message.getPayload()
                 qos = QoS(qosValue)
                 topicResult = CoapTopic(topic, qos)
-                self.clientGUI.publishReceived(topicResult,qos,content,False,False)
+                reactor.callFromThread(self.clientGUI.publishReceived, topicResult, qos, content, False, False)
             else:
                 textFormat = "text/plain"
                 options = []
@@ -137,7 +133,6 @@ class CoapClient(IoTClient):
                 options.append(option)
                 ack = CoapMessage(self.Version,CoapType.ACKNOWLEDGEMENT,CoapCode.BAD_OPTION,message.getPacketID(),message.getToken(),options,None)
                 self.send(ack)
-
         process_messageType_method(self, message.getType().value, message)
 
     def setState(self, ConnectionState):
@@ -190,14 +185,14 @@ class CoapClient(IoTClient):
         self.forUnsubscribe[packetID] = message
 
     def pingreq(self):
-        self.clientGUI.connackReceived(None)
+        reactor.callFromThread(self.clientGUI.connackReceived, None)
 
     def disconnectWith(self,duration):
         self.timers.stopAllTimers()
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
-        self.clientGUI.timeout()
+        reactor.callFromThread(self.clientGUI.timeout)
 
     def ConnectionLost(self):
         self.setState(ConnectionState.CONNECTION_LOST)
@@ -244,7 +239,7 @@ def ACKNOWLEDGEMENT(self,message):
                     content = message.getPayload()
                     qos = QoS(qosValue)
                     topicResult = CoapTopic(topic, qos)
-                    self.clientGUI.publishReceived(topicResult, qos, content, False, False)
+                    reactor.callFromThread(self.clientGUI.publishReceived, topicResult, qos, content, False, False)
         if ack is not None:
             if isinstance(ack,CoapMessage):
                 if ack.getCode() == CoapCode.GET:
@@ -266,11 +261,11 @@ def ACKNOWLEDGEMENT(self,message):
                                 break
                     if observeValue == 0:
                         qos = QoS(qosValue)
-                        self.clientGUI.subackReceived(topic, qos, 0)
+                        reactor.callFromThread(self.clientGUI.subackReceived, topic, qos, 0)
                     elif observeValue == 1:
                         list = []
                         list.append(topic)
-                        self.clientGUI.unsubackReceived(list)
+                        reactor.callFromThread(self.clientGUI.unsubackReceived, list)
                 elif ack.getCode() == CoapCode.PUT:
                     for option in ack.getOptionsDecode():
                         if isinstance(option, CoapOption):
@@ -285,11 +280,11 @@ def ACKNOWLEDGEMENT(self,message):
                     content = ack.getPayload()
                     qos = QoS(qosValue)
                     topicResult = CoapTopic(topic, qos)
-                    self.clientGUI.pubackReceived(topicResult,qos,content,False,False,0)
+                    reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, content, False, False, 0)
         else:
             if self.pingNum == 0:
                 self.pingNum +=1
-                self.clientGUI.pingrespReceived(True)
+                reactor.callFromThread(self.clientGUI.pingrespReceived, True)
 
 def RESET(self,message):
     if isinstance(message, CoapMessage):
