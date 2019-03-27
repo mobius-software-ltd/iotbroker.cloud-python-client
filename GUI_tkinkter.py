@@ -976,9 +976,9 @@ class NoteForm(Frame):
                             self.photo = self.photo2out
 
                     text = text + (200 - len(text)) * " "
-                    strings_number = len(content) // 32 + 2
-                    if strings_number > 2:
-                        strings_number += 7
+                    strings_number = len(content) // 32 + 3
+                    if strings_number > 3:
+                        strings_number += 6
                         scroll_flag = True
                     if (i % 2) == 0:
                         CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16, strings_number=strings_number, width=250, height=20*strings_number, bg=whitebg).grid(row=i, column=0)

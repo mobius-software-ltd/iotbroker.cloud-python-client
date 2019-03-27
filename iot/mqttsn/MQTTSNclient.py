@@ -257,16 +257,16 @@ def processPUBACK(self, message):
         self.publishPackets[publish.getPacketID()] = None
 
 def processPUBCOMP(self, message):
-    pubcomp = self.timers.removeTimer(message.getPacketID())
-    if pubcomp is not None and isinstance(pubcomp, SNPubcomp):
+    pubrel = self.timers.removeTimer(message.getPacketID())
+    if pubrel is not None and isinstance(message, SNPubcomp):
         publish = self.publishPackets.get(message.getPacketID())
         if publish is not None and isinstance(publish, SNPublish):
             topic = publish.getTopic()
             qos = QoS(topic.getQoS())
             topicName = self.topics[int(topic.getValue())]
             topicResult = FullTopic(topicName, qos)
-            reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, publish.getContent(), publish.isDup(), publish.isRetain(), 0)
-            self.publishPackets[pubcomp.getPacketID()] = None
+            reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos.getValue(), publish.getContent(), publish.isDup(), publish.isRetain(), 0)
+            self.publishPackets[message.getPacketID()] = None
 
 def processPUBREC(self, message):
     if isinstance(message, SNPubrec):
