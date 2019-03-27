@@ -375,7 +375,7 @@ class Login(Frame):
 
         logo_panel(self.main.login)
 
-        #self.login.protocol("WM_DELETE_WINDOW", self.close)
+        self.main.login.protocol("WM_DELETE_WINDOW", self.close)
         canvas = Canvas(self, bg='red', width=360, height=660, bd=0, highlightthickness=0)
         canvas.pack()
 
@@ -602,8 +602,8 @@ class Login(Frame):
         self.app = Certificate(self.cert, self)
 
     def close(self):
-        self.main.destroy()
-        reactor.callFromThread(reactor.stop)
+        self.master.destroy()
+        self.main.createAccounts()
 
     def loginIn(self):
         # create ACCOUNT and SAVE as default
@@ -640,7 +640,7 @@ class Login(Frame):
                     datamanage.set_default_account_clientID(account.id)
 
                     self.master.destroy()
-                    self.main.createLoading()
+                    self.main.createAccounts()
             else:
                 messagebox.showinfo("Warning", "Wrong value for clientID='" + str(account.clientID) + "'. This one is already in use")
         else:
