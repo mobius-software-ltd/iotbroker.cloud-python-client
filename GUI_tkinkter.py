@@ -25,6 +25,8 @@ from twisted.internet import tksupport, reactor
 
 import textwrap
 
+import sys
+
 # for Custom Font Usage
 font_bold="fonts/ClearSans-Bold.ttf"
 font_regular="fonts/ClearSans-Regular.ttf"
@@ -83,6 +85,13 @@ def center_child(win, width, height):
     x = win.winfo_screenwidth() // 2 - width // 2
     y = win.winfo_screenheight() // 2 - height // 2
     win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
+def logo_panel(toplevel):
+    if (sys.platform.startswith('win')):
+        toplevel.iconbitmap('./resources/iotbroker_icon_big.ico')
+    else:
+        logo = PhotoImage(file='./resources/iotbroker_icon_big.gif')
+        toplevel.tk.call('wm', 'iconphoto', toplevel._w, logo)
 
 class Main_screen(Frame):
     def __init__(self, master):
@@ -217,6 +226,8 @@ class Loading(Frame):
         Frame.__init__(self, self.master)
         self.grid()
 
+        logo_panel(self.main.loading)
+
         canvas = Canvas(self, bg='red', width=360, height=450)
         canvas.pack()
 
@@ -281,6 +292,8 @@ class Accounts(Frame):
         self.main = main
         Frame.__init__(self, master)
         self.grid()
+
+        logo_panel(self.main.accounts)
 
         master.protocol("WM_DELETE_WINDOW", self.close)
 
@@ -359,6 +372,8 @@ class Login(Frame):
         self.main = main
         Frame.__init__(self, master)
         self.grid()
+
+        logo_panel(self.main.login)
 
         #self.login.protocol("WM_DELETE_WINDOW", self.close)
         canvas = Canvas(self, bg='red', width=360, height=660, bd=0, highlightthickness=0)
@@ -674,6 +689,8 @@ class NoteForm(Frame):
         self.main = main
         Frame.__init__(self, master)
         self.grid()
+
+        logo_panel(self.main.note)
 
         self.old = old
         self.active = active
