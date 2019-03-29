@@ -529,8 +529,8 @@ class Login(Frame):
         keepImg = Label(master=canvasWillT, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,column=0)
         text = ' Will topic:' + (100 - len(' Will topic:')) * " "
         willTLabel = CustomFont_Label(canvasWillT, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=1, column=1, sticky='w')
-        self.will = Entry(master=canvasWillT, width=txtSize, font=small_font, bg=graybg, bd=1)
-        self.will.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
+        self.willT = Entry(master=canvasWillT, width=txtSize, font=small_font, bg=graybg, bd=1)
+        self.willT.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Retain line
         canvasRet = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
@@ -625,7 +625,7 @@ class Login(Frame):
         cleanSession = self.varClean.get()
         keepAlive = self.keepText.get()
         will = self.willText.get()
-        willT = self.willTText.get()
+        willT = self.willT.get()
         qos = self.comboQos.get()
         enabled = self.varEnabled.get()
         certificate = self.certificate.get()
@@ -655,6 +655,8 @@ class Login(Frame):
         else:
             if account.keepAlive is '' or (int(account.keepAlive) <= 0 or int(account.keepAlive)) > 65535:
                 messagebox.showinfo("Warning", 'Wrong value for Keepalive')
+            elif len(account.will)>1500:
+                messagebox.showinfo("Warning", 'Will size/length is more than 1500 symbols')
             else:
                 messagebox.showinfo("Warning", 'Please, fill in all required fileds: Username, Password, ClientID, Host, Port')
 
@@ -1110,7 +1112,7 @@ class NoteForm(Frame):
                         CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
                                          strings_number=strings_number, width=250, height=20 * strings_number,
                                          bg=graybg).grid(row=i, column=0)
-                        Label(master=messagesFrame, image=self.photo, bd=0, bg=whitebg).grid(row=i, column=1)
+                        Label(master=messagesFrame, image=self.photo, bd=0, bg=graybg).grid(row=i, column=1)
                     i += 1
 
         vbarMessages = ttk.Scrollbar(self.tab3, orient='vertical', command=messagesCanvas.yview)
@@ -1151,19 +1153,22 @@ class NoteForm(Frame):
 
         self.main.app.refresh_send()
 
-        # SEND PUBLISH _________________________________________________________________________________SEND PUBLISH
-        contentDecoded = content.decode('utf8')
-        self.main.client.publish(name, int(qos), contentDecoded, retain, dup)
+        if len(content) < 1500:
+            # SEND PUBLISH _________________________________________________________________________________SEND PUBLISH
+            contentDecoded = content.decode('utf8')
+            self.main.client.publish(name, int(qos), contentDecoded, retain, dup)
 
-        if int(qos) == 0:
-            # ADD to DB
-            datamanage = datamanager()
-            account = datamanage.get_default_account()
-            if account.protocol != 3:
-                message = MessageEntity(content=content, qos=int(qos), topicName=name,
-                                        incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
-                datamanage.add_entity(message)
-            self.main.app.refresh_messages()
+            if int(qos) == 0:
+                # ADD to DB
+                datamanage = datamanager()
+                account = datamanage.get_default_account()
+                if account.protocol != 3:
+                    message = MessageEntity(content=content, qos=int(qos), topicName=name,
+                                            incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
+                    datamanage.add_entity(message)
+                self.main.app.refresh_messages()
+        else:
+            messagebox.showinfo("Warning", 'Content size/length is more than 1500 symbols')
 
     def createTopic(self):
         #print('Create topic')
