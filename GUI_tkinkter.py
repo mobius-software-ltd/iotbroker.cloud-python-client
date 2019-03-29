@@ -55,14 +55,14 @@ class CustomFont_Label(Label):
         image = Image.new("RGBA", (width, height*strings_number), color=(0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
 
-        draw.text((0, 0), text, font=truetype_font, fill=foreground, align='left')
+        draw.text((0, 0), text, font=truetype_font, fill=foreground)
 
         self._photoimage = ImageTk.PhotoImage(image)
         Label.__init__(self, master, image=self._photoimage, **kwargs)
 
 class CustomFont_Button(Button):
 
-    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None, strings_number=1,
+    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None, strings_number=1, long=1,
                  **kwargs):
         if truetype_font is None:
             if font_path is None:
@@ -73,13 +73,13 @@ class CustomFont_Button(Button):
 
         width, height = truetype_font.getsize(text)
 
-        image = Image.new("RGBA", (width, height*strings_number), color=(0, 0, 0, 0))
+        image = Image.new("RGBA", (width*long, height*strings_number), color=(0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
 
-        draw.text((0, 0), text, font=truetype_font, fill=foreground, align='left')
+        draw.text((0, 0), text, font=truetype_font, fill=foreground)
 
         self._photoimage = ImageTk.PhotoImage(image)
-        Button.__init__(self, master, image=self._photoimage, **kwargs)
+        Button.__init__(self, master, image=self._photoimage, anchor='center', **kwargs)
 
 def center_child(win, width, height):
     x = win.winfo_screenwidth() // 2 - width // 2
@@ -152,15 +152,14 @@ class Main_screen(Frame):
         else:
             topicToDB = TopicEntity(topicName=topic, qos=qos.getValue(), accountentity_id=account.id)
             datamanage.add_entity(topicToDB)
-        self.note.destroy()
-        self.createNote(0, 4)
+
+        self.app.refresh_topics()
 
     def unsubackReceived(self, listTopics):
         datamanage = datamanager()
         for name in listTopics:
             datamanage.delete_topic_name(name)
-        self.note.destroy()
-        self.createNote(0, 4)
+        self.app.refresh_topics()
 
     def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode):
         # print('App pubackReceived')
@@ -178,8 +177,7 @@ class Main_screen(Frame):
                                 incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
         # print('App pubackReceived entity was saved')
-        self.note.destroy()
-        self.createNote(1, 1)
+        self.app.refresh_messages()
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
         #print('App publishReceived content=' + str(content)+ ' topic=' + str(topic))
@@ -200,11 +198,10 @@ class Main_screen(Frame):
         message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName,
                                 incoming=True, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
-        self.note.destroy()
-        self.createNote(1, 1)
+        self.app.refresh_messages()
 
     def disconnectReceived(self):
-        messagebox.showinfo("Warning", 'Disconnect received from server')
+        #messagebox.showinfo("Warning", 'Disconnect received from server')
         self.note.destroy()
         #self.createAccounts()
 
@@ -221,6 +218,7 @@ class Loading(Frame):
     def __init__(self, master, main):
         self.master = master
         center_child(self.master, 360, 450)
+        self.master.resizable(False, False)
         self.master.title("Loading...")
         self.main = main
         Frame.__init__(self, self.master)
@@ -288,6 +286,7 @@ class Accounts(Frame):
     def __init__(self, master, main):
         self.master = master
         center_child(self.master, 360, 455)
+        self.master.resizable(False, False)
         master.title("iotbroker.cloud")
         self.main = main
         Frame.__init__(self, master)
@@ -317,12 +316,16 @@ class Accounts(Frame):
 
         i = 0
         if len(accounts) > 0:
+            if len(accounts) > 7:
+                width = 310
+            else:
+                width = 325
             for item in accounts:
                 text = ' {} \n {} \n {}:{}'.format(switch_protocol_back[item.protocol].upper(), item.clientID, item.serverHost, item.port)
                 num = 300 - len(item.serverHost)
                 text += num * ' '
                 self.clientIDs.append(item.clientID)
-                txtButton = CustomFont_Button(myframe, text=text, font_path=font_medium, size=12, strings_number=4, background='white', highlightthickness=0, bd=0, height=50, width=300, command=lambda x=i: self.connect(x)).grid(row=i+1)
+                txtButton = CustomFont_Button(myframe, text=text, font_path=font_medium, size=12, strings_number=4, background='white', highlightthickness=0, bd=0, height=50, width=width, command=lambda x=i: self.connect(x)).grid(row=i+1)
                 delButton = ttk.Button(myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i+1, column=1)
                 i+=1
 
@@ -368,6 +371,7 @@ class Login(Frame):
     def __init__(self, master, main, protocol):
         self.master = master
         center_child(self.master, 360, 660)
+        self.master.resizable(False, False)
         master.title("Log In")
         self.main = main
         Frame.__init__(self, master)
@@ -588,7 +592,7 @@ class Login(Frame):
         canvasButton = tk.Canvas(canvas, width=52, height=4, bg='white', highlightcolor='white')
         canvasButton.place(x=0, y=615)
         button = CustomFont_Button(canvasButton, text="Log In", foreground="white", font_path=font_bold,
-                                   size=16, strings_number=1, bg=buttonColor, highlightthickness=0, bd=0, height=45,
+                                   size=16, strings_number=1, long=1, bg=buttonColor, highlightthickness=0, bd=0, height=45,
                                    width=380, activeforeground='white', activebackground=buttonColor,
                                    command=self.loginIn).grid(row=2)
 
@@ -654,6 +658,7 @@ class Certificate(Frame):
     def __init__(self, master, main):
         self.master = master
         center_child(self.master, 360, 325)
+        self.master.resizable(False, False)
         master.title("Certificate")
         self.main = main
         Frame.__init__(self, master)
@@ -685,6 +690,7 @@ class NoteForm(Frame):
     def __init__(self, master, main, active, old):
         self.master = master
         center_child(self.master, 355, 570)
+        self.master.resizable(False, False)
         master.title("iotbroker.cloud")
         self.main = main
         Frame.__init__(self, master)
@@ -698,22 +704,22 @@ class NoteForm(Frame):
         self.note = ttk.Notebook(self, width=349, height=520)
         self.note.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
-        tab1 = Frame(self.note)
-        tab2 = Frame(self.note)
-        tab3 = Frame(self.note)
-        tab4 = Frame(self.note)
+        self.tab1 = Frame(self.note)
+        self.tab2 = Frame(self.note)
+        self.tab3 = Frame(self.note)
+        self.tab4 = Frame(self.note)
 
-        canvasTab1 = Canvas(tab1, bg=whitebg, width=349, height=520, bd=0, highlightthickness=0)
-        canvasTab1.pack()
-        canvasTab2 = Canvas(tab2, bg=whitebg, width=349, height=520, bd=0, highlightthickness=0)
-        canvasTab2.pack()
-        canvasTab3 = Canvas(tab3, bg=whitebg, width=349, height=520, bd=0, highlightthickness=0)
-        canvasTab3.pack()
+        self.canvasTab1 = Canvas(self.tab1, bg=whitebg, width=349, height=520, bd=0, highlightthickness=0)
+        self.canvasTab1.pack()
+        self.canvasTab2 = Canvas(self.tab2, bg=whitebg, width=349, height=520, bd=0, highlightthickness=0)
+        self.canvasTab2.pack()
+        self.canvasTab3 = Canvas(self.tab3, bg=whitebg, width=349, height=520, bd=0, highlightthickness=0)
+        self.canvasTab3.pack()
 
         self.photoimage0 = ImageTk.PhotoImage(Image.open("./resources/iot_broker_background.png"))
-        canvasTab1.create_image(0, 0, anchor="nw", image=self.photoimage0)
-        canvasTab2.create_image(0, 0, anchor="nw", image=self.photoimage0)
-        canvasTab3.create_image(0, 0, anchor="nw", image=self.photoimage0)
+        self.canvasTab1.create_image(0, 0, anchor="nw", image=self.photoimage0)
+        self.canvasTab2.create_image(0, 0, anchor="nw", image=self.photoimage0)
+        self.canvasTab3.create_image(0, 0, anchor="nw", image=self.photoimage0)
 
         small_font = ('Sans', 11)
         bold_font = ('Sans', 10, 'bold')
@@ -728,124 +734,23 @@ class NoteForm(Frame):
         self.delPhoto = ImageTk.PhotoImage(delImage)
 
         # TOPICS FORM
-        self.topicIDs = []
-
-        topics = CustomFont_Label(canvasTab1, text=" topics list:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
-        topicsCanvas = tk.Canvas(canvasTab1, width=340, height=350, bg=whitebg, highlightcolor=whitebg)
-        topicsFrame = ttk.Frame(topicsCanvas, style='My.TFrame')
-
-        datamanage = datamanager()
-        account = datamanage.get_default_account()
-
-        i = 0
-        topics = None
-        if account is not None:
-            topics = datamanage.get_topics_all_accountID(account.id)
-
-        qosImg = Image.open('./resources/icon_qos_0_75.png')
-        self.photo0 = ImageTk.PhotoImage(qosImg)
-        qosImg = Image.open('./resources/icon_qos_1_75.png')
-        self.photo1 = ImageTk.PhotoImage(qosImg)
-        qosImg = Image.open('./resources/icon_qos_2_75.png')
-        self.photo2 = ImageTk.PhotoImage(qosImg)
-        self.qosPhoto = self.photo0
-
-        self.topicNames = []
-
-        if topics is not None:
-            if len(topics) > 0:
-                for item in topics:
-                    topicName = ' {}'.format(item.topicName)
-                    self.topicNames.append(item.topicName)
-
-                    if item.qos == 0:
-                        self.qosPhoto = self.photo0
-                    if item.qos == 1:
-                        self.qosPhoto = self.photo1
-                    if item.qos == 2:
-                        self.qosPhoto = self.photo2
-
-                    text = topicName + (200 - len(topicName)) * " "
-                    if (i % 2) == 0:
-                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230, bg=whitebg).grid(row=i + 1, column=0, sticky='w')
-                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg=whitebg).grid(row=i + 1, column=1, sticky='w')
-                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background=whitebg)
-                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
-                    else:
-                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230, bg=graybg).grid(row=i + 1,column=0)
-                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg=graybg).grid(row=i + 1, column=1, sticky='w')
-                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background=graybg)
-                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
-                    i += 1
-
-        vbarTopics = ttk.Scrollbar(tab1, orient='vertical', command=topicsCanvas.yview)
-        if i > 13:
-            vbarTopics.place(x=335, y=30, height=350)
-            vbarTopics.set(1, 1)
-            topicsCanvas.configure(scrollregion=(0, 0, 349, 1000))
-
-        topicsCanvas.create_window(0, 0, anchor='nw', window=topicsFrame)
-        topicsCanvas.grid(row=1, column=0, sticky='eswn')
-
-        newTopic = CustomFont_Label(canvasTab1, text=" add new topic:", font_path=font_bold, size=14).grid(row=2, sticky='w', pady=3)
-        newCanvas = tk.Canvas(canvasTab1, width=359, height=70, bg=whitebg, highlightcolor=whitebg)
-        newFrame = ttk.Frame(newCanvas, style='My.TFrame')
-
-        settingsImage = Image.open('./resources/settings30.png')
-        self.settingsPhoto = ImageTk.PhotoImage(settingsImage)
+        self.refresh_topics()
+        # TOPICS FORM END
 
         size = 30
         txtSize = 18
         padY = 8
         padX = 5
 
-        # Topic Name line tab1
-        canvasName = Canvas(newFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
-        canvasName.grid(row=0, column=0, sticky='w')
-        nameImg = Label(master=canvasName, image=self.settingsPhoto, bd=0, height=size, width=size,
-                        bg=whitebg).grid(row=0, column=0)
-
-        text = ' Topic:' + (100 - len(' Topic:')) * " "
-        nameLabel = CustomFont_Label(canvasName, text=text, font_path=font_regular, size=16, bg=whitebg, width=140).grid(row=0, column=1, sticky='w')
-        self.nameText = Entry(master=canvasName, width=txtSize, font=small_font, bg=whitebg, bd=1)
-        self.nameText.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
-
-        # QoS line tab1
-        canvasQos = Canvas(newFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
-        canvasQos.grid(row=1, column=0, sticky='w')
-        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(
-            row=1, column=0)
-        text = ' QoS:' + (100 - len(' QoS:')) * " "
-        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=graybg, width=250).grid(row=1, column=1, sticky='w')
-        self.comboQos = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
-        self.comboQos.current(0)
-        self.comboQos.grid(row=1, column=2, sticky='e', pady=12)
-
-        newCanvas.create_window(0, 0, anchor='nw', window=newFrame)
-        newCanvas.grid(row=3, column=0, sticky='eswn')
-
-        canvasButton = tk.Canvas(canvasTab1, width=52, height=4, bg='white', highlightcolor=whitebg)
-        canvasButton.grid(row=4, column=0, sticky='eswn')
-
-        button = CustomFont_Button(canvasButton, text="Add", foreground="white", font_path=font_bold,
-                                   size=16, strings_number=1, bg=buttonColor, highlightthickness=0, bd=0, height=45,
-                                   width=380, activeforeground=whitebg, activebackground=buttonColor,
-                                   command=self.createTopic).grid(row=0, sticky='w')
-        # TOPICS FORM END
-
-        # ____________________________________________________________________________________________________________________________________________________________________
-
         # SEND FORM
-
-        send = CustomFont_Label(canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
-        sendCanvas = tk.Canvas(canvasTab2, width=359, height=450, bg=whitebg, highlightcolor=whitebg)
+        send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
+        sendCanvas = tk.Canvas(self.canvasTab2, width=359, height=450, bg=whitebg, highlightcolor=whitebg)
         sendFrame = ttk.Frame(sendCanvas, style='My.TFrame')
 
         # Content line tab2
         canvasContent = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
         canvasContent.grid(row=0, column=0, sticky='w')
-        contentImg = Label(master=canvasContent, image=self.settingsPhoto, bd=0, height=size, width=size,
-                           bg=whitebg).grid(row=0)
+        contentImg = Label(master=canvasContent, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0)
 
         text = ' Content:' + (100 - len(' Content:')) * " "
         contentLabel = CustomFont_Label(canvasContent, text=text, font_path=font_regular, size=16, bg=whitebg, width=140).grid(row=0, column=1, sticky='w')
@@ -909,23 +814,181 @@ class NoteForm(Frame):
         sendCanvas.create_window(0, 0, anchor='nw', window=sendFrame)
         sendCanvas.grid(row=1, column=0, sticky='eswn')
 
-        canvasButton = tk.Canvas(canvasTab2, width=52, height=4, bg=whitebg, highlightcolor=whitebg)
+        canvasButton = tk.Canvas(self.canvasTab2, width=52, height=4, bg=whitebg, highlightcolor=whitebg)
         canvasButton.grid(row=2, column=0, sticky='eswn')
 
         button = CustomFont_Button(canvasButton, text="Send", foreground="white", font_path=font_bold,
-                                   size=16, strings_number=1, bg=buttonColor, highlightthickness=0, bd=0, height=45,
+                                   size=16, strings_number=1, long=2, bg=buttonColor, highlightthickness=0, bd=0, height=45,
                                    width=380, activeforeground=whitebg, activebackground=buttonColor,
                                    command=self.sendTopic).grid(row=0, sticky='w')
 
         # SEND FORM END
 
-        # ____________________________________________________________________________________________________________________________________________________________________
-
         # MESSAGES FORM
+        self.refresh_messages()
+        # MESSAGES FORM END
 
-        messages = CustomFont_Label(canvasTab3, text=" messages list:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
-        #messages = Label(canvasTab3, text=" messages list:", font=bold_font).grid(row=0, sticky='w', pady=5)
-        messagesCanvas = tk.Canvas(canvasTab3, width=359, height=510, bg=whitebg, highlightcolor=whitebg)
+        if self.active == 0:
+            self.note.add(self.tab1, image=self.main.topicsImgBlue)
+        else:
+            self.note.add(self.tab1, image=self.main.topicsImg)
+
+        if self.active == 1:
+            self.note.add(self.tab2, image=self.main.sendImgBlue)
+        else:
+            self.note.add(self.tab2, image=self.main.sendImg)
+
+        if self.active == 2:
+            self.note.add(self.tab3, image=self.main.messImgBlue)
+        else:
+            self.note.add(self.tab3, image=self.main.messImg)
+
+        self.note.add(self.tab4, image=self.main.outImg)
+        self.note.select(self.active)
+        self.note.grid(row=0, column=0)
+
+    def refresh_tabs(self):
+        if self.active == 0:
+            self.note.tab(self.tab1, image=self.main.topicsImgBlue)
+        else:
+            self.note.tab(self.tab1, image=self.main.topicsImg)
+
+        if self.active == 1:
+            self.note.tab(self.tab2, image=self.main.sendImgBlue)
+        else:
+            self.note.tab(self.tab2, image=self.main.sendImg)
+
+        if self.active == 2:
+            self.note.tab(self.tab3, image=self.main.messImgBlue)
+        else:
+            self.note.tab(self.tab3, image=self.main.messImg)
+
+    def refresh_topics(self):
+        small_font = ('Sans', 11)
+        bold_font = ('Sans', 10, 'bold')
+        gui_style = ttk.Style()
+        gui_style.configure('TNotebook', tabposition='s')
+        gui_style.configure('My.TFrame', background='white', border=0)
+        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background='white')
+        gui_style.configure('My.TCombobox', background=buttonColor, border=0, arrowcolor='white')
+
+        self.topicIDs = []
+
+        topics = CustomFont_Label(self.canvasTab1, text=" topics list:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
+        topicsCanvas = tk.Canvas(self.canvasTab1, width=340, height=350, bg=whitebg, highlightcolor=whitebg)
+        topicsFrame = ttk.Frame(topicsCanvas, style='My.TFrame')
+
+        datamanage = datamanager()
+        account = datamanage.get_default_account()
+
+        i = 0
+        topics = None
+        if account is not None:
+            topics = datamanage.get_topics_all_accountID(account.id)
+
+        qosImg = Image.open('./resources/icon_qos_0_75.png')
+        self.photo0 = ImageTk.PhotoImage(qosImg)
+        qosImg = Image.open('./resources/icon_qos_1_75.png')
+        self.photo1 = ImageTk.PhotoImage(qosImg)
+        qosImg = Image.open('./resources/icon_qos_2_75.png')
+        self.photo2 = ImageTk.PhotoImage(qosImg)
+        self.qosPhoto = self.photo0
+
+        self.topicNames = []
+
+        if topics is not None:
+            if len(topics) > 0:
+                for item in topics:
+                    topicName = ' {}'.format(item.topicName)
+                    self.topicNames.append(item.topicName)
+
+                    if item.qos == 0:
+                        self.qosPhoto = self.photo0
+                    if item.qos == 1:
+                        self.qosPhoto = self.photo1
+                    if item.qos == 2:
+                        self.qosPhoto = self.photo2
+
+                    text = topicName + (200 - len(topicName)) * " "
+                    if (i % 2) == 0:
+                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230,
+                                         bg=whitebg).grid(row=i + 1, column=0, sticky='w')
+                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg=whitebg).grid(row=i + 1, column=1,
+                                                                                              sticky='w')
+                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background=whitebg)
+                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel',
+                                   command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
+                    else:
+                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230,
+                                         bg=graybg).grid(row=i + 1, column=0)
+                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg=graybg).grid(row=i + 1, column=1,
+                                                                                             sticky='w')
+                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background=graybg)
+                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel',
+                                   command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
+                    i += 1
+
+        vbarTopics = ttk.Scrollbar(self.tab1, orient='vertical', command=topicsCanvas.yview)
+        if i > 13:
+            vbarTopics.place(x=335, y=30, height=350)
+            vbarTopics.set(1, 1)
+            topicsCanvas.configure(scrollregion=(0, 0, 349, 1000))
+
+        topicsCanvas.create_window(0, 0, anchor='nw', window=topicsFrame)
+        topicsCanvas.grid(row=1, column=0, sticky='eswn')
+
+        newTopic = CustomFont_Label(self.canvasTab1, text=" add new topic:", font_path=font_bold, size=14).grid(row=2,sticky='w',pady=3)
+        newCanvas = tk.Canvas(self.canvasTab1, width=349, height=70, bg=whitebg, highlightcolor=whitebg)
+        newFrame = ttk.Frame(newCanvas, style='My.TFrame')
+
+        settingsImage = Image.open('./resources/settings30.png')
+        self.settingsPhoto = ImageTk.PhotoImage(settingsImage)
+
+        size = 30
+        txtSize = 18
+        padY = 8
+        padX = 5
+
+        # Topic Name line tab1
+        canvasName = Canvas(newFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
+        canvasName.grid(row=0, column=0, sticky='w')
+        nameImg = Label(master=canvasName, image=self.settingsPhoto, bd=0, height=size, width=size,
+                        bg=whitebg).grid(row=0, column=0)
+
+        text = ' Topic:' + (100 - len(' Topic:')) * " "
+        nameLabel = CustomFont_Label(canvasName, text=text, font_path=font_regular, size=16, bg=whitebg,
+                                     width=120).grid(row=0, column=1, sticky='w')
+        self.nameText = Entry(master=canvasName, width=txtSize, font=small_font, bg=whitebg, bd=1)
+        self.nameText.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
+
+        # QoS line tab1
+        canvasQos = Canvas(newFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasQos.grid(row=1, column=0, sticky='w')
+        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(
+            row=1, column=0)
+        text = ' QoS:' + (100 - len(' QoS:')) * " "
+        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=graybg, width=250).grid(
+            row=1, column=1, sticky='w')
+        self.comboQos = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
+        self.comboQos.current(0)
+        self.comboQos.grid(row=1, column=2, sticky='e', pady=12)
+
+        newCanvas.create_window(0, 0, anchor='nw', window=newFrame)
+        newCanvas.grid(row=3, column=0, sticky='eswn')
+
+        canvasButton = tk.Canvas(self.canvasTab1, width=52, height=4, bg='white', highlightcolor=whitebg)
+        canvasButton.grid(row=4, column=0, sticky='eswn')
+
+        button = CustomFont_Button(canvasButton, text="Add", foreground="white", font_path=font_bold,
+                                   size=16, strings_number=1, long=2, bg=buttonColor, highlightthickness=0, bd=0,
+                                   height=45,
+                                   width=380, activeforeground=whitebg, activebackground=buttonColor,
+                                   command=self.createTopic).grid(row=0, sticky='w')
+
+    def refresh_messages(self):
+        messages = CustomFont_Label(self.canvasTab3, text=" messages list:", font_path=font_bold, size=14).grid(row=0,sticky='w',pady=3)
+        # messages = Label(canvasTab3, text=" messages list:", font=bold_font).grid(row=0, sticky='w', pady=5)
+        messagesCanvas = tk.Canvas(self.canvasTab3, width=359, height=510, bg=whitebg, highlightcolor=whitebg)
         messagesFrame = ttk.Frame(messagesCanvas, style='My.TFrame')
 
         datamanage = datamanager()
@@ -981,14 +1044,18 @@ class NoteForm(Frame):
                         strings_number += 6
                         scroll_flag = True
                     if (i % 2) == 0:
-                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16, strings_number=strings_number, width=250, height=20*strings_number, bg=whitebg).grid(row=i, column=0)
+                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
+                                         strings_number=strings_number, width=250, height=20 * strings_number,
+                                         bg=whitebg).grid(row=i, column=0)
                         Label(master=messagesFrame, image=self.photo, bd=0, bg=whitebg).grid(row=i, column=1)
                     else:
-                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16, strings_number=strings_number, width=250, height=20*strings_number, bg=graybg).grid(row=i, column=0)
+                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
+                                         strings_number=strings_number, width=250, height=20 * strings_number,
+                                         bg=graybg).grid(row=i, column=0)
                         Label(master=messagesFrame, image=self.photo, bd=0, bg=whitebg).grid(row=i, column=1)
                     i += 1
 
-        vbarMessages = ttk.Scrollbar(tab3, orient='vertical', command=messagesCanvas.yview)
+        vbarMessages = ttk.Scrollbar(self.tab3, orient='vertical', command=messagesCanvas.yview)
         if i > 10 or scroll_flag:
             vbarMessages.place(x=335, y=30, height=490)
             vbarMessages.set(1, 1)
@@ -997,26 +1064,6 @@ class NoteForm(Frame):
         messagesCanvas.create_window(0, 0, anchor='nw', window=messagesFrame)
         messagesCanvas.grid(row=1, column=0, sticky='eswn')
 
-        # MESSAGES FORM END
-
-        if self.active == 0:
-            self.note.add(tab1, image=self.main.topicsImgBlue)
-        else:
-            self.note.add(tab1, image=self.main.topicsImg)
-
-        if self.active == 1:
-            self.note.add(tab2, image=self.main.sendImgBlue)
-        else:
-            self.note.add(tab2, image=self.main.sendImg)
-
-        if self.active == 2:
-            self.note.add(tab3, image=self.main.messImgBlue)
-        else:
-            self.note.add(tab3, image=self.main.messImg)
-
-        self.note.add(tab4, image=self.main.outImg)
-        self.note.select(self.active)
-        self.note.grid(row=0, column=0)
 
     def format_context(self, text):
         data = textwrap.wrap(text, 32)
@@ -1056,8 +1103,7 @@ class NoteForm(Frame):
                 message = MessageEntity(content=content, qos=int(qos), topicName=name,
                                         incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
                 datamanage.add_entity(message)
-            self.master.destroy()
-            self.main.createNote(0, 4)
+            self.main.app.refresh_messages()
 
     def createTopic(self):
         #print('Create topic')
@@ -1100,18 +1146,8 @@ class NoteForm(Frame):
         event.widget.update_idletasks()
         tab = event.widget.nametowidget(event.widget.select())
         new = self.note.index(tab)
-
-        if new == 0 and self.old != new:
-            self.master.destroy()
-            self.main.createNote(0, 0)
-
-        if new == 1 and self.old != new:
-            self.master.destroy()
-            self.main.createNote(1, 1)
-
-        if new == 2 and self.old != new:
-            self.master.destroy()
-            self.main.createNote(2, 2)
+        self.active = new
+        self.refresh_tabs()
 
         if new == 3:
             self.master.destroy()
