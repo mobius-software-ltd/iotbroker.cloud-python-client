@@ -145,6 +145,9 @@ class MQTTSNclient(IoTClient):
             self.send(SNDisconnect(0))
         self.timers.stopAllTimers()
 
+        if self.account.isSecure:
+            self.udpThread.join()
+
     def timeoutMethod(self):
         self.timers.stopAllTimers()
         self.clientGUI.timeout()
@@ -161,7 +164,8 @@ class MQTTSNclient(IoTClient):
             self.client.stop()
             self.setState(ConnectionState.CONNECTION_LOST)
         self.loop.close()
-        self.udpThread.exit()
+        if self.account.isSecure:
+            self.udpThread.join()
 
     def connected(self):
         self.setState(ConnectionState.CHANNEL_ESTABLISHED)
@@ -169,7 +173,8 @@ class MQTTSNclient(IoTClient):
     def connectFailed(self):
         self.setState(ConnectionState.CHANNEL_FAILED)
         self.loop.close()
-        self.udpThread.exit()
+        if self.account.isSecure:
+            self.udpThread.join()
 
 #__________________________________________________________________________________________
 def processADVERTISE(self,message):

@@ -54,6 +54,7 @@ class CoapClient(IoTClient):
         self.forSubscribe = {}
         self.forUnsubscribe = {}
         self.pingNum = 0
+        self.udpThread = None
 
     def goConnect(self):
         self.setState(ConnectionState.CONNECTING)
@@ -187,8 +188,10 @@ class CoapClient(IoTClient):
     def pingreq(self):
         reactor.callFromThread(self.clientGUI.connackReceived, None)
 
-    def disconnectWith(self,duration):
+    def disconnectWith(self, duration):
         self.timers.stopAllTimers()
+        if self.account.isSecure:
+            self.udpThread.join()
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
