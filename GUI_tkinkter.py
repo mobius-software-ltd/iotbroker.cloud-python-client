@@ -380,12 +380,14 @@ class Login(Frame):
         logo_panel(self.main.login)
 
         self.main.login.protocol("WM_DELETE_WINDOW", self.close)
-        canvas = Canvas(self, bg='red', width=360, height=660, bd=0, highlightthickness=0)
-        canvas.pack()
+        self.canvas = Canvas(self, bg='white', width=360, height=660, bd=0, highlightthickness=0)
+        self.canvas.pack()
 
         self.photoimage0 = ImageTk.PhotoImage(Image.open("./resources/iot_broker_background.png"))
-        canvas.create_image(0, 0, anchor="nw", image=self.photoimage0)
+        self.canvas.create_image(0, 0, anchor="nw", image=self.photoimage0)
+        self.login_refresh(1)
 
+    def login_refresh(self, protocol):
         small_font = font.Font(family='Sans', size=11, weight="normal")
         bold_font = font.Font(family='Sans', size=10, weight="bold")
 
@@ -421,29 +423,34 @@ class Login(Frame):
         padY = 8
         padX = 5
 
-        regInfo = CustomFont_Label(canvas, text=" registration info:", font_path=font_bold, size=14).place(x=5, y=2)
-        regCanvas = tk.Canvas(canvas, width=359, height=225, bg=whitebg, highlightcolor=whitebg)
+        regInfo = CustomFont_Label(self.canvas, text=" registration info:", font_path=font_bold, size=14).place(x=5, y=2)
+        regCanvas = tk.Canvas(self.canvas, width=359, height=225, bg=whitebg, highlightcolor=whitebg)
         regFrame = ttk.Frame(regCanvas, style='My.TFrame')
         regCanvas.create_window(0, 0, anchor='nw', window=regFrame)
 
-        #Protocol line
+        # Protocol line
         canvasProtocol = Canvas(regFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasProtocol.grid(row=0, column=0, sticky='w')
-        protocolImg = Label(master=canvasProtocol, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
-        text = ' Protocol:' + (200-len(' Protocol:'))*" "
-        protocolLabel = CustomFont_Label(canvasProtocol, text=text, font_path=font_regular, size=16, bg=whitebg, width=220).grid(row=0, column=1, sticky='w')
-        self.comboProtocol = ttk.Combobox(master=canvasProtocol, values=protocols, width=9, style='My.TCombobox', font=small_font)
-        self.comboProtocol.current(protocol-1)
+        protocolImg = Label(master=canvasProtocol, image=self.settingsPhoto, bd=0, height=size, width=size,
+                            bg=whitebg).grid(row=0, column=0)
+        text = ' Protocol:' + (200 - len(' Protocol:')) * " "
+        protocolLabel = CustomFont_Label(canvasProtocol, text=text, font_path=font_regular, size=16, bg=whitebg,
+                                         width=220).grid(row=0, column=1, sticky='w')
+        self.comboProtocol = ttk.Combobox(master=canvasProtocol, values=protocols, width=9, style='My.TCombobox',
+                                          font=small_font)
+        self.comboProtocol.current(protocol - 1)
         self.comboProtocol.grid(row=0, column=2, sticky='e', pady=12)
         self.comboProtocol.bind('<<ComboboxSelected>>', self.protocolSelection)
 
         # Username line
         canvasUserName = Canvas(regFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
-        if protocol in[1,4,5]:
+        if protocol in [1, 4, 5]:
             canvasUserName.grid(row=1, column=0, sticky='w')
-        userImg = Label(master=canvasUserName, image=self.userPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1, column=0)
+        userImg = Label(master=canvasUserName, image=self.userPhoto, bd=0, height=size, width=size, bg=graybg).grid(
+            row=1, column=0)
         text = ' Username:' + (100 - len(' Username:')) * " "
-        userLabel = CustomFont_Label(canvasUserName, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=1, column=1, sticky='w')
+        userLabel = CustomFont_Label(canvasUserName, text=text, font_path=font_regular, size=16, bg=graybg,
+                                     width=170).grid(row=1, column=1, sticky='w')
         self.nameText = Entry(master=canvasUserName, width=txtSize, font=small_font, bg=graybg, bd=1)
         self.nameText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
@@ -451,25 +458,30 @@ class Login(Frame):
         canvasPassword = Canvas(regFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 4, 5]:
             canvasPassword.grid(row=2, column=0, sticky='w')
-        paswImg = Label(master=canvasPassword, image=self.paswPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=2,column=0)
+        paswImg = Label(master=canvasPassword, image=self.paswPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
+            row=2, column=0)
         text = ' Password:' + (100 - len(' Password:')) * " "
-        paswLabel = CustomFont_Label(canvasPassword, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=2, column=1, sticky='w')
+        paswLabel = CustomFont_Label(canvasPassword, text=text, font_path=font_regular, size=16, bg=whitebg,
+                                     width=170).grid(row=2, column=1, sticky='w')
         self.paswText = Entry(master=canvasPassword, show="*", width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.paswText.grid(row=2, column=2, sticky='w', pady=padY, padx=padX)
 
         # ClientID line
         canvasID = Canvas(regFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasID.grid(row=3, column=0, sticky='w')
-        idImg = Label(master=canvasID, image=self.idPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=3,column=0)
+        idImg = Label(master=canvasID, image=self.idPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=3,
+                                                                                                          column=0)
         text = ' Client ID:' + (100 - len(' Client ID:')) * " "
-        idLabel = CustomFont_Label(canvasID, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=3, column=1, sticky='w')
+        idLabel = CustomFont_Label(canvasID, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(
+            row=3, column=1, sticky='w')
         self.idText = Entry(master=canvasID, width=txtSize, font=small_font, bg=graybg, bd=1)
         self.idText.grid(row=3, column=2, sticky='w', pady=padY, padx=padX)
 
         # Host line
         canvasHost = Canvas(regFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasHost.grid(row=4, column=0, sticky='w')
-        hostImg = Label(master=canvasHost, image=self.hostPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=4, column=0)
+        hostImg = Label(master=canvasHost, image=self.hostPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=4,
+                                                                                                                 column=0)
         text = ' Server host:' + (100 - len(' Server host:')) * " "
         hostLabel = CustomFont_Label(canvasHost, text=text, font_path=font_regular, size=16, bg=whitebg,
                                      width=170).grid(row=4, column=1, sticky='w')
@@ -479,16 +491,18 @@ class Login(Frame):
         # Port line
         canvasPort = Canvas(regFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasPort.grid(row=5, column=0, sticky='w')
-        portImg = Label(master=canvasPort, image=self.hostPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=5,column=0)
+        portImg = Label(master=canvasPort, image=self.hostPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=5,
+                                                                                                                column=0)
         text = ' Port:' + (100 - len(' Port:')) * " "
-        portLabel = CustomFont_Label(canvasPort, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=5, column=1, sticky='w')
+        portLabel = CustomFont_Label(canvasPort, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(
+            row=5, column=1, sticky='w')
         self.portText = Entry(master=canvasPort, width=txtSize, font=small_font, bg=graybg, bd=1)
         self.portText.grid(row=5, column=2, sticky='w', pady=padY, padx=padX)
 
         regCanvas.place(x=0, y=25)
 
-        settingsInfo = CustomFont_Label(canvas, text=" settings:", font_path=font_bold, size=14).place(x=5, y=252)
-        setCanvas = tk.Canvas(canvas, width=359, height=210, bg=whitebg, highlightcolor=whitebg)
+        settingsInfo = CustomFont_Label(self.canvas, text=" settings:", font_path=font_bold, size=14).place(x=5, y=252)
+        setCanvas = tk.Canvas(self.canvas, width=359, height=210, bg=whitebg, highlightcolor=whitebg)
         setFrame = ttk.Frame(setCanvas, style='My.TFrame')
         setCanvas.create_window(0, 0, anchor='nw', window=setFrame)
 
@@ -496,18 +510,24 @@ class Login(Frame):
         canvasClean = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 2, 4]:
             canvasClean.grid(row=0, column=0, sticky='w')
-        cleanImg = Label(master=canvasClean, image=self.cleanPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0,column=0)
+        cleanImg = Label(master=canvasClean, image=self.cleanPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
+            row=0, column=0)
         text = ' Clean session:' + (100 - len(' Clean session:')) * " "
-        cleanLabel = CustomFont_Label(canvasClean, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=0, column=1, sticky='w')
-        self.cleanCheck = Checkbutton(master=canvasClean, width=9, font=small_font, height=2, variable=self.varClean, bd=0, anchor='e', bg=whitebg, activebackground=whitebg, highlightbackground=whitebg, highlightthickness=0)
+        cleanLabel = CustomFont_Label(canvasClean, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
+                                      height=30).grid(row=0, column=1, sticky='w')
+        self.cleanCheck = Checkbutton(master=canvasClean, width=9, font=small_font, height=2, variable=self.varClean,
+                                      bd=0, anchor='e', bg=whitebg, activebackground=whitebg,
+                                      highlightbackground=whitebg, highlightthickness=0)
         self.cleanCheck.grid(row=0, column=2)
 
         # Keepalive line
         canvasAlive = Canvas(setFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasAlive.grid(row=1, column=0, sticky='w')
-        keepImg = Label(master=canvasAlive, image=self.keepPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,column=0)
+        keepImg = Label(master=canvasAlive, image=self.keepPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,
+                                                                                                                 column=0)
         text = ' Keepalive:' + (100 - len(' Keepalive:')) * " "
-        keepLabel = CustomFont_Label(canvasAlive, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=1, column=1, sticky='w')
+        keepLabel = CustomFont_Label(canvasAlive, text=text, font_path=font_regular, size=16, bg=graybg,
+                                     width=170).grid(row=1, column=1, sticky='w')
         self.keepText = Entry(master=canvasAlive, width=txtSize, font=small_font, bg=graybg, bd=1)
         self.keepText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
@@ -515,9 +535,11 @@ class Login(Frame):
         canvasWill = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 2, 4]:
             canvasWill.grid(row=2, column=0, sticky='w')
-        willImg = Label(master=canvasWill, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
+        willImg = Label(master=canvasWill, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
+            row=1, column=0)
         text = ' Will:' + (100 - len(' Will:')) * " "
-        willLabel = CustomFont_Label(canvasWill, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
+        willLabel = CustomFont_Label(canvasWill, text=text, font_path=font_regular, size=16, bg=whitebg,
+                                     width=170).grid(row=1, column=1, sticky='w')
         self.willText = Entry(master=canvasWill, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.willText.bind("<Button-1>", self.willInput)
         self.willText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
@@ -526,9 +548,11 @@ class Login(Frame):
         canvasWillT = Canvas(setFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
         if protocol in [1, 2, 4]:
             canvasWillT.grid(row=3, column=0, sticky='w')
-        keepImg = Label(master=canvasWillT, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,column=0)
+        keepImg = Label(master=canvasWillT, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(
+            row=1, column=0)
         text = ' Will topic:' + (100 - len(' Will topic:')) * " "
-        willTLabel = CustomFont_Label(canvasWillT, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=1, column=1, sticky='w')
+        willTLabel = CustomFont_Label(canvasWillT, text=text, font_path=font_regular, size=16, bg=graybg,
+                                      width=170).grid(row=1, column=1, sticky='w')
         self.willT = Entry(master=canvasWillT, width=txtSize, font=small_font, bg=graybg, bd=1)
         self.willT.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
@@ -536,45 +560,57 @@ class Login(Frame):
         canvasRet = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 2, 4]:
             canvasRet.grid(row=4, column=0, sticky='w')
-        retImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1,column=0)
+        retImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
+            row=1, column=0)
         text = ' Retain:' + (100 - len(' Retain:')) * " "
-        retLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,height=30).grid(row=1, column=1, sticky='w')
-        self.retainCheck = Checkbutton(master=canvasRet, width=9, font=small_font, height=2, bd=0, anchor='e', bg=whitebg, activebackground=whitebg, highlightbackground=whitebg, highlightthickness=0)
+        retLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
+                                    height=30).grid(row=1, column=1, sticky='w')
+        self.retainCheck = Checkbutton(master=canvasRet, width=9, font=small_font, height=2, bd=0, anchor='e',
+                                       bg=whitebg, activebackground=whitebg, highlightbackground=whitebg,
+                                       highlightthickness=0)
         self.retainCheck.grid(row=1, column=2)
 
         # QoS line
         canvasQos = Canvas(setFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
         if protocol in [1, 2, 4]:
             canvasQos.grid(row=5, column=0, sticky='w')
-        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1, column=0)
+        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,
+                                                                                                                  column=0)
         text = ' QoS:' + (100 - len(' QoS:')) * " "
-        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=graybg, width=220).grid(row=1, column=1, sticky='w')
+        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=graybg, width=220).grid(
+            row=1, column=1, sticky='w')
         self.comboQos = ttk.Combobox(master=canvasQos, values=qos, width=9, style='My.TCombobox', font=small_font)
         self.comboQos.current(0)
         self.comboQos.grid(row=1, column=2, sticky='e', pady=12)
 
         setCanvas.place(x=0, y=275)
 
-        security = CustomFont_Label(canvas, text=" security:", font_path=font_bold, size=14).place(x=5, y=487)
-        secCanvas = tk.Canvas(canvas, width=359, height=105, bg=whitebg, highlightcolor=whitebg)
+        security = CustomFont_Label(self.canvas, text=" security:", font_path=font_bold, size=14).place(x=5, y=487)
+        secCanvas = tk.Canvas(self.canvas, width=359, height=105, bg=whitebg, highlightcolor=whitebg)
         secFrame = ttk.Frame(secCanvas, style='My.TFrame')
         secCanvas.create_window(0, 0, anchor='nw', window=secFrame)
 
         # Enable line
         canvasEnable = Canvas(secFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasEnable.grid(row=0, column=0, sticky='w')
-        enableImg = Label(master=canvasEnable, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
+        enableImg = Label(master=canvasEnable, image=self.settingsPhoto, bd=0, height=size, width=size,
+                          bg=whitebg).grid(row=0, column=0)
         text = ' Enabled:' + (100 - len('  Enabled:')) * " "
-        enableLabel = CustomFont_Label(canvasEnable, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=0, column=1, sticky='w')
-        self.enabledCheck = Checkbutton(master=canvasEnable, width=9, font=small_font, height=2, variable=self.varEnabled, bd=0, anchor='e', bg=whitebg, activebackground=whitebg, highlightbackground=whitebg, highlightthickness=0)
+        enableLabel = CustomFont_Label(canvasEnable, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
+                                       height=30).grid(row=0, column=1, sticky='w')
+        self.enabledCheck = Checkbutton(master=canvasEnable, width=9, font=small_font, height=2,
+                                        variable=self.varEnabled, bd=0, anchor='e', bg=whitebg,
+                                        activebackground=whitebg, highlightbackground=whitebg, highlightthickness=0)
         self.enabledCheck.grid(row=0, column=2)
 
         # Certificate line
         canvasCert = Canvas(secFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasCert.grid(row=1, column=0, sticky='w')
-        certImg = Label(master=canvasCert, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1, column=0)
+        certImg = Label(master=canvasCert, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(
+            row=1, column=0)
         text = ' Certificate:' + (100 - len(' Certificate:')) * " "
-        certLabel = CustomFont_Label(canvasCert, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=1, column=1, sticky='w')
+        certLabel = CustomFont_Label(canvasCert, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(
+            row=1, column=1, sticky='w')
         self.certificate = Entry(master=canvasCert, text='test', width=txtSize, font=small_font, bg=graybg, bd=1)
         self.certificate.bind("<Button-1>", self.certificateInput)
         self.certificate.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
@@ -582,25 +618,27 @@ class Login(Frame):
         # Certificate Password line
         canvasPassw = Canvas(secFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasPassw.grid(row=2, column=0, sticky='w')
-        paswImg = Label(master=canvasPassw, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
+        paswImg = Label(master=canvasPassw, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
+            row=1, column=0)
         text = ' Password:' + (100 - len(' Password:')) * " "
-        paswLabel = CustomFont_Label(canvasPassw, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=1, column=1, sticky='w')
+        paswLabel = CustomFont_Label(canvasPassw, text=text, font_path=font_regular, size=16, bg=graybg,
+                                     width=170).grid(row=1, column=1, sticky='w')
         self.secPaswText = Entry(master=canvasPassw, width=txtSize, font=small_font, bg=whitebg, show="*", bd=1)
         self.secPaswText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         secCanvas.place(x=0, y=510)
 
-        canvasButton = tk.Canvas(canvas, width=52, height=4, bg='white', highlightcolor='white')
+        canvasButton = tk.Canvas(self.canvas, width=52, height=4, bg='white', highlightcolor='white')
         canvasButton.place(x=0, y=615)
         button = CustomFont_Button(canvasButton, text="Log In", foreground="white", font_path=font_bold,
-                                   size=16, strings_number=1, long=1, bg=buttonColor, highlightthickness=0, bd=0, height=45,
+                                   size=16, strings_number=1, long=1, bg=buttonColor, highlightthickness=0, bd=0,
+                                   height=45,
                                    width=380, activeforeground='white', activebackground=buttonColor,
                                    command=self.loginIn).grid(row=2)
 
     def protocolSelection(self, event):
         protocol = switch_protocol[self.comboProtocol.get()]
-        self.master.destroy()
-        self.main.createLogin(protocol)
+        self.login_refresh(protocol)
 
     def certificateInput(self, event):
         self.cert = Toplevel()
@@ -872,7 +910,15 @@ class NoteForm(Frame):
         text = ' QoS:' + (100 - len(' QoS:')) * " "
         qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=whitebg, width=250).grid(
             row=0, column=1, sticky='w')
-        self.comboQos2 = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
+
+        datamanage = datamanager()
+        account = datamanage.get_default_account()
+
+        if account.protocol != 3:
+            self.comboQos2 = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
+        else:
+            self.comboQos2 = ttk.Combobox(master=canvasQos, values=qos_coap, width=5, style='My.TCombobox', font=small_font)
+
         self.comboQos2.current(0)
         self.comboQos2.grid(row=0, column=2, sticky='e', pady=12)
 
@@ -1257,6 +1303,7 @@ class Content(Frame):
 
 protocols = ['mqtt', 'mqttsn', 'coap', 'websocket','amqp']
 qos = ['0', '1', '2']
+qos_coap = ['0', '1']
 
 switch_protocol = {
             'mqtt': 1,
