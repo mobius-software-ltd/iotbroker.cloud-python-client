@@ -737,12 +737,9 @@ class NoteForm(Frame):
         self.refresh_topics()
         # TOPICS FORM END
 
-        size = 30
-        txtSize = 18
-        padY = 8
-        padX = 5
-
         # SEND FORM
+        self.refresh_send()
+        """
         send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
         sendCanvas = tk.Canvas(self.canvasTab2, width=359, height=450, bg=whitebg, highlightcolor=whitebg)
         sendFrame = ttk.Frame(sendCanvas, style='My.TFrame')
@@ -822,7 +819,9 @@ class NoteForm(Frame):
                                    width=380, activeforeground=whitebg, activebackground=buttonColor,
                                    command=self.sendTopic).grid(row=0, sticky='w')
 
+        """
         # SEND FORM END
+
 
         # MESSAGES FORM
         self.refresh_messages()
@@ -863,6 +862,103 @@ class NoteForm(Frame):
         else:
             self.note.tab(self.tab3, image=self.main.messImg)
 
+    def refresh_send(self):
+        size = 30
+        txtSize = 18
+        padY = 8
+        padX = 5
+        small_font = ('Sans', 11)
+        bold_font = ('Sans', 10, 'bold')
+        gui_style = ttk.Style()
+        gui_style.configure('TNotebook', tabposition='s')
+        gui_style.configure('My.TFrame', background='white', border=0)
+        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background='white')
+        gui_style.configure('My.TCombobox', background=buttonColor, border=0, arrowcolor='white')
+
+        send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0,
+                                                                                                           sticky='w',
+                                                                                                           pady=3)
+        sendCanvas = tk.Canvas(self.canvasTab2, width=359, height=450, bg=whitebg, highlightcolor=whitebg)
+        sendFrame = ttk.Frame(sendCanvas, style='My.TFrame')
+
+        # Content line tab2
+        canvasContent = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
+        canvasContent.grid(row=0, column=0, sticky='w')
+        contentImg = Label(master=canvasContent, image=self.settingsPhoto, bd=0, height=size, width=size,
+                           bg=whitebg).grid(row=0)
+
+        text = ' Content:' + (100 - len(' Content:')) * " "
+        contentLabel = CustomFont_Label(canvasContent, text=text, font_path=font_regular, size=16, bg=whitebg,
+                                        width=140).grid(row=0, column=1, sticky='w')
+        self.contentText = Entry(master=canvasContent, width=txtSize, font=small_font, bg=whitebg, bd=1)
+        self.contentText.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
+
+        # Topic line tab2
+        canvasTopic = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasTopic.grid(row=1, column=0, sticky='w')
+        topicImg = Label(master=canvasTopic, image=self.settingsPhoto, bd=0, height=size, width=size,
+                         bg=graybg).grid(row=0)
+        text = ' Topic:' + (100 - len(' Topic:')) * " "
+        topicLabel = CustomFont_Label(canvasTopic, text=text, font_path=font_regular, size=16, bg=graybg,
+                                      width=140).grid(row=0, column=1, sticky='w')
+        self.nameText2 = Entry(master=canvasTopic, width=txtSize, font=small_font, bg=graybg, bd=1)
+        self.nameText2.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
+
+        # QoS line tab1
+        canvasQos = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
+        canvasQos.grid(row=2, column=0, sticky='w')
+        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
+            row=0)
+
+        text = ' QoS:' + (100 - len(' QoS:')) * " "
+        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=whitebg, width=250).grid(
+            row=0, column=1, sticky='w')
+        self.comboQos2 = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
+        self.comboQos2.current(0)
+        self.comboQos2.grid(row=0, column=2, sticky='e', pady=12)
+
+        self.varRetain = BooleanVar()
+        self.varDuplicate = BooleanVar()
+
+        # Retain line
+        canvasRet = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasRet.grid(row=3, column=0, sticky='w')
+        retainImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size + 2, width=size,
+                          bg=graybg).grid(row=0)
+
+        text = ' Retain:' + (100 - len(' Retain:')) * " "
+        retainLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=graybg, width=210,
+                                       height=30).grid(row=0, column=1, sticky='w')
+        self.retainCheck = Checkbutton(master=canvasRet, height=2, width=9, font=small_font,
+                                       variable=self.varRetain, bd=0, anchor='e', bg=graybg,
+                                       activebackground=graybg, highlightbackground=graybg,
+                                       highlightthickness=0)
+        self.retainCheck.grid(row=0, column=2)
+
+        # Duplicate line
+        canvasDup = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasDup.grid(row=4, column=0, sticky='w')
+        dupImg = Label(master=canvasDup, image=self.settingsPhoto, bd=0, height=size + 2, width=size,
+                       bg=whitebg).grid(row=0)
+        text = ' Duplicate:' + (100 - len(' Duplicate:')) * " "
+        dupLabel = CustomFont_Label(canvasDup, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
+                                    height=30).grid(row=0, column=1, sticky='w')
+        self.dupCheck = Checkbutton(master=canvasDup, height=2, width=9, font=small_font,
+                                    variable=self.varDuplicate, bd=0, anchor='e', bg=whitebg,
+                                    activebackground='white', highlightbackground=whitebg, highlightthickness=0)
+        self.dupCheck.grid(row=0, column=2)
+
+        sendCanvas.create_window(0, 0, anchor='nw', window=sendFrame)
+        sendCanvas.grid(row=1, column=0, sticky='eswn')
+
+        canvasButton = tk.Canvas(self.canvasTab2, width=52, height=4, bg=whitebg, highlightcolor=whitebg)
+        canvasButton.grid(row=2, column=0, sticky='eswn')
+
+        button = CustomFont_Button(canvasButton, text="Send", foreground="white", font_path=font_bold,
+                                   size=16, strings_number=1, long=2, bg=buttonColor, highlightthickness=0, bd=0,
+                                   height=45,
+                                   width=380, activeforeground=whitebg, activebackground=buttonColor,
+                                   command=self.sendTopic).grid(row=0, sticky='w')
     def refresh_topics(self):
         small_font = ('Sans', 11)
         bold_font = ('Sans', 10, 'bold')
@@ -1090,6 +1186,8 @@ class NoteForm(Frame):
         self.contentText.text = ''
         self.nameText2 = ''
         self.comboQos.current(0)
+
+        self.main.app.refresh_send()
 
         # SEND PUBLISH _________________________________________________________________________________SEND PUBLISH
         contentDecoded = content.decode('utf8')
