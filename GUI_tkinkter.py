@@ -519,6 +519,7 @@ class Login(Frame):
         text = ' Will:' + (100 - len(' Will:')) * " "
         willLabel = CustomFont_Label(canvasWill, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
         self.willText = Entry(master=canvasWill, width=txtSize, font=small_font, bg=whitebg, bd=1)
+        self.willText.bind("<Button-1>", self.willInput)
         self.willText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Will topic line
@@ -528,8 +529,8 @@ class Login(Frame):
         keepImg = Label(master=canvasWillT, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,column=0)
         text = ' Will topic:' + (100 - len(' Will topic:')) * " "
         willTLabel = CustomFont_Label(canvasWillT, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(row=1, column=1, sticky='w')
-        self.willTText = Entry(master=canvasWillT, width=txtSize, font=small_font, bg=graybg, bd=1)
-        self.willTText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
+        self.will = Entry(master=canvasWillT, width=txtSize, font=small_font, bg=graybg, bd=1)
+        self.will.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Retain line
         canvasRet = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
@@ -605,6 +606,10 @@ class Login(Frame):
         self.cert = Toplevel()
         self.app = Certificate(self.cert, self)
 
+    def willInput(self, event):
+        self.will = Toplevel()
+        self.app = Will(self.will, self)
+
     def close(self):
         self.master.destroy()
         self.main.createAccounts()
@@ -668,6 +673,9 @@ class Certificate(Frame):
         self.canvas.pack()
 
         self.TextArea = Text(self.canvas, width=49)
+
+        self.TextArea.insert(1.0, self.main.certificate.get())
+
         ScrollBar = Scrollbar(self.canvas)
         ScrollBar.config(command=self.TextArea.yview)
         self.TextArea.config(yscrollcommand=ScrollBar.set)
@@ -678,12 +686,45 @@ class Certificate(Frame):
         canvasButton.place(x=140, y=270)
         button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
 
-
     def close(self):
         text = self.TextArea.get(1.0, END).rstrip()
         self.master.destroy()
         self.main.certificate.delete(0, END)
         self.main.certificate.insert(0, text)
+
+class Will(Frame):
+
+    def __init__(self, master, main):
+        self.master = master
+        center_child(self.master, 360, 325)
+        self.master.resizable(False, False)
+        master.title("Will")
+        self.main = main
+        Frame.__init__(self, master)
+        self.grid()
+
+        self.canvas = Canvas(self, bg='red', width=360, height=300, bd=0, highlightthickness=0)
+        self.canvas.pack()
+
+        self.TextArea = Text(self.canvas, width=49)
+        self.TextArea.insert(1.0, self.main.willText.get())
+
+        ScrollBar = Scrollbar(self.canvas)
+        ScrollBar.config(command=self.TextArea.yview)
+        self.TextArea.config(yscrollcommand=ScrollBar.set)
+        ScrollBar.pack(side=RIGHT, fill=Y)
+        self.TextArea.pack(expand=YES, fill=BOTH)
+
+        canvasButton = tk.Canvas(self.master, width=52, height=4)
+        canvasButton.place(x=140, y=270)
+        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
+
+    def close(self):
+        text = self.TextArea.get(1.0, END).rstrip()
+        self.master.destroy()
+        self.main.willText.delete(0, END)
+        self.main.willText.insert(0, text)
+
 
 class NoteForm(Frame):
 
@@ -721,7 +762,6 @@ class NoteForm(Frame):
         self.canvasTab2.create_image(0, 0, anchor="nw", image=self.photoimage0)
         self.canvasTab3.create_image(0, 0, anchor="nw", image=self.photoimage0)
 
-        small_font = ('Sans', 11)
         bold_font = ('Sans', 10, 'bold')
 
         gui_style = ttk.Style()
@@ -739,89 +779,7 @@ class NoteForm(Frame):
 
         # SEND FORM
         self.refresh_send()
-        """
-        send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
-        sendCanvas = tk.Canvas(self.canvasTab2, width=359, height=450, bg=whitebg, highlightcolor=whitebg)
-        sendFrame = ttk.Frame(sendCanvas, style='My.TFrame')
-
-        # Content line tab2
-        canvasContent = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
-        canvasContent.grid(row=0, column=0, sticky='w')
-        contentImg = Label(master=canvasContent, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0)
-
-        text = ' Content:' + (100 - len(' Content:')) * " "
-        contentLabel = CustomFont_Label(canvasContent, text=text, font_path=font_regular, size=16, bg=whitebg, width=140).grid(row=0, column=1, sticky='w')
-        self.contentText = Entry(master=canvasContent, width=txtSize, font=small_font, bg=whitebg, bd=1)
-        self.contentText.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
-
-        # Topic line tab2
-        canvasTopic = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
-        canvasTopic.grid(row=1, column=0, sticky='w')
-        topicImg = Label(master=canvasTopic, image=self.settingsPhoto, bd=0, height=size, width=size,
-                         bg=graybg).grid(row=0)
-        text = ' Topic:' + (100 - len(' Topic:')) * " "
-        topicLabel = CustomFont_Label(canvasTopic, text=text, font_path=font_regular, size=16, bg=graybg,
-                                        width=140).grid(row=0, column=1, sticky='w')
-        self.nameText2 = Entry(master=canvasTopic, width=txtSize, font=small_font, bg=graybg, bd=1)
-        self.nameText2.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
-
-        # QoS line tab1
-        canvasQos = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
-        canvasQos.grid(row=2, column=0, sticky='w')
-        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
-            row=0)
-
-        text = ' QoS:' + (100 - len(' QoS:')) * " "
-        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=whitebg, width=250).grid( row=0, column=1, sticky='w')
-        self.comboQos2 = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
-        self.comboQos2.current(0)
-        self.comboQos2.grid(row=0, column=2, sticky='e', pady=12)
-
-        self.varRetain = BooleanVar()
-        self.varDuplicate = BooleanVar()
-
-        # Retain line
-        canvasRet = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
-        canvasRet.grid(row=3, column=0, sticky='w')
-        retainImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size + 2, width=size,
-                          bg=graybg).grid(row=0)
-
-        text = ' Retain:' + (100 - len(' Retain:')) * " "
-        retainLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=graybg, width=210,
-                                       height=30).grid(row=0, column=1, sticky='w')
-        self.retainCheck = Checkbutton(master=canvasRet, height=2, width=9, font=small_font,
-                                       variable=self.varRetain, bd=0, anchor='e', bg=graybg,
-                                       activebackground=graybg, highlightbackground=graybg,
-                                       highlightthickness=0)
-        self.retainCheck.grid(row=0, column=2)
-
-        # Duplicate line
-        canvasDup = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
-        canvasDup.grid(row=4, column=0, sticky='w')
-        dupImg = Label(master=canvasDup, image=self.settingsPhoto, bd=0, height=size + 2, width=size,
-                       bg=whitebg).grid(row=0)
-        text = ' Duplicate:' + (100 - len(' Duplicate:')) * " "
-        dupLabel = CustomFont_Label(canvasDup, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
-                                       height=30).grid(row=0, column=1, sticky='w')
-        self.dupCheck = Checkbutton(master=canvasDup, height=2, width=9, font=small_font,
-                                    variable=self.varDuplicate, bd=0, anchor='e', bg=whitebg,
-                                    activebackground='white', highlightbackground=whitebg, highlightthickness=0)
-        self.dupCheck.grid(row=0, column=2)
-
-        sendCanvas.create_window(0, 0, anchor='nw', window=sendFrame)
-        sendCanvas.grid(row=1, column=0, sticky='eswn')
-
-        canvasButton = tk.Canvas(self.canvasTab2, width=52, height=4, bg=whitebg, highlightcolor=whitebg)
-        canvasButton.grid(row=2, column=0, sticky='eswn')
-
-        button = CustomFont_Button(canvasButton, text="Send", foreground="white", font_path=font_bold,
-                                   size=16, strings_number=1, long=2, bg=buttonColor, highlightthickness=0, bd=0, height=45,
-                                   width=380, activeforeground=whitebg, activebackground=buttonColor,
-                                   command=self.sendTopic).grid(row=0, sticky='w')
-
-        """
         # SEND FORM END
-
 
         # MESSAGES FORM
         self.refresh_messages()
@@ -875,9 +833,7 @@ class NoteForm(Frame):
         gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background='white')
         gui_style.configure('My.TCombobox', background=buttonColor, border=0, arrowcolor='white')
 
-        send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0,
-                                                                                                           sticky='w',
-                                                                                                           pady=3)
+        send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0,sticky='w',pady=3)
         sendCanvas = tk.Canvas(self.canvasTab2, width=359, height=450, bg=whitebg, highlightcolor=whitebg)
         sendFrame = ttk.Frame(sendCanvas, style='My.TFrame')
 
@@ -891,6 +847,7 @@ class NoteForm(Frame):
         contentLabel = CustomFont_Label(canvasContent, text=text, font_path=font_regular, size=16, bg=whitebg,
                                         width=140).grid(row=0, column=1, sticky='w')
         self.contentText = Entry(master=canvasContent, width=txtSize, font=small_font, bg=whitebg, bd=1)
+        self.contentText.bind("<Button-1>", self.contentInput)
         self.contentText.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
 
         # Topic line tab2
@@ -959,6 +916,11 @@ class NoteForm(Frame):
                                    height=45,
                                    width=380, activeforeground=whitebg, activebackground=buttonColor,
                                    command=self.sendTopic).grid(row=0, sticky='w')
+
+    def contentInput(self, event):
+        self.content = Toplevel()
+        self.app = Content(self.content, self)
+
     def refresh_topics(self):
         small_font = ('Sans', 11)
         bold_font = ('Sans', 10, 'bold')
@@ -1253,6 +1215,40 @@ class NoteForm(Frame):
             #_____________________________________________________________________SEND___DISCONNECT
             if self.main.client is not None:
                 self.main.client.disconnectWith(0)
+
+class Content(Frame):
+
+    def __init__(self, master, main):
+        self.master = master
+        center_child(self.master, 360, 325)
+        self.master.resizable(False, False)
+        master.title("Content")
+        self.main = main
+        Frame.__init__(self, master)
+        self.grid()
+
+        self.canvas = Canvas(self, bg='red', width=360, height=300, bd=0, highlightthickness=0)
+        self.canvas.pack()
+
+        self.TextArea = Text(self.canvas, width=49)
+
+        self.TextArea.insert(1.0, self.main.contentText.get())
+
+        ScrollBar = Scrollbar(self.canvas)
+        ScrollBar.config(command=self.TextArea.yview)
+        self.TextArea.config(yscrollcommand=ScrollBar.set)
+        ScrollBar.pack(side=RIGHT, fill=Y)
+        self.TextArea.pack(expand=YES, fill=BOTH)
+
+        canvasButton = tk.Canvas(self.master, width=52, height=4)
+        canvasButton.place(x=140, y=270)
+        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
+
+    def close(self):
+        text = self.TextArea.get(1.0, END).rstrip()
+        self.master.destroy()
+        self.main.contentText.delete(0, END)
+        self.main.contentText.insert(0, text)
 
 protocols = ['mqtt', 'mqttsn', 'coap', 'websocket','amqp']
 qos = ['0', '1', '2']
