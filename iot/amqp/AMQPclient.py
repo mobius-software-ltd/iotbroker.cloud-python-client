@@ -230,18 +230,13 @@ def processOutcome(self,message):
             self.isSASLConfirm = True
             header = AMQPProtoHeader(0)
             self.send(header)
-        elif message.getOutcomeCode() == OutcomeCode.AUTH.value:
-            print('Connection authentication failed')
-            print('Due to an unspecified problem with the supplied')
-        elif message.getOutcomeCode() == OutcomeCode.SYS.value:
-            print('Connection authentication failed')
-            print('Due to a system error')
-        elif message.getOutcomeCode() == OutcomeCode.SYS_PERM.value:
-            print('Connection authentication failed')
-            print('Due to a system error that is unlikely to be cor- rected without intervention')
-        elif message.getOutcomeCode() == OutcomeCode.SYS_TEMP.value:
-            print('Connection authentication failed')
-            print('Due to a transient system error')
+        else:
+            if message.getOutcomeCode() == OutcomeCode.AUTH.value:
+                messagebox.showinfo("Connect Error", "Authentication failed")
+            else:
+                messagebox.showinfo("Connect Error", "errorCode=" + str(message.getOutcomeCode()))
+
+            self.clientGUI.errorReceived()
 
 def processOpen(self,message):
     #print('processOpen ')

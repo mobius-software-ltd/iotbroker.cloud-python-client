@@ -26,3 +26,7 @@ class MQConnackCode(Enum):
     MQ_SERVER_UNAVALIABLE = 3
     MQ_BAD_USER_OR_PASS = 4
     MQ_NOT_AUTHORIZED = 5
+
+    def readable_name(self):
+        full_name = self.name
+        return full_name.replace("_", " ").lower()

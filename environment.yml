@@ -4,8 +4,6 @@ channels:
 dependencies:
   - beautifulsoup4=4.6.3=py37_0
   - blas=1.0=mkl
-  - conda=4.6.7=py37_0
-  - conda-env=2.6.0=1
   - entrypoints=0.2.3=py37_2
   - gettext=0.19.8.1=h9745a5d_1001
   - gobject-introspection=1.56.1=py37h9e29830_1001
@@ -61,8 +59,6 @@ dependencies:
   - cloudpickle=0.6.1=py37_0
   - clyent=1.2.2=py37_1
   - colorama=0.4.1=py37_0
-  - conda-build=3.17.6=py37_0
-  - conda-verify=3.1.1=py37_0
   - contextlib2=0.5.5=py37_0
   - cryptography=2.4.2=py37h1ba5d50_0
   - curl=7.63.0=hbc83047_1000

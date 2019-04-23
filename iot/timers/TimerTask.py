@@ -17,33 +17,31 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from threading import Timer
 from iot.classes.ConnectionState import *
 from iot.mqtt.mqtt_messages.MQPublish import *
 from iot.mqtt.mqtt_messages.MQPingreq import *
 from iot.mqttsn.mqttsn_messages.SNPingreq import *
-from iot.mqttsn.mqttsn_messages.SNSubscribe import *
 from iot.amqp.header.impl.AMQPPing import *
 
 class TimerTask():
     def __init__(self, message, period, client):
         self.message = message
         self.period = period
-        self.timer = Timer(self.period, self.handle_function)
         self.status = None
         self.isTimeoutTask = False
         self.client = client
         if self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             self.client.send(self.message)
         self.count = 5
+        self.active = True
 
     def handle_function(self):
-        self.onTimedEvent()
-        self.timer = Timer(self.period, self.handle_function)
-        self.timer.start()
-        self.count -= 1
-        if self.count == 0 and isinstance(self.message, MQPingreq)!=True and isinstance(self.message, SNPingreq)!=True and isinstance(self.message,AMQPPing)!=True:
-            self.client.timeoutMethod()
+        if self.active:
+            self.onTimedEvent()
+            self.client.clientGUI.after(self.period * 1000, self.handle_function)
+            self.count -= 1
+            if self.count == 0 and isinstance(self.message, MQPingreq)!=True and isinstance(self.message, SNPingreq)!=True and isinstance(self.message,AMQPPing)!=True:
+                self.client.timeoutMethod()
 
     def getPeriod(self):
         return self.period
@@ -55,7 +53,8 @@ class TimerTask():
         self.isTimeoutTask = value
 
     def start(self):
-        self.timer.start()
+        if self.active:
+            self.client.clientGUI.after(self.period * 1000, self.handle_function)
 
     def onTimedEvent(self):
         if self.isTimeoutTask == True:
@@ -70,4 +69,4 @@ class TimerTask():
             self.status = True
 
     def stop(self):
-        self.timer.cancel()
+        self.active = False

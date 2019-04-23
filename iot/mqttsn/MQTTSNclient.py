@@ -34,6 +34,7 @@ basicConfig(level=DEBUG)  # set now for dtls import code
 from dtls import do_patch, wrapper
 do_patch()
 from threading import Thread
+import tkinter.messagebox as messagebox
 
 class MQTTSNclient(IoTClient):
     def __init__(self, account, client):
@@ -150,6 +151,7 @@ class MQTTSNclient(IoTClient):
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
+        messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
         self.clientGUI.timeout()
 
     def PacketReceived(self,ProtocolMessage):

@@ -17,37 +17,46 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
+import protocol as client_protocol
+
+
+def validate_message_length(protocol_value, msg):
+    print("msg length=" + str(len(msg)))
+    return client_protocol.is_message_length_valid(protocol_value, len(msg))
+
+
 class AccountValidation:
 
     def valid(account):
-        if account.protocol == 1:
-            if (len(account.will)<1500 and account.username and account.password and account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<65535):
-                return True
-            else:
-                return False
+        try:
+            if account.protocol == 1:
+                if validate_message_length(account.protocol, account.will) and account.username and account.password and account.clientID and account.serverHost and int(account.port) > 0 and account.keepAlive and int(account.keepAlive) > 0 and int(account.keepAlive) < 65535:
+                    return True
+                else:
+                    return False
 
-        if account.protocol == 2:
-            if (len(account.will)<1500 and account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<65535):
-                return True
-            else:
-                return False
+            if account.protocol == 2:
+                if validate_message_length(account.protocol, account.will) and account.clientID and account.serverHost and int(account.port) > 0 and account.keepAlive and int(account.keepAlive) > 0 and int(account.keepAlive) < 65535:
+                    return True
+                else:
+                    return False
 
-        if account.protocol == 3:
-            if (len(account.will)<1500 and account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<64800):
-                return True
-            else:
-                return False
+            if account.protocol == 3:
+                if validate_message_length(account.protocol, account.will) and account.clientID and account.serverHost and int(account.port) > 0 and account.keepAlive and int(account.keepAlive) > 0 and int(account.keepAlive) < 64800:
+                    return True
+                else:
+                    return False
 
-        if account.protocol == 4:
-            if (len(account.will)<1500 and account.username and account.password and account.clientID and account.serverHost and int(account.port)>0 and account.keepAlive and int(account.keepAlive)>0 and int(account.keepAlive)<65535):
-                return True
-            else:
-                return False
+            if account.protocol == 4:
+                if validate_message_length(account.protocol, account.will) and account.username and account.password and account.clientID and account.serverHost and int(account.port) > 0 and account.keepAlive and int(account.keepAlive) > 0 and int(account.keepAlive) < 65535:
+                    return True
+                else:
+                    return False
 
-        if account.protocol == 5:
-            if (len(account.will)<1500 and account.username and account.password and account.clientID and account.serverHost and int(account.port)>0):
-                return True
-            else:
-                return False
-
-protocols = ['mqtt', 'mqttsn', 'coap', 'websocket','amqp']
+            if account.protocol == 5:
+                if validate_message_length(account.protocol, account.will) and account.username and account.password and account.clientID and account.serverHost and int(account.port) > 0 and account.keepAlive and int(account.keepAlive) > 0 and int(account.keepAlive) < 65535:
+                    return True
+                else:
+                    return False
+        except:
+            return False

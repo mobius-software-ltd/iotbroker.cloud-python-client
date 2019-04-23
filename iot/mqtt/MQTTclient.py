@@ -141,7 +141,8 @@ def processConnack(self, message):
         self.timers.goPingTimer(MQPingreq(), self.account.keepAlive)
         self.clientGUI.connackReceived(message.returnCode)
     else:
-        self.clientGUI.disconnectReceived()
+        messagebox.showinfo("Connect error", MQConnackCode(message.returnCode).readable_name())
+        self.clientGUI.errorReceived()
 
 def processSuback(self,message):
     subscribe = self.timers.removeTimer(message.packetID)

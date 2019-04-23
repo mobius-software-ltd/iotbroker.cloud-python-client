@@ -1,11 +1,11 @@
 try:
-    import Tkinter as tk # this is for python2
+    import Tkinter as tk  # this is for python2
     from Tkinter import *
     from Tkinter import ttk
     import Tkinter.messagebox as messagebox
     from PIL import Image, ImageFont, ImageDraw, ImageTk
 except:
-    import tkinter as tk # this is for python3
+    import tkinter as tk  # this is for python3
     from tkinter import *
     from tkinter import ttk
     from tkinter import font
@@ -26,23 +26,27 @@ from twisted.internet import tksupport, reactor
 import textwrap
 
 import sys
+import logging
+
+import protocol as client_protocol
 
 # for Custom Font Usage
-font_bold="fonts/ClearSans-Bold.ttf"
-font_regular="fonts/ClearSans-Regular.ttf"
-font_medium="fonts/ClearSans-Medium.ttf"
+font_bold = "fonts/ClearSans-Bold.ttf"
+font_regular = "fonts/ClearSans-Regular.ttf"
+font_medium = "fonts/ClearSans-Medium.ttf"
 
 # Custom Button Color
 buttonColor = '#%02x%02x%02x' % (30, 144, 255)
 whitebg = 'white'
-graybg = 'gray92'
+graybg = 'gray86'
+
 
 def truetype_font(font_path, size):
     return ImageFont.truetype(font_path, size)
 
+
 class CustomFont_Label(Label):
-    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None, strings_number=1,
-                 **kwargs):
+    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None, strings_number=1, **kwargs):
         if truetype_font is None:
             if font_path is None:
                 raise ValueError("Font path can't be None")
@@ -52,7 +56,7 @@ class CustomFont_Label(Label):
 
         width, height = truetype_font.getsize(text)
 
-        image = Image.new("RGBA", (width, height*strings_number), color=(0, 0, 0, 0))
+        image = Image.new("RGBA", (width, height * strings_number), color=(0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
 
         draw.text((0, 0), text, font=truetype_font, fill=foreground)
@@ -60,10 +64,10 @@ class CustomFont_Label(Label):
         self._photoimage = ImageTk.PhotoImage(image)
         Label.__init__(self, master, image=self._photoimage, **kwargs)
 
+
 class CustomFont_Button(Button):
 
-    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None, strings_number=1, long=1,
-                 **kwargs):
+    def __init__(self, master, text, foreground="black", truetype_font=None, font_path=None, size=None, strings_number=1, long=1, offset_x=0, offset_y=0, **kwargs):
         if truetype_font is None:
             if font_path is None:
                 raise ValueError("Font path can't be None")
@@ -73,18 +77,20 @@ class CustomFont_Button(Button):
 
         width, height = truetype_font.getsize(text)
 
-        image = Image.new("RGBA", (width*long, height*strings_number), color=(0, 0, 0, 0))
+        image = Image.new("RGBA", (width * long, height * strings_number), color=(0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
 
-        draw.text((0, 0), text, font=truetype_font, fill=foreground)
+        draw.text((offset_x, offset_y), text, font=truetype_font, fill=foreground)
 
         self._photoimage = ImageTk.PhotoImage(image)
         Button.__init__(self, master, image=self._photoimage, anchor='center', **kwargs)
+
 
 def center_child(win, width, height):
     x = win.winfo_screenwidth() // 2 - width // 2
     y = win.winfo_screenheight() // 2 - height // 2
     win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
 
 def logo_panel(toplevel):
     if (sys.platform.startswith('win')):
@@ -92,6 +98,7 @@ def logo_panel(toplevel):
     else:
         logo = PhotoImage(file='./resources/iotbroker_icon_big.gif')
         toplevel.tk.call('wm', 'iconphoto', toplevel._w, logo)
+
 
 class Main_screen(Frame):
     def __init__(self, master):
@@ -101,6 +108,7 @@ class Main_screen(Frame):
         root.withdraw()
 
         self.client = None
+        self.master = master
 
         datamanage = datamanager()
         datamanage.create_db()
@@ -115,15 +123,15 @@ class Main_screen(Frame):
         self.sendImgBlue = ImageTk.PhotoImage(Image.open("./resources/is_message_list_blue-2_75.png"))
         self.messImgBlue = ImageTk.PhotoImage(Image.open("./resources/is_message_list_blue-03-1_75.png"))
 
-        self.createLoading()
+        self.createLoading(500)
 
     def createLogin(self, protocol):
         self.login = Toplevel()
         self.app = Login(self.login, self, protocol)
 
-    def createLoading(self):
+    def createLoading(self, loading_timeout):
         self.loading = Toplevel()
-        self.app = Loading(self.loading, self)
+        self.app = Loading(self.loading, self, loading_timeout)
 
     def createNote(self, active, old):
         self.note = Toplevel()
@@ -173,14 +181,13 @@ class Main_screen(Frame):
             topicName = topic.getName()
 
         # print(' topicName=' + str(topicName))
-        message = MessageEntity(content=bytes(content, encoding='utf_8'), qos=qos.getValue(), topicName=topicName,
-                                incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
+        message = MessageEntity(content=bytes(content, encoding='utf_8'), qos=qos.getValue(), topicName=topicName, incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
         # print('App pubackReceived entity was saved')
         self.app.refresh_messages()
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        #print('App publishReceived content=' + str(content)+ ' topic=' + str(topic))
+        # print('App publishReceived content=' + str(content)+ ' topic=' + str(topic))
         # store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -195,27 +202,24 @@ class Main_screen(Frame):
         if isinstance(content, str):
             content = bytes(content, encoding='utf_8')
 
-        message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName,
-                                incoming=True, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
+        message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName, incoming=True, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
         self.app.refresh_messages()
 
     def disconnectReceived(self):
-        #messagebox.showinfo("Warning", 'Disconnect received from server')
-        self.note.destroy()
-        #self.createAccounts()
+        self.loading.destroy()
 
     def errorReceived(self):
-        self.loading.destroy()
+        self.disconnectReceived()
         self.createAccounts()
 
     def timeout(self):
-        messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
-        self.loading.destroy()
+        self.disconnectReceived()
         self.createAccounts()
 
+
 class Loading(Frame):
-    def __init__(self, master, main):
+    def __init__(self, master, main, loading_timeout):
         self.master = master
         center_child(self.master, 360, 450)
         self.master.resizable(False, False)
@@ -238,51 +242,56 @@ class Loading(Frame):
 
         self.progress = ttk.Progressbar(canvas, length=300, orient='horizontal', mode='determinate')
         canvas.create_window(30, 400, anchor=NW, window=self.progress, height=10)
-        self.progress.start(30)
-        self.after(3000, self.stop_progressbar)
+        self.progress.start(int(loading_timeout / 100))
+        self.after(loading_timeout, self.stop_progressbar)
 
     def stop_progressbar(self):
         self.progress.stop()
         self.progress.step(50)
 
-        datamanage = datamanager()
-        account = datamanage.get_default_account()
+        account = datamanager().get_default_account()
 
         if account is not None:
             print('connection to: ' + account.serverHost + ":" + str(account.port))
-            if account.cleanSession:
-                datamanage.clear_by_id(account.id)
+            try:
+                if account.cleanSession:
+                    datamanager().clear_by_id(account.id)
 
-            if account.protocol == 1:
-                self.main.client = MQTTclient(account, self.main)
-                self.main.client.goConnect()
+                if account.protocol == 1:
+                    self.main.client = MQTTclient(account, self.main)
+                    self.main.client.goConnect()
 
-            if account.protocol == 2:
-                self.main.client = MQTTSNclient(account, self.main)
-                self.main.client.goConnect()
+                if account.protocol == 2:
+                    self.main.client = MQTTSNclient(account, self.main)
+                    self.main.client.goConnect()
 
-            if account.protocol == 3:
-                self.main.client = CoapClient(account, self.main)
-                self.main.client.goConnect()
+                if account.protocol == 3:
+                    self.main.client = CoapClient(account, self.main)
+                    self.main.client.goConnect()
 
-            if account.protocol == 4:
-                self.main.client = WSclient(account, self.main)
-                self.main.client.goConnect()
+                if account.protocol == 4:
+                    self.main.client = WSclient(account, self.main)
+                    self.main.client.goConnect()
 
-            if account.protocol == 5:
-                self.main.client = AMQPclient(account, self.main)
-                self.main.client.goConnect()
+                if account.protocol == 5:
+                    self.main.client = AMQPclient(account, self.main)
+                    self.main.client.goConnect()
+            except IOError as err:
+                messagebox.showinfo("Connect Error", str(err))
+                self.main.errorReceived()
+
         else:
             self.master.destroy()
             self.main.accounts = Toplevel()
             self.main.app = Accounts(self.main.accounts, self.main)
 
-
     def show_main(self):
         self.master.destroy()
         root.deiconify()
 
+
 class Accounts(Frame):
+
     def __init__(self, master, main):
         self.master = master
         center_child(self.master, 360, 455)
@@ -304,48 +313,77 @@ class Accounts(Frame):
         gui_style.configure('My.TFrame', background='white', border=0)
         gui_style.configure('My.TLabel', background='white', border=0, height=3, width=46)
 
-        canvas = tk.Canvas(self, width=360, height=370, bg='white', highlightcolor='white', highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=360, height=370, bg='white', highlightcolor='white', highlightthickness=0)
+        self.vbar = ttk.Scrollbar(self.canvas, orient='vertical')
+        self.myframe = ttk.Frame(self.canvas, style='My.TFrame')
 
-        myframe = ttk.Frame(canvas,  style='My.TFrame')
+        self.vbar.pack(side=RIGHT, fill=Y)
+        self.vbar.config(command=self.canvas.yview)
+        self.canvas.config(yscrollcommand=self.vbar.set)
+        self.canvas.grid(row=1, column=0, sticky='eswn')
 
         buttonImage = Image.open('./resources/ic_delete_with_background.png')
         self.buttonPhoto = ImageTk.PhotoImage(buttonImage)
 
-        datamanage = datamanager()
-        accounts = datamanage.get_accounts_all()
-
-        i = 0
-        if len(accounts) > 0:
-            if len(accounts) > 7:
-                width = 310
-            else:
-                width = 325
-            for item in accounts:
-                text = ' {} \n {} \n {}:{}'.format(switch_protocol_back[item.protocol].upper(), item.clientID, item.serverHost, item.port)
-                num = 300 - len(item.serverHost)
-                text += num * ' '
-                self.clientIDs.append(item.clientID)
-                txtButton = CustomFont_Button(myframe, text=text, font_path=font_medium, size=12, strings_number=4, background='white', highlightthickness=0, bd=0, height=50, width=width, command=lambda x=i: self.connect(x)).grid(row=i+1)
-                delButton = ttk.Button(myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i+1, column=1)
-                i+=1
-
-        canvas.create_window(0, 0, anchor='nw', window=myframe)
-        vbar = ttk.Scrollbar(canvas, orient='vertical', command=canvas.yview)
-
-        canvas.grid(row=1, column=0, sticky='eswn')
-        if i > 7:
-            vbar.place(x=342, y=1, height=370)
-            vbar.set(1, 1)
-            canvas.configure(scrollregion=(0, 0, 359, 1000))
+        self.bind("<Destroy>", self._destroy)
+        self.canvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.canvas.bind_all("<Button-5>", self._on_mousewheel)
 
         canvasButton = tk.Canvas(self, width=52, height=4, bg='white', highlightcolor='white')
         canvasButton.grid(row=2, column=0, sticky='eswn')
-        button = CustomFont_Button(canvasButton, text="Add new account", foreground="white", font_path=font_bold, size=16, strings_number=1, bg=buttonColor, highlightthickness=0, bd=0, height=45, width=380, activeforeground='white', activebackground=buttonColor, command=self.createAccount).grid(row=2)
+        button = CustomFont_Button(canvasButton, text="Add new account", foreground="white", font_path=font_bold,
+                                   size=16, strings_number=1, bg=buttonColor, highlightthickness=0, bd=0, height=45,
+                                   width=380, activeforeground='white', activebackground=buttonColor,
+                                   command=self.createAccount).grid(row=2)
+
+        self.fill_accounts()
+
+    def fill_accounts(self):
+
+        for widget in self.myframe.winfo_children():
+            widget.destroy()
+
+        accounts = datamanager().get_accounts_all()
+        i = 0
+        if len(accounts) > 0:
+
+            if len(accounts) > 7:
+                width = 310
+                height = 53 * len(accounts)
+            else:
+                width = 325
+                height = 370
+            for item in accounts:
+                text = ' {} \n {} \n {}:{}'.format(client_protocol.get_protocol_name(item.protocol).upper(), item.clientID,
+                                                   item.serverHost, item.port)
+                num = 300 - len(item.serverHost)
+                text += num * ' '
+                self.clientIDs.append(item.clientID)
+                txtButton = CustomFont_Button(self.myframe, text=text, font_path=font_medium, size=12, strings_number=4,
+                                              background='white', highlightthickness=0, bd=0, height=50, width=width,
+                                              command=lambda x=i: self.connect(x)).grid(row=i + 1)
+                delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=1)
+                i += 1
+
+        if i > 7:
+            self.vbar.place(x=342, y=1, height=370)
+            self.vbar.set(1, 1)
+            self.canvas.configure(scrollregion=(0, 0, 359, height))
+
+        self.canvas.create_window(0, 0, anchor='nw', window=self.myframe)
+
+    def _on_mousewheel(self, event):
+        scroll = 1 if event.num == 5 else -1
+        self.canvas.yview_scroll(scroll, "units")
 
     def close(self):
         self.master.destroy()
         root.deiconify()
         reactor.callFromThread(reactor.stop)
+
+    def _destroy(self, event):
+        self.canvas.unbind_all("<Button-4>")
+        self.canvas.unbind_all("<Button-5>")
 
     def createAccount(self):
         self.master.destroy()
@@ -353,10 +391,10 @@ class Accounts(Frame):
 
     def delete(self, id):
         clientID = self.clientIDs[id]
-        datamanage = datamanager()
-        account = datamanage.delete_account(clientID)
-        self.master.destroy()
-        self.main.createAccounts()
+        delete_account = datamanager().get_account_clientID(clientID)
+        if delete_account is not None:
+            datamanager().delete_account(delete_account.id)
+            self.fill_accounts()
 
     def connect(self, id):
         clientID = self.clientIDs[id]
@@ -364,7 +402,8 @@ class Accounts(Frame):
         datamanage.clear_default_account()
         datamanage.set_default_account_clientID(clientID)
         self.master.destroy()
-        self.main.createLoading()
+        self.main.createLoading(3000)
+
 
 class Login(Frame):
 
@@ -376,7 +415,7 @@ class Login(Frame):
         self.main = main
         Frame.__init__(self, master)
         self.grid()
-
+        self.protocol = protocol
         logo_panel(self.main.login)
 
         self.main.login.protocol("WM_DELETE_WINDOW", self.close)
@@ -431,72 +470,59 @@ class Login(Frame):
         # Protocol line
         canvasProtocol = Canvas(regFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasProtocol.grid(row=0, column=0, sticky='w')
-        protocolImg = Label(master=canvasProtocol, image=self.settingsPhoto, bd=0, height=size, width=size,
-                            bg=whitebg).grid(row=0, column=0)
+        protocolImg = Label(master=canvasProtocol, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
         text = ' Protocol:' + (200 - len(' Protocol:')) * " "
-        protocolLabel = CustomFont_Label(canvasProtocol, text=text, font_path=font_regular, size=16, bg=whitebg,
-                                         width=220).grid(row=0, column=1, sticky='w')
-        self.comboProtocol = ttk.Combobox(master=canvasProtocol, values=protocols, width=9, style='My.TCombobox',
-                                          font=small_font)
+        protocolLabel = CustomFont_Label(canvasProtocol, text=text, font_path=font_regular, size=16, bg=whitebg, width=220).grid(row=0, column=1, sticky='w')
+        self.comboProtocol = ttk.Combobox(master=canvasProtocol, values=client_protocol.protocol_names(), width=9, style='My.TCombobox', font=small_font)
         self.comboProtocol.current(protocol - 1)
         self.comboProtocol.grid(row=0, column=2, sticky='e', pady=12)
         self.comboProtocol.bind('<<ComboboxSelected>>', self.protocolSelection)
 
         # Username line
-        canvasUserName = Canvas(regFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasUserName = Canvas(regFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         if protocol in [1, 4, 5]:
             canvasUserName.grid(row=1, column=0, sticky='w')
-        userImg = Label(master=canvasUserName, image=self.userPhoto, bd=0, height=size, width=size, bg=graybg).grid(
-            row=1, column=0)
+        userImg = Label(master=canvasUserName, image=self.userPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' Username:' + (100 - len(' Username:')) * " "
-        userLabel = CustomFont_Label(canvasUserName, text=text, font_path=font_regular, size=16, bg=graybg,
-                                     width=170).grid(row=1, column=1, sticky='w')
-        self.nameText = Entry(master=canvasUserName, width=txtSize, font=small_font, bg=graybg, bd=1)
+        userLabel = CustomFont_Label(canvasUserName, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
+        self.nameText = Entry(master=canvasUserName, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.nameText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Password line
         canvasPassword = Canvas(regFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 4, 5]:
             canvasPassword.grid(row=2, column=0, sticky='w')
-        paswImg = Label(master=canvasPassword, image=self.paswPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
-            row=2, column=0)
+        paswImg = Label(master=canvasPassword, image=self.paswPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=2, column=0)
         text = ' Password:' + (100 - len(' Password:')) * " "
-        paswLabel = CustomFont_Label(canvasPassword, text=text, font_path=font_regular, size=16, bg=whitebg,
-                                     width=170).grid(row=2, column=1, sticky='w')
+        paswLabel = CustomFont_Label(canvasPassword, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=2, column=1, sticky='w')
         self.paswText = Entry(master=canvasPassword, show="*", width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.paswText.grid(row=2, column=2, sticky='w', pady=padY, padx=padX)
 
         # ClientID line
-        canvasID = Canvas(regFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasID = Canvas(regFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasID.grid(row=3, column=0, sticky='w')
-        idImg = Label(master=canvasID, image=self.idPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=3,
-                                                                                                          column=0)
+        idImg = Label(master=canvasID, image=self.idPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=3, column=0)
         text = ' Client ID:' + (100 - len(' Client ID:')) * " "
-        idLabel = CustomFont_Label(canvasID, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(
-            row=3, column=1, sticky='w')
-        self.idText = Entry(master=canvasID, width=txtSize, font=small_font, bg=graybg, bd=1)
+        idLabel = CustomFont_Label(canvasID, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=3, column=1, sticky='w')
+        self.idText = Entry(master=canvasID, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.idText.grid(row=3, column=2, sticky='w', pady=padY, padx=padX)
 
         # Host line
         canvasHost = Canvas(regFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasHost.grid(row=4, column=0, sticky='w')
-        hostImg = Label(master=canvasHost, image=self.hostPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=4,
-                                                                                                                 column=0)
+        hostImg = Label(master=canvasHost, image=self.hostPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=4, column=0)
         text = ' Server host:' + (100 - len(' Server host:')) * " "
-        hostLabel = CustomFont_Label(canvasHost, text=text, font_path=font_regular, size=16, bg=whitebg,
-                                     width=170).grid(row=4, column=1, sticky='w')
+        hostLabel = CustomFont_Label(canvasHost, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=4, column=1, sticky='w')
         self.hostText = Entry(master=canvasHost, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.hostText.grid(row=4, column=2, sticky='w', pady=padY, padx=padX)
 
         # Port line
-        canvasPort = Canvas(regFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasPort = Canvas(regFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasPort.grid(row=5, column=0, sticky='w')
-        portImg = Label(master=canvasPort, image=self.hostPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=5,
-                                                                                                                column=0)
+        portImg = Label(master=canvasPort, image=self.hostPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=5, column=0)
         text = ' Port:' + (100 - len(' Port:')) * " "
-        portLabel = CustomFont_Label(canvasPort, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(
-            row=5, column=1, sticky='w')
-        self.portText = Entry(master=canvasPort, width=txtSize, font=small_font, bg=graybg, bd=1)
+        portLabel = CustomFont_Label(canvasPort, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=5, column=1, sticky='w')
+        self.portText = Entry(master=canvasPort, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.portText.grid(row=5, column=2, sticky='w', pady=padY, padx=padX)
 
         regCanvas.place(x=0, y=25)
@@ -510,76 +536,63 @@ class Login(Frame):
         canvasClean = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 2, 4]:
             canvasClean.grid(row=0, column=0, sticky='w')
-        cleanImg = Label(master=canvasClean, image=self.cleanPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
-            row=0, column=0)
+        cleanImg = Label(master=canvasClean, image=self.cleanPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
         text = ' Clean session:' + (100 - len(' Clean session:')) * " "
-        cleanLabel = CustomFont_Label(canvasClean, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
-                                      height=30).grid(row=0, column=1, sticky='w')
-        self.cleanCheck = Checkbutton(master=canvasClean, width=9, font=small_font, height=2, variable=self.varClean,
-                                      bd=0, anchor='e', bg=whitebg, activebackground=whitebg,
+        cleanLabel = CustomFont_Label(canvasClean, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=0, column=1, sticky='w')
+        self.cleanCheck = Checkbutton(master=canvasClean, width=9, font=small_font, height=2, variable=self.varClean, bd=0, anchor='e', bg=whitebg, activebackground=whitebg,
                                       highlightbackground=whitebg, highlightthickness=0)
         self.cleanCheck.grid(row=0, column=2)
 
         # Keepalive line
-        canvasAlive = Canvas(setFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasAlive = Canvas(setFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasAlive.grid(row=1, column=0, sticky='w')
-        keepImg = Label(master=canvasAlive, image=self.keepPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,
-                                                                                                                 column=0)
+        keepImg = Label(master=canvasAlive, image=self.keepPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' Keepalive:' + (100 - len(' Keepalive:')) * " "
-        keepLabel = CustomFont_Label(canvasAlive, text=text, font_path=font_regular, size=16, bg=graybg,
-                                     width=170).grid(row=1, column=1, sticky='w')
-        self.keepText = Entry(master=canvasAlive, width=txtSize, font=small_font, bg=graybg, bd=1)
+        keepLabel = CustomFont_Label(canvasAlive, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
+        self.keepText = Entry(master=canvasAlive, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.keepText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Will line
         canvasWill = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 2, 4]:
             canvasWill.grid(row=2, column=0, sticky='w')
-        willImg = Label(master=canvasWill, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
-            row=1, column=0)
+        willImg = Label(master=canvasWill, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' Will:' + (100 - len(' Will:')) * " "
-        willLabel = CustomFont_Label(canvasWill, text=text, font_path=font_regular, size=16, bg=whitebg,
-                                     width=170).grid(row=1, column=1, sticky='w')
+        willLabel = CustomFont_Label(canvasWill, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
         self.willText = Entry(master=canvasWill, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.willText.bind("<Button-1>", self.willInput)
         self.willText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Will topic line
-        canvasWillT = Canvas(setFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasWillT = Canvas(setFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         if protocol in [1, 2, 4]:
             canvasWillT.grid(row=3, column=0, sticky='w')
-        keepImg = Label(master=canvasWillT, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(
-            row=1, column=0)
+        keepImg = Label(master=canvasWillT, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' Will topic:' + (100 - len(' Will topic:')) * " "
-        willTLabel = CustomFont_Label(canvasWillT, text=text, font_path=font_regular, size=16, bg=graybg,
-                                      width=170).grid(row=1, column=1, sticky='w')
-        self.willT = Entry(master=canvasWillT, width=txtSize, font=small_font, bg=graybg, bd=1)
+        willTLabel = CustomFont_Label(canvasWillT, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
+        self.willT = Entry(master=canvasWillT, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.willT.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Retain line
         canvasRet = Canvas(setFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         if protocol in [1, 2, 4]:
             canvasRet.grid(row=4, column=0, sticky='w')
-        retImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
-            row=1, column=0)
+        retImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' Retain:' + (100 - len(' Retain:')) * " "
-        retLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
-                                    height=30).grid(row=1, column=1, sticky='w')
+        retLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=1, column=1, sticky='w')
         self.retainCheck = Checkbutton(master=canvasRet, width=9, font=small_font, height=2, bd=0, anchor='e',
                                        bg=whitebg, activebackground=whitebg, highlightbackground=whitebg,
                                        highlightthickness=0)
         self.retainCheck.grid(row=1, column=2)
 
         # QoS line
-        canvasQos = Canvas(setFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasQos = Canvas(setFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         if protocol in [1, 2, 4]:
             canvasQos.grid(row=5, column=0, sticky='w')
-        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(row=1,
-                                                                                                                  column=0)
+        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' QoS:' + (100 - len(' QoS:')) * " "
-        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=graybg, width=220).grid(
-            row=1, column=1, sticky='w')
-        self.comboQos = ttk.Combobox(master=canvasQos, values=qos, width=9, style='My.TCombobox', font=small_font)
+        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=whitebg, width=220).grid(row=1, column=1, sticky='w')
+        self.comboQos = ttk.Combobox(master=canvasQos, values=client_protocol.qos_list(self.protocol), width=9, style='My.TCombobox', font=small_font)
         self.comboQos.current(0)
         self.comboQos.grid(row=1, column=2, sticky='e', pady=12)
 
@@ -593,36 +606,29 @@ class Login(Frame):
         # Enable line
         canvasEnable = Canvas(secFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasEnable.grid(row=0, column=0, sticky='w')
-        enableImg = Label(master=canvasEnable, image=self.settingsPhoto, bd=0, height=size, width=size,
-                          bg=whitebg).grid(row=0, column=0)
+        enableImg = Label(master=canvasEnable, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
         text = ' Enabled:' + (100 - len('  Enabled:')) * " "
-        enableLabel = CustomFont_Label(canvasEnable, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
-                                       height=30).grid(row=0, column=1, sticky='w')
-        self.enabledCheck = Checkbutton(master=canvasEnable, width=9, font=small_font, height=2,
-                                        variable=self.varEnabled, bd=0, anchor='e', bg=whitebg,
+        enableLabel = CustomFont_Label(canvasEnable, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=0, column=1, sticky='w')
+        self.enabledCheck = Checkbutton(master=canvasEnable, width=9, font=small_font, height=2, variable=self.varEnabled, bd=0, anchor='e', bg=whitebg,
                                         activebackground=whitebg, highlightbackground=whitebg, highlightthickness=0)
         self.enabledCheck.grid(row=0, column=2)
 
         # Certificate line
-        canvasCert = Canvas(secFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasCert = Canvas(secFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasCert.grid(row=1, column=0, sticky='w')
-        certImg = Label(master=canvasCert, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(
-            row=1, column=0)
+        certImg = Label(master=canvasCert, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' Certificate:' + (100 - len(' Certificate:')) * " "
-        certLabel = CustomFont_Label(canvasCert, text=text, font_path=font_regular, size=16, bg=graybg, width=170).grid(
-            row=1, column=1, sticky='w')
-        self.certificate = Entry(master=canvasCert, text='test', width=txtSize, font=small_font, bg=graybg, bd=1)
+        certLabel = CustomFont_Label(canvasCert, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
+        self.certificate = Entry(master=canvasCert, text='test', width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.certificate.bind("<Button-1>", self.certificateInput)
         self.certificate.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
         # Certificate Password line
         canvasPassw = Canvas(secFrame, bg='white', width=360, height=40, highlightcolor='white', bd=0)
         canvasPassw.grid(row=2, column=0, sticky='w')
-        paswImg = Label(master=canvasPassw, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
-            row=1, column=0)
+        paswImg = Label(master=canvasPassw, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' Password:' + (100 - len(' Password:')) * " "
-        paswLabel = CustomFont_Label(canvasPassw, text=text, font_path=font_regular, size=16, bg=graybg,
-                                     width=170).grid(row=1, column=1, sticky='w')
+        paswLabel = CustomFont_Label(canvasPassw, text=text, font_path=font_regular, size=16, bg=whitebg, width=170).grid(row=1, column=1, sticky='w')
         self.secPaswText = Entry(master=canvasPassw, width=txtSize, font=small_font, bg=whitebg, show="*", bd=1)
         self.secPaswText.grid(row=1, column=2, sticky='w', pady=padY, padx=padX)
 
@@ -637,24 +643,44 @@ class Login(Frame):
                                    command=self.loginIn).grid(row=2)
 
     def protocolSelection(self, event):
-        protocol = switch_protocol[self.comboProtocol.get()]
+        protocol = client_protocol.get_protocol_num(self.comboProtocol.get())
         self.login_refresh(protocol)
 
     def certificateInput(self, event):
-        self.cert = Toplevel()
-        self.app = Certificate(self.cert, self)
+        certificate_window_opened = False
+        try:
+            if self.app is not None:
+                certificate_window_opened = self.app.opened
+        except:
+            pass
+
+        if not certificate_window_opened:
+            self.cert = Toplevel()
+            self.app = Certificate(self.cert, self)
 
     def willInput(self, event):
-        self.will = Toplevel()
-        self.app = Will(self.will, self)
+        will_window_opened = False
+        try:
+            if self.app is not None:
+                will_window_opened = self.app.opened
+        except:
+            pass
+
+        if not will_window_opened:
+            self.will = Toplevel()
+            self.app = Will(self.will, self)
 
     def close(self):
+        try:
+            self.certificate.delete(0, 'end')
+        except AttributeError:
+            pass
         self.master.destroy()
         self.main.createAccounts()
 
     def loginIn(self):
         # create ACCOUNT and SAVE as default
-        protocol = switch_protocol[self.comboProtocol.get()]
+        protocol = client_protocol.get_protocol_num(self.comboProtocol.get())
         name = self.nameText.get()
         password = self.paswText.get()
         clientID = self.idText.get()
@@ -667,7 +693,6 @@ class Login(Frame):
         qos = self.comboQos.get()
         enabled = self.varEnabled.get()
         certificate = self.certificate.get()
-        self.certificate.text = ''
         certPasw = self.secPaswText.get()
 
         account = AccountEntity(protocol=protocol, username=name, password=password, clientID=clientID,
@@ -678,25 +703,26 @@ class Login(Frame):
                                 qos=qos, isDefault=False, isSecure=enabled, certificate=certificate, certPasw=certPasw)
 
         if AccountValidation.valid(account):
-            datamanage = datamanager()
-
-            previous = datamanage.get_account_clientID(account.clientID)
+            d_manager = datamanager()
+            previous = d_manager.get_account_clientID(account.clientID)
             if previous is None:
-                    datamanage.add_entity(account)
-                    account = datamanage.get_account_clientID(clientID)
-                    datamanage.set_default_account_clientID(account.id)
-
-                    self.master.destroy()
-                    self.main.createAccounts()
+                d_manager.add_entity(account)
+                d_manager.clear_default_account()
+                datamanager().set_default_account_clientID(account.clientID)
+                self.master.destroy()
+                self.main.createLoading(3000)
             else:
-                messagebox.showinfo("Warning", "Wrong value for clientID='" + str(account.clientID) + "'. This one is already in use")
+                messagebox.showinfo("Warning", "Wrong value for clientID='" + str(
+                    account.clientID) + "'. This one is already in use")
         else:
             if account.keepAlive is '' or (int(account.keepAlive) <= 0 or int(account.keepAlive)) > 65535:
                 messagebox.showinfo("Warning", 'Wrong value for Keepalive')
-            elif len(account.will)>1500:
-                messagebox.showinfo("Warning", 'Will size/length is more than 1500 symbols')
+            elif not client_protocol.is_message_length_valid(account.protocol, account.will):
+                messagebox.showinfo("Warning", 'Will size/length is more than ' + client_protocol.get_max_message_length(account.protocol) + ' symbols')
             else:
-                messagebox.showinfo("Warning", 'Please, fill in all required fileds: Username, Password, ClientID, Host, Port')
+                messagebox.showinfo("Warning",
+                                    'Please fill in all required fileds: Username, Password, ClientID, Host, Port')
+
 
 class Certificate(Frame):
 
@@ -715,7 +741,6 @@ class Certificate(Frame):
         self.TextArea = Text(self.canvas, width=49)
 
         self.TextArea.insert(1.0, self.main.certificate.get())
-
         ScrollBar = Scrollbar(self.canvas)
         ScrollBar.config(command=self.TextArea.yview)
         self.TextArea.config(yscrollcommand=ScrollBar.set)
@@ -724,13 +749,20 @@ class Certificate(Frame):
 
         canvasButton = tk.Canvas(self.master, width=52, height=4)
         canvasButton.place(x=140, y=270)
-        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
+        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack()
+
+        self.opened = True
 
     def close(self):
+        self.opened = False
         text = self.TextArea.get(1.0, END).rstrip()
         self.master.destroy()
         self.main.certificate.delete(0, END)
         self.main.certificate.insert(0, text)
+
+    def destroy(self):
+        self.opened = False
+        super(Certificate, self).destroy()
 
 class Will(Frame):
 
@@ -759,12 +791,18 @@ class Will(Frame):
         canvasButton.place(x=140, y=270)
         button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
 
+        self.opened = True
+
     def close(self):
+        self.opened = False
         text = self.TextArea.get(1.0, END).rstrip()
         self.master.destroy()
         self.main.willText.delete(0, END)
         self.main.willText.insert(0, text)
 
+    def destroy(self):
+        self.opened = False
+        super(Will, self).destroy()
 
 class NoteForm(Frame):
 
@@ -772,7 +810,11 @@ class NoteForm(Frame):
         self.master = master
         center_child(self.master, 355, 570)
         self.master.resizable(False, False)
-        master.title("iotbroker.cloud")
+
+        self.account = datamanager().get_default_account()
+
+        protocol_text = client_protocol.get_protocol_name(self.account.protocol).upper()
+        master.title("iotbroker.cloud " + protocol_text)
         self.main = main
         Frame.__init__(self, master)
         self.grid()
@@ -825,6 +867,10 @@ class NoteForm(Frame):
         self.refresh_messages()
         # MESSAGES FORM END
 
+        self.bind("<Destroy>", self._destroy)
+        self.messagesCanvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.messagesCanvas.bind_all("<Button-5>", self._on_mousewheel)
+
         if self.active == 0:
             self.note.add(self.tab1, image=self.main.topicsImgBlue)
         else:
@@ -843,6 +889,25 @@ class NoteForm(Frame):
         self.note.add(self.tab4, image=self.main.outImg)
         self.note.select(self.active)
         self.note.grid(row=0, column=0)
+
+        self.app = None
+
+        self.master.protocol("WM_DELETE_WINDOW", self._close)
+
+    def _on_mousewheel(self, event):
+        scroll = 1 if event.num == 5 else -1
+        self.messagesCanvas.yview_scroll(scroll, "units")
+
+    def _close(self):
+        print("_close called")
+        self.master.destroy()
+        self.main.master.deiconify()
+        reactor.callFromThread(reactor.stop)
+
+    def _destroy(self, event):
+        print("_destroy called")
+        self.messagesCanvas.unbind_all("<Button-4>")
+        self.messagesCanvas.unbind_all("<Button-5>")
 
     def refresh_tabs(self):
         if self.active == 0:
@@ -873,7 +938,9 @@ class NoteForm(Frame):
         gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background='white')
         gui_style.configure('My.TCombobox', background=buttonColor, border=0, arrowcolor='white')
 
-        send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0,sticky='w',pady=3)
+        send = CustomFont_Label(self.canvasTab2, text=" send message:", font_path=font_bold, size=14).grid(row=0,
+                                                                                                           sticky='w',
+                                                                                                           pady=3)
         sendCanvas = tk.Canvas(self.canvasTab2, width=359, height=450, bg=whitebg, highlightcolor=whitebg)
         sendFrame = ttk.Frame(sendCanvas, style='My.TFrame')
 
@@ -884,74 +951,62 @@ class NoteForm(Frame):
                            bg=whitebg).grid(row=0)
 
         text = ' Content:' + (100 - len(' Content:')) * " "
-        contentLabel = CustomFont_Label(canvasContent, text=text, font_path=font_regular, size=16, bg=whitebg,
-                                        width=140).grid(row=0, column=1, sticky='w')
+        contentLabel = CustomFont_Label(canvasContent, text=text, font_path=font_regular, size=16, bg=whitebg, width=140).grid(row=0, column=1, sticky='w')
         self.contentText = Entry(master=canvasContent, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.contentText.bind("<Button-1>", self.contentInput)
         self.contentText.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
 
         # Topic line tab2
-        canvasTopic = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasTopic = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasTopic.grid(row=1, column=0, sticky='w')
-        topicImg = Label(master=canvasTopic, image=self.settingsPhoto, bd=0, height=size, width=size,
-                         bg=graybg).grid(row=0)
+        topicImg = Label(master=canvasTopic, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0)
         text = ' Topic:' + (100 - len(' Topic:')) * " "
-        topicLabel = CustomFont_Label(canvasTopic, text=text, font_path=font_regular, size=16, bg=graybg,
-                                      width=140).grid(row=0, column=1, sticky='w')
-        self.nameText2 = Entry(master=canvasTopic, width=txtSize, font=small_font, bg=graybg, bd=1)
+        topicLabel = CustomFont_Label(canvasTopic, text=text, font_path=font_regular, size=16, bg=whitebg, width=140).grid(row=0, column=1, sticky='w')
+        self.nameText2 = Entry(master=canvasTopic, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.nameText2.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
 
         # QoS line tab1
-        canvasQos = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
+        canvasQos = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasQos.grid(row=2, column=0, sticky='w')
-        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(
-            row=0)
+        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0)
 
         text = ' QoS:' + (100 - len(' QoS:')) * " "
-        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=whitebg, width=250).grid(
-            row=0, column=1, sticky='w')
+        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=whitebg, width=250).grid(row=0, column=1, sticky='w')
 
         datamanage = datamanager()
-        account = datamanage.get_default_account()
 
-        if account.protocol != 3:
-            self.comboQos2 = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
-        else:
-            self.comboQos2 = ttk.Combobox(master=canvasQos, values=qos_coap, width=5, style='My.TCombobox', font=small_font)
+        self.comboQos2 = ttk.Combobox(master=canvasQos, values=client_protocol.qos_list(self.account.protocol), width=5, style='My.TCombobox', font=small_font)
 
         self.comboQos2.current(0)
-        self.comboQos2.grid(row=0, column=2, sticky='e', pady=12)
+        self.comboQos2.grid(row=0, column=2, sticky='e', pady=2)
 
         self.varRetain = BooleanVar()
         self.varDuplicate = BooleanVar()
 
         # Retain line
-        canvasRet = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasRet = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasRet.grid(row=3, column=0, sticky='w')
-        retainImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size + 2, width=size,
-                          bg=graybg).grid(row=0)
+        retainImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size + 2, width=size, bg=whitebg).grid(row=0)
 
         text = ' Retain:' + (100 - len(' Retain:')) * " "
-        retainLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=graybg, width=210,
-                                       height=30).grid(row=0, column=1, sticky='w')
+        retainLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=0, column=1, sticky='w')
         self.retainCheck = Checkbutton(master=canvasRet, height=2, width=9, font=small_font,
-                                       variable=self.varRetain, bd=0, anchor='e', bg=graybg,
+                                       variable=self.varRetain, bd=0, anchor='e', bg=whitebg,
                                        activebackground=graybg, highlightbackground=graybg,
                                        highlightthickness=0)
-        self.retainCheck.grid(row=0, column=2)
+        self.retainCheck.grid(row=0, column=2, pady=2)
 
         # Duplicate line
-        canvasDup = Canvas(sendFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasDup = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasDup.grid(row=4, column=0, sticky='w')
-        dupImg = Label(master=canvasDup, image=self.settingsPhoto, bd=0, height=size + 2, width=size,
-                       bg=whitebg).grid(row=0)
+        dupImg = Label(master=canvasDup, image=self.settingsPhoto, bd=0, height=size + 2, width=size, bg=whitebg).grid(row=0)
         text = ' Duplicate:' + (100 - len(' Duplicate:')) * " "
         dupLabel = CustomFont_Label(canvasDup, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
                                     height=30).grid(row=0, column=1, sticky='w')
         self.dupCheck = Checkbutton(master=canvasDup, height=2, width=9, font=small_font,
                                     variable=self.varDuplicate, bd=0, anchor='e', bg=whitebg,
                                     activebackground='white', highlightbackground=whitebg, highlightthickness=0)
-        self.dupCheck.grid(row=0, column=2)
+        self.dupCheck.grid(row=0, column=2, pady=2)
 
         sendCanvas.create_window(0, 0, anchor='nw', window=sendFrame)
         sendCanvas.grid(row=1, column=0, sticky='eswn')
@@ -960,14 +1015,22 @@ class NoteForm(Frame):
         canvasButton.grid(row=2, column=0, sticky='eswn')
 
         button = CustomFont_Button(canvasButton, text="Send", foreground="white", font_path=font_bold,
-                                   size=16, strings_number=1, long=2, bg=buttonColor, highlightthickness=0, bd=0,
+                                   size=16, strings_number=1, long=2, offset_x=5, offset_y=-5, bg=buttonColor, highlightthickness=0, bd=0,
                                    height=45,
                                    width=380, activeforeground=whitebg, activebackground=buttonColor,
                                    command=self.sendTopic).grid(row=0, sticky='w')
 
     def contentInput(self, event):
-        self.content = Toplevel()
-        self.app = Content(self.content, self)
+        content_window_opened = False
+        try:
+            if self.app is not None:
+                content_window_opened = self.app.opened
+        except:
+            pass
+
+        if not content_window_opened:
+            self.content = Toplevel()
+            self.app = Content(self.content, self)
 
     def refresh_topics(self):
         small_font = ('Sans', 11)
@@ -1017,21 +1080,16 @@ class NoteForm(Frame):
 
                     text = topicName + (200 - len(topicName)) * " "
                     if (i % 2) == 0:
-                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230,
-                                         bg=whitebg).grid(row=i + 1, column=0, sticky='w')
+                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230, bg=whitebg).grid(row=i + 1, column=0, sticky='w')
+                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg=whitebg).grid(row=i + 1, column=1, sticky='w')
+                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background=whitebg)
+                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
+                    else:
+                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230, bg=whitebg).grid(row=i + 1, column=0)
                         Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg=whitebg).grid(row=i + 1, column=1,
                                                                                               sticky='w')
-                        gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background=whitebg)
-                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel',
-                                   command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
-                    else:
-                        CustomFont_Label(topicsFrame, text=text, font_path=font_medium, size=16, width=230,
-                                         bg=graybg).grid(row=i + 1, column=0)
-                        Label(master=topicsFrame, image=self.qosPhoto, bd=0, bg=graybg).grid(row=i + 1, column=1,
-                                                                                             sticky='w')
                         gui_style.configure('My.TLabel', border=0, font=bold_font, width=359, background=graybg)
-                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel',
-                                   command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
+                        ttk.Button(topicsFrame, image=self.delPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2, padx=5)
                     i += 1
 
         vbarTopics = ttk.Scrollbar(self.tab1, orient='vertical', command=topicsCanvas.yview)
@@ -1043,7 +1101,7 @@ class NoteForm(Frame):
         topicsCanvas.create_window(0, 0, anchor='nw', window=topicsFrame)
         topicsCanvas.grid(row=1, column=0, sticky='eswn')
 
-        newTopic = CustomFont_Label(self.canvasTab1, text=" add new topic:", font_path=font_bold, size=14).grid(row=2,sticky='w',pady=3)
+        newTopic = CustomFont_Label(self.canvasTab1, text=" add new topic:", font_path=font_bold, size=14).grid(row=2, sticky='w', pady=3)
         newCanvas = tk.Canvas(self.canvasTab1, width=349, height=70, bg=whitebg, highlightcolor=whitebg)
         newFrame = ttk.Frame(newCanvas, style='My.TFrame')
 
@@ -1058,24 +1116,20 @@ class NoteForm(Frame):
         # Topic Name line tab1
         canvasName = Canvas(newFrame, bg=whitebg, width=360, height=40, highlightcolor=whitebg, bd=0)
         canvasName.grid(row=0, column=0, sticky='w')
-        nameImg = Label(master=canvasName, image=self.settingsPhoto, bd=0, height=size, width=size,
-                        bg=whitebg).grid(row=0, column=0)
+        nameImg = Label(master=canvasName, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=0, column=0)
 
         text = ' Topic:' + (100 - len(' Topic:')) * " "
-        nameLabel = CustomFont_Label(canvasName, text=text, font_path=font_regular, size=16, bg=whitebg,
-                                     width=120).grid(row=0, column=1, sticky='w')
+        nameLabel = CustomFont_Label(canvasName, text=text, font_path=font_regular, size=16, bg=whitebg, width=120).grid(row=0, column=1, sticky='w')
         self.nameText = Entry(master=canvasName, width=txtSize, font=small_font, bg=whitebg, bd=1)
         self.nameText.grid(row=0, column=2, sticky='w', pady=padY, padx=padX)
 
         # QoS line tab1
-        canvasQos = Canvas(newFrame, bg=graybg, width=360, height=40, highlightcolor=graybg, bd=0)
+        canvasQos = Canvas(newFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
         canvasQos.grid(row=1, column=0, sticky='w')
-        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=graybg).grid(
-            row=1, column=0)
+        qosImg = Label(master=canvasQos, image=self.settingsPhoto, bd=0, height=size, width=size, bg=whitebg).grid(row=1, column=0)
         text = ' QoS:' + (100 - len(' QoS:')) * " "
-        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=graybg, width=250).grid(
-            row=1, column=1, sticky='w')
-        self.comboQos = ttk.Combobox(master=canvasQos, values=qos, width=5, style='My.TCombobox', font=small_font)
+        qosLabel = CustomFont_Label(canvasQos, text=text, font_path=font_regular, size=16, bg=whitebg, width=250).grid(row=1, column=1, sticky='w')
+        self.comboQos = ttk.Combobox(master=canvasQos, values=client_protocol.qos_list(self.account.protocol), width=5, style='My.TCombobox', font=small_font)
         self.comboQos.current(0)
         self.comboQos.grid(row=1, column=2, sticky='e', pady=12)
 
@@ -1086,16 +1140,15 @@ class NoteForm(Frame):
         canvasButton.grid(row=4, column=0, sticky='eswn')
 
         button = CustomFont_Button(canvasButton, text="Add", foreground="white", font_path=font_bold,
-                                   size=16, strings_number=1, long=2, bg=buttonColor, highlightthickness=0, bd=0,
+                                   size=16, strings_number=1, long=2, offset_x=10, offset_y=-5, bg=buttonColor, highlightthickness=0, bd=0,
                                    height=45,
-                                   width=380, activeforeground=whitebg, activebackground=buttonColor,
+                                   width=360, activeforeground=whitebg, activebackground=buttonColor,
                                    command=self.createTopic).grid(row=0, sticky='w')
 
     def refresh_messages(self):
-        messages = CustomFont_Label(self.canvasTab3, text=" messages list:", font_path=font_bold, size=14).grid(row=0,sticky='w',pady=3)
-        # messages = Label(canvasTab3, text=" messages list:", font=bold_font).grid(row=0, sticky='w', pady=5)
-        messagesCanvas = tk.Canvas(self.canvasTab3, width=359, height=510, bg=whitebg, highlightcolor=whitebg)
-        messagesFrame = ttk.Frame(messagesCanvas, style='My.TFrame')
+        messages = CustomFont_Label(self.canvasTab3, text=" messages list:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
+        self.messagesCanvas = tk.Canvas(self.canvasTab3, width=359, height=510, bg=whitebg, highlightcolor=whitebg)
+        messagesFrame = ttk.Frame(self.messagesCanvas, style='My.TFrame')
 
         datamanage = datamanager()
         account = datamanage.get_default_account()
@@ -1118,6 +1171,7 @@ class NoteForm(Frame):
         qosImg = Image.open('./resources/icon_out_qos_2_75.png')
         self.photo2out = ImageTk.PhotoImage(qosImg)
 
+        height = 0
         i = 0
         scroll_flag = False
         if messages is not None:
@@ -1158,34 +1212,39 @@ class NoteForm(Frame):
                         CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
                                          strings_number=strings_number, width=250, height=20 * strings_number,
                                          bg=graybg).grid(row=i, column=0)
-                        Label(master=messagesFrame, image=self.photo, bd=0, bg=graybg).grid(row=i, column=1)
+                        Label(master=messagesFrame, image=self.photo, bd=0, bg=graybg, width=359 - 250, height=20 * strings_number + 2).grid(row=i, column=1)
                     i += 1
+                    height += 20 * strings_number + 3
 
-        vbarMessages = ttk.Scrollbar(self.tab3, orient='vertical', command=messagesCanvas.yview)
-        if i > 10 or scroll_flag:
+        if height == 0:
+            height = 370
+
+        vbarMessages = ttk.Scrollbar(self.tab3, orient='vertical', command=self.messagesCanvas.yview)
+        if i > 8 or scroll_flag:
             vbarMessages.place(x=335, y=30, height=490)
             vbarMessages.set(1, 1)
-            messagesCanvas.configure(scrollregion=(0, 0, 359, 10000))
+            self.messagesCanvas.configure(scrollregion=(0, 0, 359, height))
+        else:
+            self.messagesCanvas.configure(scrollregion=(0, 0, 359, 490))
 
-        messagesCanvas.create_window(0, 0, anchor='nw', window=messagesFrame)
-        messagesCanvas.grid(row=1, column=0, sticky='eswn')
-
+        self.messagesCanvas.create_window(0, 0, anchor='nw', window=messagesFrame)
+        self.messagesCanvas.grid(row=1, column=0, sticky='eswn')
 
     def format_context(self, text):
         data = textwrap.wrap(text, 32)
         result = ''
         for piece in data:
-            result += piece+'\n'
+            result += piece + '\n'
         return result
 
     def delete(self, id):
-        #self.main.destroy()
+        # self.main.destroy()
         topicName = self.topicNames[id]
         # SEND UNSUBSCRIBE _________________________________________________________________________________SEND UNSUBSCRIBE
         self.main.client.unsubscribeFrom(topicName)
 
     def sendTopic(self):
-        #print('Send topic')
+        # print('Send topic')
         datamanage = datamanager()
         content = str.encode(self.contentText.get())
         name = self.nameText2.get()
@@ -1199,25 +1258,25 @@ class NoteForm(Frame):
 
         self.main.app.refresh_send()
 
-        if len(content) < 1500:
-            # SEND PUBLISH _________________________________________________________________________________SEND PUBLISH
-            contentDecoded = content.decode('utf8')
-            self.main.client.publish(name, int(qos), contentDecoded, retain, dup)
+        if client_protocol.is_udp(self.account.protocol) and len(content) > UDP_MAX_MESSAGE_LENGTH:
+            messagebox.showinfo("Warning", 'Content size/length is more than ' + str(UDP_MAX_MESSAGE_LENGTH) + ' symbols')
+            return
 
-            if int(qos) == 0:
-                # ADD to DB
-                datamanage = datamanager()
-                account = datamanage.get_default_account()
-                if account.protocol != 3:
-                    message = MessageEntity(content=content, qos=int(qos), topicName=name,
-                                            incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
-                    datamanage.add_entity(message)
-                self.main.app.refresh_messages()
-        else:
-            messagebox.showinfo("Warning", 'Content size/length is more than 1500 symbols')
+        # SEND PUBLISH _________________________________________________________________________________SEND PUBLISH
+        contentDecoded = content.decode('utf8')
+        self.main.client.publish(name, int(qos), contentDecoded, retain, dup)
+
+        if int(qos) == 0:
+            # ADD to DB
+            datamanage = datamanager()
+            account = datamanage.get_default_account()
+            if account.protocol != 3:
+                message = MessageEntity(content=content, qos=int(qos), topicName=name, incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
+                datamanage.add_entity(message)
+            self.main.app.refresh_messages()
 
     def createTopic(self):
-        #print('Create topic')
+        # print('Create topic')
         name = self.nameText.get()
         qos = self.comboQos.get()
 
@@ -1263,9 +1322,10 @@ class NoteForm(Frame):
         if new == 3:
             self.master.destroy()
             self.main.createAccounts()
-            #_____________________________________________________________________SEND___DISCONNECT
+            # _____________________________________________________________________SEND___DISCONNECT
             if self.main.client is not None:
                 self.main.client.disconnectWith(0)
+
 
 class Content(Frame):
 
@@ -1293,33 +1353,25 @@ class Content(Frame):
 
         canvasButton = tk.Canvas(self.master, width=52, height=4)
         canvasButton.place(x=140, y=270)
-        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
+        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack()
+
+        self.opened = True
 
     def close(self):
+        self.opened = False
         text = self.TextArea.get(1.0, END).rstrip()
         self.master.destroy()
         self.main.contentText.delete(0, END)
         self.main.contentText.insert(0, text)
 
-protocols = ['mqtt', 'mqttsn', 'coap', 'websocket','amqp']
-qos = ['0', '1', '2']
-qos_coap = ['0', '1']
+    def destroy(self):
+        self.opened = False
+        super(Content, self).destroy()
 
-switch_protocol = {
-            'mqtt': 1,
-            'mqttsn': 2,
-            'coap': 3,
-            'websocket': 4,
-            'amqp':5
-        }
+logger = logging.getLogger('PIL')
+logger.setLevel(level=logging.INFO)
 
-switch_protocol_back = {
-            1: 'mqtt',
-            2: 'mqttsn',
-            3: 'coap',
-            4: 'websocket',
-            5: 'amqp'
-        }
+UDP_MAX_MESSAGE_LENGTH = 1400
 
 root = Tk()
 tksupport.install(root)
