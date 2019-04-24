@@ -23,8 +23,9 @@ from iot.amqp.constructor.DescribedConstructor import *
 from iot.amqp.tlv.impl.TLVList import *
 from iot.amqp.tlv.impl.TLVFixed import *
 from iot.amqp.header.api.Parsable import *
+from iot.amqp.tlv.impl.AMQPState import *
 
-class AMQPAccepted(Parsable):
+class AMQPAccepted(AMQPState):
     def __init__(self):
         pass
 

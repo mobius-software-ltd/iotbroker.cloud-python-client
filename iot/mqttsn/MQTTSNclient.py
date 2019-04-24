@@ -17,24 +17,35 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from iot.classes.ConnectionState import *
-from iot.network.UDPClient import *
-from iot.network.pyDTLSClient import *
+import asyncio
+import ssl
+import tempfile
+from logging import basicConfig, DEBUG
+from socket import socket, AF_INET, SOCK_DGRAM
+
+from OpenSSL.crypto import X509
+from twisted.internet import reactor
+
 from iot.classes.IoTClient import *
 from iot.mqttsn.SNParser import *
-from iot.timers.TimersMap import *
 from iot.mqttsn.mqttsn_classes.ReturnCode import *
-from twisted.internet import reactor
-import asyncio
-import tempfile
-import ssl
-from socket import socket, AF_INET, SOCK_DGRAM
-from logging import basicConfig, DEBUG
+from iot.network.UDPClient import *
+from iot.network.pyDTLSClient import *
+from iot.timers.TimersMap import *
+
 basicConfig(level=DEBUG)  # set now for dtls import code
 from dtls import do_patch, wrapper
+
 do_patch()
-from threading import Thread
 import tkinter.messagebox as messagebox
+from threading import Thread
+import socket
+from socket import socket
+from iot.network.extended_dtls import DtlsSocketExt
+import os
+
+import OpenSSL.crypto
+
 
 class MQTTSNclient(IoTClient):
     def __init__(self, account, client):
@@ -74,7 +85,7 @@ class MQTTSNclient(IoTClient):
     def goConnect(self):
         self.setState(ConnectionState.CONNECTING)
 
-        if self.account.will is not None and len(self.account.will)> 0:
+        if self.account.will is not None and len(self.account.will) > 0:
             willPresent = True
         else:
             willPresent = False
@@ -93,11 +104,14 @@ class MQTTSNclient(IoTClient):
         if self.account.isSecure:
             self.loop = asyncio.get_event_loop()
 
-            fp = tempfile.NamedTemporaryFile()
-            fp.write(bytes(self.account.certificate, 'utf-8'))
-            fp.seek(0)
-            sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name,ca_certs=fp.name)
+            if self.account.certificate:
+                fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
+                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
+            else:
+                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
+
             addr = (self.account.serverHost, self.account.port)
+
             sock_wrapped.connect(addr)
             datagram = self.loop.create_datagram_endpoint(
                 lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=sock_wrapped)
@@ -116,6 +130,29 @@ class MQTTSNclient(IoTClient):
 
         self.timers.goConnectTimer(connect)
 
+    def get_certificate_file(self, cert_body, cert_pwd):
+
+        fp = tempfile.NamedTemporaryFile()
+        fp.write(bytes(cert_body, 'utf-8'))
+        fp.seek(0)
+
+        if cert_pwd is not None and len(cert_pwd) > 0:
+            try:
+                cert: X509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read())
+                fp.seek(0)
+                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), cert_pwd.encode("utf-8"))
+                fp1 = tempfile.NamedTemporaryFile()
+                fp1.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
+                fp1.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+                fp1.seek(0)
+            except Exception as err:
+                fp.close()
+                raise err
+
+            return fp1
+        else:
+            return fp
+
     def publish(self, topicName, qosValue, content, retain, dup):
         qos = QoS(qosValue)
         topic = FullTopic(topicName, qos)
@@ -133,7 +170,7 @@ class MQTTSNclient(IoTClient):
     def unsubscribeFrom(self, topicName):
         qos = QoS(0)
         topic = FullTopic(topicName, qos)
-        unsubscribe = SNUnsubscribe(0,topic)
+        unsubscribe = SNUnsubscribe(0, topic)
         self.timers.goMessageTimer(unsubscribe)
 
     def pingreq(self):
@@ -146,15 +183,12 @@ class MQTTSNclient(IoTClient):
             self.send(SNDisconnect(0))
         self.timers.stopAllTimers()
 
-        if self.account.isSecure:
-            self.udpThread.join()
-
     def timeoutMethod(self):
         self.timers.stopAllTimers()
         messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
-        self.clientGUI.timeout()
+        reactor.callFromThread(self.clientGUI.timeout)
 
-    def PacketReceived(self,ProtocolMessage):
+    def PacketReceived(self, ProtocolMessage):
         ProtocolMessage.processBy()
 
     def ConnectionLost(self):
@@ -178,52 +212,66 @@ class MQTTSNclient(IoTClient):
         if self.account.isSecure:
             self.udpThread.join()
 
-#__________________________________________________________________________________________
-def processADVERTISE(self,message):
+
+# __________________________________________________________________________________________
+def processADVERTISE(self, message):
     raise ValueError('Packet Advertise did receive')
 
-def processSEARCHGW(self,message):
+
+def processSEARCHGW(self, message):
     raise ValueError('Packet Search did receive')
 
-def processGWINFO(self,message):
+
+def processGWINFO(self, message):
     raise ValueError('Packet GWInfo did receive')
 
-def processCONNECT(self,message):
+
+def processCONNECT(self, message):
     raise ValueError('Packet Connect did receive')
 
-def processCONNACK(self,message):
+
+def processCONNACK(self, message):
     self.setState(ConnectionState.CONNECTION_ESTABLISHED)
     self.timers.stopConnectTimer()
-    reactor.callFromThread(self.clientGUI.connackReceived, message.getCode())
-    self.timers.goPingTimer(SNPingreq(self.account.clientID), self.account.keepAlive)
 
-def processWILL_TOPIC_REQ(self,message):
+    reactor.callFromThread(self.clientGUI.connackReceived, message.getCode())
+    reactor.callFromThread(self.timers.goPingTimer, SNPingreq(self.account.clientID), self.account.keepAlive)
+
+
+def processWILL_TOPIC_REQ(self, message):
     qos = QoS(self.account.qos)
     topic = FullTopic(self.account.willTopic, qos)
     retain = self.account.isRetain
     willTopic = WillTopic(retain, topic)
     self.send(willTopic)
 
-def processPINGRESP(self,message):
+
+def processPINGRESP(self, message):
     print('Ping resp was received')
 
-def processWILL_TOPIC(self,message):
+
+def processWILL_TOPIC(self, message):
     raise ValueError('Packet Will topic did receive')
 
-def processWILL_MSG_REQ(self,message):
+
+def processWILL_MSG_REQ(self, message):
     willMessage = WillMsg(self.account.will)
     self.send(willMessage)
 
-def processWILL_MSG(self,message):
+
+def processWILL_MSG(self, message):
     raise ValueError('Packet Will msg did receive')
 
-def processREGISTER(self,message):
+
+def processREGISTER(self, message):
     if isinstance(message, Register):
+        self.topics[message.getTopicID()] = message.getTopicName()
         regack = Regack(message.getTopicID(), message.getPacketID(), ReturnCode.ACCEPTED.value[0])
         self.send(regack)
 
-def processREGACK(self,message):
-    self.timers.stopTimer(self.registerID) #stop registerTimer
+
+def processREGACK(self, message):
+    self.timers.stopTimer(self.registerID)  # stop registerTimer
     if isinstance(message, Regack):
         if message.getCode() == ReturnCode.ACCEPTED.value[0]:
             publish = self.forPublish[message.getPacketID()]
@@ -237,7 +285,8 @@ def processREGACK(self,message):
                 else:
                     self.timers.goMessageTimer(publish)
 
-def processPUBLISH(self,message):
+
+def processPUBLISH(self, message):
     if isinstance(message, SNPublish):
         if message.getTopic().getQoS() == QoSType.AT_LEAST_ONCE.value[0]:
             topicID = int(message.getTopic().getValue())
@@ -253,6 +302,7 @@ def processPUBLISH(self,message):
     topicResult = FullTopic(topicName, qos)
     reactor.callFromThread(self.clientGUI.publishReceived, topicResult, qos, message.getContent(), message.isDup(), message.isRetain())
 
+
 def processPUBACK(self, message):
     publish = self.timers.removeTimer(message.getPacketID())
     if publish is not None and isinstance(publish, SNPublish):
@@ -262,6 +312,7 @@ def processPUBACK(self, message):
         topicResult = FullTopic(topicName, qos)
         reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, publish.getContent(), publish.isDup(), publish.isRetain(), 0)
         self.publishPackets[publish.getPacketID()] = None
+
 
 def processPUBCOMP(self, message):
     pubrel = self.timers.removeTimer(message.getPacketID())
@@ -275,6 +326,7 @@ def processPUBCOMP(self, message):
             reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos.getValue(), publish.getContent(), publish.isDup(), publish.isRetain(), 0)
             self.publishPackets[message.getPacketID()] = None
 
+
 def processPUBREC(self, message):
     if isinstance(message, SNPubrec):
         publish = self.timers.removeTimer(message.getPacketID())
@@ -282,6 +334,7 @@ def processPUBREC(self, message):
             self.publishPackets[message.getPacketID()] = publish
             pubrel = SNPubrel(message.getPacketID())
             self.timers.goMessageTimer(pubrel)
+
 
 def processPUBREL(self, message):
     if isinstance(message, SNPubrel):
@@ -296,18 +349,22 @@ def processPUBREL(self, message):
             topicResult = FullTopic(topicName, qos)
             reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, publish.getContent(), publish.isDup(), publish.isRetain(), 0)
 
+
 def processSUBSCRIBE(self, message):
     raise ValueError('Packet Subscribe did receive')
+
 
 def processSUBACK(self, message):
     if isinstance(message, SNSuback):
         subscribe = self.timers.removeTimer(message.getPacketID())
         if subscribe is not None and isinstance(subscribe, SNSubscribe):
-            self.topics[message.getPacketID()] = subscribe.getTopic().getValue()
+            self.topics[message.getTopicID()] = subscribe.getTopic().getValue()
             reactor.callFromThread(self.clientGUI.subackReceived, subscribe.getTopic().getValue(), subscribe.getTopic().getQoS(), 0)
+
 
 def processUNSUBSCRIBE(self, message):
     raise ValueError('Packet Unsubscribe did receive')
+
 
 def processUNSUBACK(self, message):
     if isinstance(message, SNUnsuback):
@@ -317,27 +374,35 @@ def processUNSUBACK(self, message):
             list.append(unsubscribe.getTopic().getValue())
             reactor.callFromThread(self.clientGUI.unsubackReceived, list)
 
+
 def processPINGREQ(self, message):
     raise ValueError('Packet Pingreq did receive')
+
 
 def processDISCONNECT(self, message):
     self.timers.stopAllTimers()
     reactor.callFromThread(self.clientGUI.disconnectReceived)
 
+
 def processWILL_TOPIC_UPD(self, message):
     raise ValueError('Packet Will topic upd did receive')
+
 
 def processWILL_TOPIC_RESP(self, message):
     raise ValueError('Packet Will topic resp did receive')
 
+
 def processWILL_MSG_UPD(self, message):
     raise ValueError('Packet Will msg upd did receive')
+
 
 def processWILL_MSG_RESP(self, message):
     raise ValueError('Packet Will msg resp did receive')
 
+
 def processENCAPSULATED(self, message):
     raise ValueError('Packet Encapsulated did receive')
+
 
 switcherProcess = {
     0: processADVERTISE,
@@ -370,7 +435,6 @@ switcherProcess = {
     254: processENCAPSULATED
 }
 
+
 def process_messageType_method(self, argument, message):
     return switcherProcess[argument].__call__(self, message)
-
-

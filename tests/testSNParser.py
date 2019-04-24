@@ -28,6 +28,7 @@ from iot.mqttsn.mqttsn_messages.WillTopicResp import *
 from iot.mqttsn.mqttsn_messages.WillTopicUpd import *
 
 from iot.mqttsn.SNParser import *
+from iot.mqttsn.mqttsn_classes.ReturnCode import ReturnCode
 
 parser = SNParser(None)
 
@@ -378,13 +379,13 @@ if isinstance(messageDecoded, SNPingreq):
 print('_____________________________________')
 #SNDisonnect
 duration = 55
-message = SNDisonnect(duration)
+message = SNDisconnect(duration)
 parser.setMessage(message)
 data = parser.encode()
 print('SNDisonnect')
 print('data: ' + str(data))
 messageDecoded = parser.decode(data)
-if isinstance(messageDecoded, SNDisonnect):
+if isinstance(messageDecoded, SNDisconnect):
     if messageDecoded.getDuration() == duration:
         print('SNDisonnect is Ok')
     else:

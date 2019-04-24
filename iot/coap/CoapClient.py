@@ -190,8 +190,6 @@ class CoapClient(IoTClient):
 
     def disconnectWith(self, duration):
         self.timers.stopAllTimers()
-        if self.account.isSecure:
-            self.udpThread.join()
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()

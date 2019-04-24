@@ -12,23 +12,21 @@ except:
     import tkinter.messagebox as messagebox
     from PIL import Image, ImageFont, ImageDraw, ImageTk
 
-from database import AccountEntity, TopicEntity, MessageEntity, Base, datamanager
+from database import AccountEntity, MessageEntity, datamanager
 from iot.classes.AccountValidation import *
-
 from iot.mqtt.MQTTclient import *
 from iot.mqttsn.MQTTSNclient import *
 from iot.coap.CoapClient import *
 from iot.websocket.WSclient import *
 from iot.amqp.AMQPclient import *
-
 from twisted.internet import tksupport, reactor
 
 import textwrap
-
 import sys
 import logging
-
 import protocol as client_protocol
+import iot.network.certificate_validator as certificate_validator
+import time
 
 # for Custom Font Usage
 font_bold = "fonts/ClearSans-Bold.ttf"
@@ -123,32 +121,59 @@ class Main_screen(Frame):
         self.sendImgBlue = ImageTk.PhotoImage(Image.open("./resources/is_message_list_blue-2_75.png"))
         self.messImgBlue = ImageTk.PhotoImage(Image.open("./resources/is_message_list_blue-03-1_75.png"))
 
-        self.createLoading(500)
+        self.show_loading(500)
 
-    def createLogin(self, protocol):
-        self.login = Toplevel()
-        self.app = Login(self.login, self, protocol)
+    def show_loading(self, loading_timeout):
+        if not hasattr(self, "loading") or self.loading is None:
+            self.loading = tk.Toplevel(root)
+            self.loading.group(root)
+            self.loading_frame = Loading(self.loading, self)
+            self.app = self.loading_frame
+        else:
+            self.loading.deiconify()
+        self.loading_frame.do_load(loading_timeout)
 
-    def createLoading(self, loading_timeout):
-        self.loading = Toplevel()
-        self.app = Loading(self.loading, self, loading_timeout)
+    def show_login(self, protocol):
+        if not hasattr(self, "login") or self.login is None:
+            self.login = tk.Toplevel(root)
+            self.login.group(root)
+            self.login_frame = Login(self.login, self, protocol)
+            self.app = self.login_frame
+        else:
+            self.login.deiconify()
+        self.login_frame.login_refresh(protocol)
 
-    def createNote(self, active, old):
-        self.note = Toplevel()
-        self.app = NoteForm(self.note, self, active, old)
+    def show_accounts(self):
+        if not hasattr(self, "accounts") or self.accounts is None:
+            self.accounts = tk.Toplevel(root)
+            self.accounts.group(root)
+            self.accounts_frame = Accounts(self.accounts, self)
+            self.accounts_frame.fill_accounts()
+            self.app = self.accounts_frame
+        else:
+            self.accounts_frame.fill_accounts()
+            self.accounts.deiconify()
+        self.accounts_frame.refresh_frame()
 
-    def createAccounts(self):
-        self.accounts = Toplevel()
-        self.app = Accounts(self.accounts, self)
+    def show_note(self, active, old):
+        if not hasattr(self, "note") or self.note is None:
+            self.note = tk.Toplevel(root)
+            self.note.group(root)
+            self.note_frame = NoteForm(self.note, self, active, old)
+            self.app = self.note_frame
+        else:
+            self.note.deiconify()
+            self.note_frame.change_active_tab(0)
+            self.note_frame.refresh_all()
 
     def pingrespReceived(self, coapFlag):
         if coapFlag:
-            self.loading.destroy()
-            self.createNote(0, 4)
+            self.loading.withdraw()
+            self.show_note(0, 4)
 
     def connackReceived(self, retCode):
-        self.loading.destroy()
-        self.createNote(0, 4)
+        self.loading.withdraw()
+        self.show_note(0, 4)
 
     def subackReceived(self, topic, qos, returnCode):
         # store topic
@@ -161,34 +186,33 @@ class Main_screen(Frame):
             topicToDB = TopicEntity(topicName=topic, qos=qos.getValue(), accountentity_id=account.id)
             datamanage.add_entity(topicToDB)
 
-        self.app.refresh_topics()
+        self.note_frame.refresh_topics()
 
     def unsubackReceived(self, listTopics):
         datamanage = datamanager()
         for name in listTopics:
             datamanage.delete_topic_name(name)
-        self.app.refresh_topics()
+        self.note_frame.refresh_topics()
 
-    def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode):
-        # print('App pubackReceived')
-        # store Message
+    def pubackReceived(self, topic, qos, content, dup, retainFlag, returnCode=None):
         datamanage = datamanager()
         account = datamanage.get_default_account()
 
         if isinstance(topic, FullTopic):
             topicName = topic.getValue()
+        elif isinstance(topic, str):
+            topicName = topic
         else:
             topicName = topic.getName()
 
-        # print(' topicName=' + str(topicName))
-        message = MessageEntity(content=bytes(content, encoding='utf_8'), qos=qos.getValue(), topicName=topicName, incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
+        if isinstance(content, str):
+            content = bytes(content, encoding='utf_8')
+
+        message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName, incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
-        # print('App pubackReceived entity was saved')
-        self.app.refresh_messages()
+        self.note_frame.refresh_messages()
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
-        # print('App publishReceived content=' + str(content)+ ' topic=' + str(topic))
-        # store Message
         datamanage = datamanager()
         account = datamanage.get_default_account()
 
@@ -204,24 +228,23 @@ class Main_screen(Frame):
 
         message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName, incoming=True, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
-        self.app.refresh_messages()
+        self.note_frame.refresh_messages()
 
     def disconnectReceived(self):
-        self.loading.destroy()
+        self.loading.withdraw()
 
     def errorReceived(self):
         self.disconnectReceived()
-        self.createAccounts()
+        self.show_accounts()
 
     def timeout(self):
         self.disconnectReceived()
-        self.createAccounts()
+        self.show_accounts()
 
 
 class Loading(Frame):
-    def __init__(self, master, main, loading_timeout):
+    def __init__(self, master, main):
         self.master = master
-        center_child(self.master, 360, 450)
         self.master.resizable(False, False)
         self.master.title("Loading...")
         self.main = main
@@ -242,13 +265,14 @@ class Loading(Frame):
 
         self.progress = ttk.Progressbar(canvas, length=300, orient='horizontal', mode='determinate')
         canvas.create_window(30, 400, anchor=NW, window=self.progress, height=10)
-        self.progress.start(int(loading_timeout / 100))
+
+    def do_load(self, loading_timeout):
+        center_child(self.master, 360, 450)
+        self.progress.start(int(loading_timeout / 500))
         self.after(loading_timeout, self.stop_progressbar)
 
     def stop_progressbar(self):
         self.progress.stop()
-        self.progress.step(50)
-
         account = datamanager().get_default_account()
 
         if account is not None:
@@ -274,27 +298,21 @@ class Loading(Frame):
                     self.main.client.goConnect()
 
                 if account.protocol == 5:
-                    self.main.client = AMQPclient(account, self.main)
+                    topics = datamanager().get_topics_all_accountID(account.id)
+                    self.main.client = AMQPclient(account, self.main, topics)
                     self.main.client.goConnect()
             except IOError as err:
                 messagebox.showinfo("Connect Error", str(err))
                 self.main.errorReceived()
-
         else:
-            self.master.destroy()
-            self.main.accounts = Toplevel()
-            self.main.app = Accounts(self.main.accounts, self.main)
-
-    def show_main(self):
-        self.master.destroy()
-        root.deiconify()
+            self.main.loading.withdraw()
+            self.main.show_accounts()
 
 
 class Accounts(Frame):
 
     def __init__(self, master, main):
         self.master = master
-        center_child(self.master, 360, 455)
         self.master.resizable(False, False)
         master.title("iotbroker.cloud")
         self.main = main
@@ -325,10 +343,6 @@ class Accounts(Frame):
         buttonImage = Image.open('./resources/ic_delete_with_background.png')
         self.buttonPhoto = ImageTk.PhotoImage(buttonImage)
 
-        self.bind("<Destroy>", self._destroy)
-        self.canvas.bind_all("<Button-4>", self._on_mousewheel)
-        self.canvas.bind_all("<Button-5>", self._on_mousewheel)
-
         canvasButton = tk.Canvas(self, width=52, height=4, bg='white', highlightcolor='white')
         canvasButton.grid(row=2, column=0, sticky='eswn')
         button = CustomFont_Button(canvasButton, text="Add new account", foreground="white", font_path=font_bold,
@@ -336,7 +350,14 @@ class Accounts(Frame):
                                    width=380, activeforeground='white', activebackground=buttonColor,
                                    command=self.createAccount).grid(row=2)
 
-        self.fill_accounts()
+        userImage = Image.open('./resources/username.png')
+        self.userPhoto = ImageTk.PhotoImage(userImage)
+
+    def refresh_frame(self):
+        self.bind("<Destroy>", self._destroy)
+        self.canvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.canvas.bind_all("<Button-5>", self._on_mousewheel)
+        center_child(self.master, 360, 455)
 
     def fill_accounts(self):
 
@@ -348,12 +369,15 @@ class Accounts(Frame):
         if len(accounts) > 0:
 
             if len(accounts) > 7:
-                width = 310
+                width = 260
                 height = 53 * len(accounts)
             else:
-                width = 325
+                width = 275
                 height = 370
             for item in accounts:
+
+                userImg = Label(master=self.myframe, image=self.userPhoto, bd=0, height=50, width=50, bg=whitebg).grid(row=i + 1, column=0)
+
                 text = ' {} \n {} \n {}:{}'.format(client_protocol.get_protocol_name(item.protocol).upper(), item.clientID,
                                                    item.serverHost, item.port)
                 num = 300 - len(item.serverHost)
@@ -361,8 +385,8 @@ class Accounts(Frame):
                 self.clientIDs.append(item.clientID)
                 txtButton = CustomFont_Button(self.myframe, text=text, font_path=font_medium, size=12, strings_number=4,
                                               background='white', highlightthickness=0, bd=0, height=50, width=width,
-                                              command=lambda x=i: self.connect(x)).grid(row=i + 1)
-                delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=1)
+                                              command=lambda x=i: self.connect(x)).grid(row=i + 1, column=1)
+                delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2)
                 i += 1
 
         if i > 7:
@@ -386,8 +410,8 @@ class Accounts(Frame):
         self.canvas.unbind_all("<Button-5>")
 
     def createAccount(self):
-        self.master.destroy()
-        self.main.createLogin(1)
+        self.main.accounts.withdraw()
+        self.main.show_login(1)
 
     def delete(self, id):
         clientID = self.clientIDs[id]
@@ -401,20 +425,19 @@ class Accounts(Frame):
         datamanage = datamanager()
         datamanage.clear_default_account()
         datamanage.set_default_account_clientID(clientID)
-        self.master.destroy()
-        self.main.createLoading(3000)
+        self.main.accounts.withdraw()
+        self.main.show_loading(1000)
 
 
 class Login(Frame):
 
     def __init__(self, master, main, protocol):
         self.master = master
-        center_child(self.master, 360, 660)
         self.master.resizable(False, False)
         master.title("Log In")
         self.main = main
         Frame.__init__(self, master)
-        self.grid()
+        self.pack()
         self.protocol = protocol
         logo_panel(self.main.login)
 
@@ -424,9 +447,9 @@ class Login(Frame):
 
         self.photoimage0 = ImageTk.PhotoImage(Image.open("./resources/iot_broker_background.png"))
         self.canvas.create_image(0, 0, anchor="nw", image=self.photoimage0)
-        self.login_refresh(1)
 
     def login_refresh(self, protocol):
+        center_child(self.master, 360, 660)
         small_font = font.Font(family='Sans', size=11, weight="normal")
         bold_font = font.Font(family='Sans', size=10, weight="bold")
 
@@ -459,7 +482,7 @@ class Login(Frame):
         regImage = Image.open('./resources/regInfo.png')
         self.regPhoto = ImageTk.PhotoImage(regImage)
 
-        padY = 8
+        padY = 4
         padX = 5
 
         regInfo = CustomFont_Label(self.canvas, text=" registration info:", font_path=font_bold, size=14).place(x=5, y=2)
@@ -655,7 +678,8 @@ class Login(Frame):
             pass
 
         if not certificate_window_opened:
-            self.cert = Toplevel()
+            self.cert = Toplevel(root)
+            self.cert.group(root)
             self.app = Certificate(self.cert, self)
 
     def willInput(self, event):
@@ -667,7 +691,8 @@ class Login(Frame):
             pass
 
         if not will_window_opened:
-            self.will = Toplevel()
+            self.will = Toplevel(root)
+            self.will.group(root)
             self.app = Will(self.will, self)
 
     def close(self):
@@ -675,8 +700,8 @@ class Login(Frame):
             self.certificate.delete(0, 'end')
         except AttributeError:
             pass
-        self.master.destroy()
-        self.main.createAccounts()
+        self.main.login.withdraw()
+        self.main.show_accounts()
 
     def loginIn(self):
         # create ACCOUNT and SAVE as default
@@ -695,6 +720,10 @@ class Login(Frame):
         certificate = self.certificate.get()
         certPasw = self.secPaswText.get()
 
+        if not certificate_validator.validate(certificate, certPasw):
+            messagebox.showinfo("Warning", "certificate/password pair is invalid")
+            return
+
         account = AccountEntity(protocol=protocol, username=name, password=password, clientID=clientID,
                                 serverHost=serverHost,
                                 port=serverPort, cleanSession=cleanSession, keepAlive=keepAlive, will=will,
@@ -709,15 +738,15 @@ class Login(Frame):
                 d_manager.add_entity(account)
                 d_manager.clear_default_account()
                 datamanager().set_default_account_clientID(account.clientID)
-                self.master.destroy()
-                self.main.createLoading(3000)
+                self.main.login.withdraw()
+                self.main.show_loading(1000)
             else:
                 messagebox.showinfo("Warning", "Wrong value for clientID='" + str(
                     account.clientID) + "'. This one is already in use")
         else:
             if account.keepAlive is '' or (int(account.keepAlive) <= 0 or int(account.keepAlive)) > 65535:
                 messagebox.showinfo("Warning", 'Wrong value for Keepalive')
-            elif not client_protocol.is_message_length_valid(account.protocol, account.will):
+            elif not client_protocol.is_message_length_valid(account.protocol, len(account.will)):
                 messagebox.showinfo("Warning", 'Will size/length is more than ' + client_protocol.get_max_message_length(account.protocol) + ' symbols')
             else:
                 messagebox.showinfo("Warning",
@@ -764,6 +793,7 @@ class Certificate(Frame):
         self.opened = False
         super(Certificate, self).destroy()
 
+
 class Will(Frame):
 
     def __init__(self, master, main):
@@ -804,17 +834,13 @@ class Will(Frame):
         self.opened = False
         super(Will, self).destroy()
 
+
 class NoteForm(Frame):
 
     def __init__(self, master, main, active, old):
         self.master = master
-        center_child(self.master, 355, 570)
         self.master.resizable(False, False)
 
-        self.account = datamanager().get_default_account()
-
-        protocol_text = client_protocol.get_protocol_name(self.account.protocol).upper()
-        master.title("iotbroker.cloud " + protocol_text)
         self.main = main
         Frame.__init__(self, master)
         self.grid()
@@ -822,7 +848,6 @@ class NoteForm(Frame):
         logo_panel(self.main.note)
 
         self.old = old
-        self.active = active
 
         self.note = ttk.Notebook(self, width=349, height=520)
         self.note.bind("<<NotebookTabChanged>>", self._on_tab_changed)
@@ -855,59 +880,59 @@ class NoteForm(Frame):
         delImage = Image.open('./resources/ic_delete_with_background.png')
         self.delPhoto = ImageTk.PhotoImage(delImage)
 
-        # TOPICS FORM
-        self.refresh_topics()
-        # TOPICS FORM END
-
-        # SEND FORM
-        self.refresh_send()
-        # SEND FORM END
-
-        # MESSAGES FORM
-        self.refresh_messages()
-        # MESSAGES FORM END
+        self.refresh_all()
 
         self.bind("<Destroy>", self._destroy)
         self.messagesCanvas.bind_all("<Button-4>", self._on_mousewheel)
         self.messagesCanvas.bind_all("<Button-5>", self._on_mousewheel)
 
-        if self.active == 0:
+        if active == 0:
             self.note.add(self.tab1, image=self.main.topicsImgBlue)
         else:
             self.note.add(self.tab1, image=self.main.topicsImg)
 
-        if self.active == 1:
+        if active == 1:
             self.note.add(self.tab2, image=self.main.sendImgBlue)
         else:
             self.note.add(self.tab2, image=self.main.sendImg)
 
-        if self.active == 2:
+        if active == 2:
             self.note.add(self.tab3, image=self.main.messImgBlue)
         else:
             self.note.add(self.tab3, image=self.main.messImg)
 
         self.note.add(self.tab4, image=self.main.outImg)
-        self.note.select(self.active)
+        self.change_active_tab(active)
         self.note.grid(row=0, column=0)
 
-        self.app = None
-
         self.master.protocol("WM_DELETE_WINDOW", self._close)
+
+    def change_active_tab(self, active_tab):
+        self.active = active_tab
+        self.note.select(self.active)
 
     def _on_mousewheel(self, event):
         scroll = 1 if event.num == 5 else -1
         self.messagesCanvas.yview_scroll(scroll, "units")
 
     def _close(self):
-        print("_close called")
         self.master.destroy()
         self.main.master.deiconify()
         reactor.callFromThread(reactor.stop)
 
     def _destroy(self, event):
-        print("_destroy called")
         self.messagesCanvas.unbind_all("<Button-4>")
         self.messagesCanvas.unbind_all("<Button-5>")
+
+    def refresh_all(self):
+        center_child(self.master, 355, 570)
+        self.account = datamanager().get_default_account()
+        protocol_text = client_protocol.get_protocol_name(self.account.protocol).upper()
+        self.app = None
+        self.master.title("iotbroker.cloud " + protocol_text)
+        self.refresh_topics()
+        self.refresh_send()
+        self.refresh_messages()
 
     def refresh_tabs(self):
         if self.active == 0:
@@ -928,7 +953,7 @@ class NoteForm(Frame):
     def refresh_send(self):
         size = 30
         txtSize = 18
-        padY = 8
+        padY = 4
         padX = 5
         small_font = ('Sans', 11)
         bold_font = ('Sans', 10, 'bold')
@@ -980,33 +1005,34 @@ class NoteForm(Frame):
         self.comboQos2.current(0)
         self.comboQos2.grid(row=0, column=2, sticky='e', pady=2)
 
-        self.varRetain = BooleanVar()
-        self.varDuplicate = BooleanVar()
+        if self.account.protocol != 3:
+            self.varRetain = BooleanVar()
+            self.varDuplicate = BooleanVar()
 
-        # Retain line
-        canvasRet = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
-        canvasRet.grid(row=3, column=0, sticky='w')
-        retainImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size + 2, width=size, bg=whitebg).grid(row=0)
+            # Retain line
+            canvasRet = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
+            canvasRet.grid(row=3, column=0, sticky='w')
+            retainImg = Label(master=canvasRet, image=self.settingsPhoto, bd=0, height=size + 2, width=size, bg=whitebg).grid(row=0)
 
-        text = ' Retain:' + (100 - len(' Retain:')) * " "
-        retainLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=0, column=1, sticky='w')
-        self.retainCheck = Checkbutton(master=canvasRet, height=2, width=9, font=small_font,
-                                       variable=self.varRetain, bd=0, anchor='e', bg=whitebg,
-                                       activebackground=graybg, highlightbackground=graybg,
-                                       highlightthickness=0)
-        self.retainCheck.grid(row=0, column=2, pady=2)
+            text = ' Retain:' + (100 - len(' Retain:')) * " "
+            retainLabel = CustomFont_Label(canvasRet, text=text, font_path=font_regular, size=16, bg=whitebg, width=210, height=30).grid(row=0, column=1, sticky='w')
+            self.retainCheck = Checkbutton(master=canvasRet, height=2, width=9, font=small_font,
+                                           variable=self.varRetain, bd=0, anchor='e', bg=whitebg,
+                                           activebackground=graybg, highlightbackground=graybg,
+                                           highlightthickness=0)
+            self.retainCheck.grid(row=0, column=2, pady=2)
 
-        # Duplicate line
-        canvasDup = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
-        canvasDup.grid(row=4, column=0, sticky='w')
-        dupImg = Label(master=canvasDup, image=self.settingsPhoto, bd=0, height=size + 2, width=size, bg=whitebg).grid(row=0)
-        text = ' Duplicate:' + (100 - len(' Duplicate:')) * " "
-        dupLabel = CustomFont_Label(canvasDup, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
-                                    height=30).grid(row=0, column=1, sticky='w')
-        self.dupCheck = Checkbutton(master=canvasDup, height=2, width=9, font=small_font,
-                                    variable=self.varDuplicate, bd=0, anchor='e', bg=whitebg,
-                                    activebackground='white', highlightbackground=whitebg, highlightthickness=0)
-        self.dupCheck.grid(row=0, column=2, pady=2)
+            # Duplicate line
+            canvasDup = Canvas(sendFrame, bg=whitebg, width=360, height=40, highlightcolor=graybg, bd=0)
+            canvasDup.grid(row=4, column=0, sticky='w')
+            dupImg = Label(master=canvasDup, image=self.settingsPhoto, bd=0, height=size + 2, width=size, bg=whitebg).grid(row=0)
+            text = ' Duplicate:' + (100 - len(' Duplicate:')) * " "
+            dupLabel = CustomFont_Label(canvasDup, text=text, font_path=font_regular, size=16, bg=whitebg, width=210,
+                                        height=30).grid(row=0, column=1, sticky='w')
+            self.dupCheck = Checkbutton(master=canvasDup, height=2, width=9, font=small_font,
+                                        variable=self.varDuplicate, bd=0, anchor='e', bg=whitebg,
+                                        activebackground='white', highlightbackground=whitebg, highlightthickness=0)
+            self.dupCheck.grid(row=0, column=2, pady=2)
 
         sendCanvas.create_window(0, 0, anchor='nw', window=sendFrame)
         sendCanvas.grid(row=1, column=0, sticky='eswn')
@@ -1029,7 +1055,8 @@ class NoteForm(Frame):
             pass
 
         if not content_window_opened:
-            self.content = Toplevel()
+            self.content = Toplevel(root)
+            self.content.group(root)
             self.app = Content(self.content, self)
 
     def refresh_topics(self):
@@ -1110,7 +1137,7 @@ class NoteForm(Frame):
 
         size = 30
         txtSize = 18
-        padY = 8
+        padY = 4
         padX = 5
 
         # Topic Name line tab1
@@ -1244,7 +1271,6 @@ class NoteForm(Frame):
         self.main.client.unsubscribeFrom(topicName)
 
     def sendTopic(self):
-        # print('Send topic')
         datamanage = datamanager()
         content = str.encode(self.contentText.get())
         name = self.nameText2.get()
@@ -1256,7 +1282,7 @@ class NoteForm(Frame):
         self.nameText2 = ''
         self.comboQos.current(0)
 
-        self.main.app.refresh_send()
+        self.refresh_send()
 
         if client_protocol.is_udp(self.account.protocol) and len(content) > UDP_MAX_MESSAGE_LENGTH:
             messagebox.showinfo("Warning", 'Content size/length is more than ' + str(UDP_MAX_MESSAGE_LENGTH) + ' symbols')
@@ -1276,7 +1302,6 @@ class NoteForm(Frame):
             self.main.app.refresh_messages()
 
     def createTopic(self):
-        # print('Create topic')
         name = self.nameText.get()
         qos = self.comboQos.get()
 
@@ -1293,16 +1318,13 @@ class NoteForm(Frame):
                 index = self.isInList(name)
 
                 if index is None:
-                    # ADD to list
                     self.nameText.text = '';
                     self.comboQos.current(0);
-
-                # SEND SUBSCRIBE _________________________________________________________________________________SEND SUBSCRIBE
                 self.main.client.subscribeTo(name, int(qos))
-
             else:
-                messagebox.showinfo("Warning",
-                                    "Wrong value for TopicName= '" + str(name) + "'. This one is already in use")
+                self.nameText.text = '';
+                self.comboQos.current(0);
+                self.refresh_topics()
         else:
             messagebox.showinfo("Warning", "Please, fill in all required fields: TopicName")
 
@@ -1320,8 +1342,8 @@ class NoteForm(Frame):
         self.refresh_tabs()
 
         if new == 3:
-            self.master.destroy()
-            self.main.createAccounts()
+            self.main.note.withdraw()
+            self.main.show_accounts()
             # _____________________________________________________________________SEND___DISCONNECT
             if self.main.client is not None:
                 self.main.client.disconnectWith(0)
@@ -1368,12 +1390,17 @@ class Content(Frame):
         self.opened = False
         super(Content, self).destroy()
 
+
 logger = logging.getLogger('PIL')
 logger.setLevel(level=logging.INFO)
 
 UDP_MAX_MESSAGE_LENGTH = 1400
 
 root = Tk()
+
+logo = PhotoImage(file='./resources/iotbroker_icon_big.gif')
+root.tk.call('wm', 'iconphoto', root._w, logo)
+
 tksupport.install(root)
 app = Main_screen(root)
 reactor.run()

@@ -44,12 +44,13 @@ from iot.network.TCPClient import *
 from iot.classes.IoTClient import *
 from iot.amqp.AMQPParser import AMQPParser
 from iot.timers.TimersMap import *
-#import t.i.reactor only after installing wxreactor
+# import t.i.reactor only after installing wxreactor
 from twisted.internet import ssl, reactor
 import numpy as np
+from database import TopicEntity
 
 class AMQPclient(IoTClient):
-    def __init__(self, account, client):
+    def __init__(self, account, client, topics):
         self.account = account
         self.clientGUI = client
         self.parser = AMQPParser()
@@ -63,23 +64,24 @@ class AMQPclient(IoTClient):
         self.usedMappings = {}
         self.pendingMessages = []
         self.timeout = 0
+        self.pending_topics = {}
+        for topic in topics:
+            self.pending_topics[topic.topicName] = topic
+        self.outstanding_attach_topics = {}
 
     def send(self, header):
 
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
-            #print('AMQPclient.Send ' + str(header))
             message = self.parser.encode(header)
             self.clientFactory.send(message)
         else:
             return False
 
     def dataReceived(self, data):
-        #print('AMQPclient dataReceived WHOLE data= ' + str(data))
-        part = ''
         received = bytearray()
-        while len(received)<len(data):
+        while len(received) < len(data):
             index = 0
-            part = self.parser.next(data,index)
+            part = self.parser.next(data, index)
             index += len(part)
             received += part
             data = data[index:]
@@ -92,23 +94,21 @@ class AMQPclient(IoTClient):
         self.clientFactory = ClientFactory(self.parser.encode(header), self)
 
         if self.account.isSecure:
-                ctx = CtxFactory(self.account.certificate, self.account.certPasw)
-                reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
+            ctx = CtxFactory(self.account.certificate, self.account.certPasw)
+            reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
         else:
             connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
 
         self.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
     def publish(self, name, qos, content, retain, dup):
-        #print('AMQPclient publish: ' + str(name) + ' ' + str(qos) + ' '+str(content) + ' ' + str(retain) +' '+ str(dup))
-        topic = MQTopic(name, qos)
 
-        messageFormat = AMQPMessageFormat(0,None,None)
-        transfer = AMQPTransfer(None,None,None,self.channel,None,None,None,messageFormat,True,False,None,None,None,None,None,None)
+        messageFormat = AMQPMessageFormat(0, None, None)
+        transfer = AMQPTransfer(None, None, None, self.channel, None, None, None, messageFormat, True, False, None, None, None, None, None, None)
 
         data = AMQPData(bytes(content, encoding='utf_8'))
         sections = {}
-        sections[SectionCode.DATA]= data
+        sections[SectionCode.DATA] = data
         transfer.setSections(sections)
 
         if name in self.usedOutgoingMappings:
@@ -128,14 +128,13 @@ class AMQPclient(IoTClient):
             transfer.setHandle(np.int64(currentHandler))
             self.pendingMessages.append(transfer)
 
-            attach = AMQPAttach(None,None,None,self.channel,str(name),np.int64(currentHandler),RoleCode.SENDER,None,np.int16(ReceiveCode.FIRST.value),None,None,None,None,np.int64(0),None,None,None,None)
-            source = AMQPSource(str(name),np.int64(TerminusDurability.NONE.value),None,np.int64(0),False,None,None,None,None,None,None)
+            attach = AMQPAttach(None, None, None, self.channel, str(name), np.int64(currentHandler), RoleCode.SENDER, None, np.int16(ReceiveCode.FIRST.value), None, None, None, None, np.int64(0),
+                                None, None, None, None)
+            source = AMQPSource(str(name), np.int64(TerminusDurability.NONE.value), None, np.int64(0), False, None, None, None, None, None, None)
             attach.setSource(source)
             self.send(attach)
 
     def subscribeTo(self, name, qos):
-        #print('AMQPClient subscribeTo')
-        topic = MQTopic(name, qos)
         if name in self.usedIncomingMappings:
             currentHandler = self.usedIncomingMappings[name]
         else:
@@ -144,14 +143,18 @@ class AMQPclient(IoTClient):
             self.usedIncomingMappings[name] = currentHandler
             self.usedMappings[currentHandler] = name
 
-        attach = AMQPAttach(None,None,None,self.channel,str(name),np.int64(currentHandler),RoleCode.RECEIVER,np.int16(SendCode.MIXED.value),None,None,None,None,None,None,None,None,None,None)
-        target = AMQPTarget(str(name),np.int64(TerminusDurability.NONE.value),None,np.int64(0),False,None,None)
+        attach = AMQPAttach(None, None, None, self.channel, str(name), np.int64(currentHandler), RoleCode.RECEIVER, np.int16(SendCode.MIXED.value), None, None, None, None, None, None, None, None,
+                            None, None)
+        target = AMQPTarget(str(name), np.int64(TerminusDurability.NONE.value), None, np.int64(0), False, None, None)
         attach.setTarget(target)
+
+        self.outstanding_attach_topics[attach.handle] = name
+
         self.send(attach)
 
     def unsubscribeFrom(self, topicName):
         if topicName in self.usedIncomingMappings:
-            detach = AMQPDetach(None,None,None,self.channel,np.int64(self.usedIncomingMappings[topicName]),True,None)
+            detach = AMQPDetach(None, None, None, self.channel, np.int64(self.usedIncomingMappings[topicName]), True, None)
             self.send(detach)
         else:
             listTopics = []
@@ -163,9 +166,8 @@ class AMQPclient(IoTClient):
         self.send(ping)
 
     def disconnectWith(self, duration):
-        #print('disconnectWith')
         self.timers.stopAllTimers()
-        end = AMQPEnd(None,None,None,self.channel,None)
+        end = AMQPEnd(None, None, None, self.channel, None)
         self.send(end)
 
     def getPingreqMessage(self):
@@ -185,24 +187,24 @@ class AMQPclient(IoTClient):
         if self.timers != None:
             self.timers.stopAllTimers()
         self.clientGUI.errorReceived()
-#__________________________________________________________________________________________
 
-def processProto(self,message):
-    #print('processProto')
-    if isinstance(message,AMQPProtoHeader):
+
+# __________________________________________________________________________________________
+
+def processProto(self, message):
+    if isinstance(message, AMQPProtoHeader):
         if self.isSASLConfirm and message.getProtocolId() == 0:
-            open  = AMQPOpen(None,None,None,message.getChannel(),self.account.clientID,self.account.serverHost,None,None,np.int64(50*1000),None,None,None,None,None)
+            open = AMQPOpen(None, None, None, message.getChannel(), self.account.clientID, self.account.serverHost, None, None, np.int64(50 * 1000), None, None, None, None, None)
             self.send(open)
 
-def processMechanisms(self,message):
-    #print('processMechanisms')
+
+def processMechanisms(self, message):
     if isinstance(message, SASLMechanisms):
         plainMech = None
         mechanisms = message.getMechanisms()
 
         for mechanism in mechanisms:
             if isinstance(mechanism, AMQPSymbol):
-                #print('processMechanisms ' + str(mechanism) + ' ' + str(mechanism.getValue()))
                 if mechanism.getValue() == 'PLAIN':
                     plainMech = mechanism
                     plainMech.setValue(mechanism.getValue())
@@ -213,19 +215,18 @@ def processMechanisms(self,message):
         return
 
     challenge = bytearray()
-    challenge = util.addString(challenge,self.account.username)
+    challenge = util.addString(challenge, self.account.username)
     challenge = util.addByte(challenge, 0)
     challenge = util.addString(challenge, self.account.username)
     challenge = util.addByte(challenge, 0)
     challenge = util.addString(challenge, self.account.password)
 
-    init = SASLInit(None,None,message.getType(),message.getChannel(),plainMech,challenge,None)
+    init = SASLInit(None, None, message.getType(), message.getChannel(), plainMech, challenge, None)
     self.send(init)
 
-def processOutcome(self,message):
-    #print('processOutcome')
+
+def processOutcome(self, message):
     if isinstance(message, SASLOutcome):
-        #print('message.getCode()= ' + str(message.getCode()) + ' ' +str(message.getOutcomeCode()))
         if message.getOutcomeCode() == OutcomeCode.OK.value:
             self.isSASLConfirm = True
             header = AMQPProtoHeader(0)
@@ -238,16 +239,16 @@ def processOutcome(self,message):
 
             self.clientGUI.errorReceived()
 
-def processOpen(self,message):
-    #print('processOpen ')
+
+def processOpen(self, message):
     self.clientGUI.connackReceived(0)
     self.timeout = message.getIdleTimeout()
     if isinstance(message, AMQPOpen):
         begin = AMQPBegin(None, None, None, self.channel, None, np.int64(0), np.int64(2147483647), np.int64(0), None, None, None, None)
         self.send(begin)
 
-def processBegin(self,message):
-    #print('processBegin')
+
+def processBegin(self, message):
 
     ping = AMQPPing()
     if self.timeout is None:
@@ -255,23 +256,26 @@ def processBegin(self,message):
     else:
         self.timers.goPingTimer(ping, self.timeout / 1000)
 
-def processEnd(self,message):
-    #print('processEnd')
-    close = AMQPClose(None,None,None,self.channel,None)
+    for key, value in self.pending_topics.items():
+        self.subscribeTo(key, value.qos)
+
+
+def processEnd(self, message):
+    close = AMQPClose(None, None, None, self.channel, None)
     self.send(close)
 
-def processClose(self,message):
-    #print('processClose')
+
+def processClose(self, message):
     self.timers.stopAllTimers()
     self.isSASLConfirm = False
     self.connectionState == ConnectionState.CONNECTION_LOST
 
-def processAttach(self,message):
-    #print('CLIENT processAttach')
-    if isinstance(message,AMQPAttach):
+
+def processAttach(self, message):
+    if isinstance(message, AMQPAttach):
         if message.getRole() == RoleCode.RECEIVER:
             for pending in self.pendingMessages:
-                if isinstance(pending,AMQPTransfer):
+                if isinstance(pending, AMQPTransfer):
                     h1 = pending.getHandle()
                     h2 = message.getHandle()
                 if h1 == h2:
@@ -288,28 +292,34 @@ def processAttach(self,message):
             self.usedIncomingMappings[message.getName()] = handle
             self.usedMappings[handle] = message.getName()
 
-            topic = MQTopic(message.getName(),1)
-            qos = topic.getQoS()
-            self.clientGUI.subackReceived(topic, qos, 0)
+            try:
+                if self.outstanding_attach_topics.pop(handle) == message.getName():
+                    if self.pending_topics.pop(message.getName(), None) is None:
+                        topic = MQTopic(message.getName(), 1)
+                        qos = topic.getQoS()
+                        self.clientGUI.subackReceived(topic, qos, 0)
+            except:
+                pass
 
-def processTransfer(self,message):
-    #print('processTransfer')
-    if isinstance(message,AMQPTransfer):
+
+def processTransfer(self, message):
+    if isinstance(message, AMQPTransfer):
         data = message.getData()
         qos = QoS(1)
         if message.getSettled() is not None and message.getSettled():
             qos = QoS(0)
         else:
             state = AMQPAccepted()
-            disposition = AMQPDisposition(None,None,None,self.channel,RoleCode.RECEIVER,np.int64(message.getDeliveryId()),np.int64(message.getDeliveryId()),True,state,None)
+            disposition = AMQPDisposition(None, None, None, self.channel, RoleCode.RECEIVER, np.int64(message.getDeliveryId()), np.int64(message.getDeliveryId()), True, state, None)
             self.send(disposition)
         handle = message.getHandle()
         if handle is not None and (handle in self.usedMappings):
             topic = self.usedMappings[handle]
             self.clientGUI.publishReceived(topic, qos, data.getData(), False, False)
 
-def processDetach(self,message):
-    if isinstance(message,AMQPDetach):
+
+def processDetach(self, message):
+    if isinstance(message, AMQPDetach):
         handle = message.getHandle()
         if handle in self.usedMappings:
             topicName = self.usedMappings[handle]
@@ -321,42 +331,43 @@ def processDetach(self,message):
             listTopics.append(topicName)
             self.clientGUI.unsubackReceived(listTopics)
 
+
 def processDisposition(self, message):
-    #print('processDisposition')
     if isinstance(message, AMQPDisposition):
         if message.getFirst() is not None:
             first = message.getFirst()
             if message.getLast() is not None:
                 last = message.getLast()
-                for i in range(first,last-1):
-                    transfer = self.timers.removeTimer(i)
-                    if transfer is not None:
-                        handle = transfer.getHandle()
-                        topic = self.usedMappings[handle]
-                        self.clientGUI.publishReceived(topic, 1, transfer.getData(), False, False)
+                for i in range(first, last - 1):
+                    self.timers.removeTimer(i)
             else:
                 transfer = self.timers.removeTimer(first)
                 if transfer is not None:
                     handle = transfer.getHandle()
                     topic = self.usedMappings[handle]
                     qos = QoS(1)
-                    self.clientGUI.publishReceived(topic, qos, transfer.getData().getData(), False, False)
+                    self.clientGUI.pubackReceived(topic, qos, transfer.getData().getData(), False, False)
+
 
 def processFlow(self, message):
-    #print('processFlow= ' + str(message))
     pass
+
 
 def processInit(self, message):
     raise ValueError("received invalid message init")
 
+
 def processChallenge(self, message):
     raise ValueError("received invalid message challenge")
+
 
 def processResponse(self, message):
     raise ValueError("received invalid message response")
 
+
 def processPing(self, message):
     pass
+
 
 switcherProcess = {
     16: processOpen,
@@ -377,7 +388,6 @@ switcherProcess = {
     255: processPing,
 }
 
+
 def process_messageType_method(self, argument, message):
     return switcherProcess[argument].__call__(self, message)
-
-

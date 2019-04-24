@@ -110,7 +110,7 @@ class CtxFactory(ssl.ClientContextFactory):
             ctx.use_certificate_chain_file(fp.name)
             fp.seek(0)
             if self.password is not None:
-                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), self.password)
+                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), self.password.encode("utf-8"))
             else:
                 key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read())
             ctx.use_privatekey(key)
