@@ -41,8 +41,6 @@ import tkinter.messagebox as messagebox
 from threading import Thread
 import socket
 from socket import socket
-from iot.network.extended_dtls import DtlsSocketExt
-import os
 
 import OpenSSL.crypto
 
