@@ -301,7 +301,7 @@ class Loading(Frame):
                     topics = datamanager().get_topics_all_accountID(account.id)
                     self.main.client = AMQPclient(account, self.main, topics)
                     self.main.client.goConnect()
-            except IOError as err:
+            except Exception as err:
                 messagebox.showinfo("Connect Error", str(err))
                 self.main.errorReceived()
         else:
@@ -365,15 +365,16 @@ class Accounts(Frame):
             widget.destroy()
 
         accounts = datamanager().get_accounts_all()
+
+        width = 260
+        height = 370
         i = 0
         if len(accounts) > 0:
 
             if len(accounts) > 7:
                 width = 260
                 height = 53 * len(accounts)
-            else:
-                width = 275
-                height = 370
+
             for item in accounts:
 
                 userImg = Label(master=self.myframe, image=self.userPhoto, bd=0, height=50, width=50, bg=whitebg).grid(row=i + 1, column=0)
@@ -389,10 +390,10 @@ class Accounts(Frame):
                 delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2)
                 i += 1
 
-        if i > 7:
-            self.vbar.place(x=342, y=1, height=370)
-            self.vbar.set(1, 1)
-            self.canvas.configure(scrollregion=(0, 0, 359, height))
+
+        self.vbar.place(x=345, y=1, height=370)
+        self.vbar.set(1, 1)
+        self.canvas.configure(scrollregion=(0, 0, width, height))
 
         self.canvas.create_window(0, 0, anchor='nw', window=self.myframe)
 
