@@ -148,12 +148,12 @@ class Main_screen(Frame):
             self.accounts = tk.Toplevel(root)
             self.accounts.group(root)
             self.accounts_frame = Accounts(self.accounts, self)
-            self.accounts_frame.fill_accounts()
             self.app = self.accounts_frame
         else:
-            self.accounts_frame.fill_accounts()
             self.accounts.deiconify()
+
         self.accounts_frame.refresh_frame()
+        self.accounts_frame.fill_accounts()
 
     def show_note(self, active, old):
         if not hasattr(self, "note") or self.note is None:
@@ -302,6 +302,7 @@ class Loading(Frame):
                     self.main.client = AMQPclient(account, self.main, topics)
                     self.main.client.goConnect()
             except Exception as err:
+                datamanager().clear_default_account()
                 messagebox.showinfo("Connect Error", str(err))
                 self.main.errorReceived()
         else:
@@ -325,7 +326,6 @@ class Accounts(Frame):
 
         label = CustomFont_Label(self, text="Please select account", foreground='white', font_path=font_bold, size=16, highlightthickness=0, bg=buttonColor, height=35, width=380).grid(row=0)
 
-        self.clientIDs = []
         gui_style = ttk.Style()
 
         gui_style.configure('My.TFrame', background='white', border=0)
@@ -372,7 +372,6 @@ class Accounts(Frame):
         if len(accounts) > 0:
 
             if len(accounts) > 7:
-                width = 260
                 height = 53 * len(accounts)
 
             for item in accounts:
@@ -383,17 +382,15 @@ class Accounts(Frame):
                                                    item.serverHost, item.port)
                 num = 300 - len(item.serverHost)
                 text += num * ' '
-                self.clientIDs.append(item.clientID)
                 txtButton = CustomFont_Button(self.myframe, text=text, font_path=font_medium, size=12, strings_number=4,
                                               background='white', highlightthickness=0, bd=0, height=50, width=width,
-                                              command=lambda x=i: self.connect(x)).grid(row=i + 1, column=1)
-                delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda x=i: self.delete(x)).grid(row=i + 1, column=2)
+                                              command=lambda curr_client_id=item.clientID: self.connect(curr_client_id)).grid(row=i + 1, column=1)
+                delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda curr_client_id=item.clientID: self.delete(curr_client_id)).grid(row=i + 1, column=2)
                 i += 1
 
-
-        self.vbar.place(x=345, y=1, height=370)
+        self.vbar.place(x=342, y=1, height=370)
         self.vbar.set(1, 1)
-        self.canvas.configure(scrollregion=(0, 0, width, height))
+        self.canvas.configure(scrollregion=(0, 0, 359, height))
 
         self.canvas.create_window(0, 0, anchor='nw', window=self.myframe)
 
@@ -414,15 +411,14 @@ class Accounts(Frame):
         self.main.accounts.withdraw()
         self.main.show_login(1)
 
-    def delete(self, id):
-        clientID = self.clientIDs[id]
+    def delete(self, clientID):
         delete_account = datamanager().get_account_clientID(clientID)
         if delete_account is not None:
             datamanager().delete_account(delete_account.id)
             self.fill_accounts()
 
-    def connect(self, id):
-        clientID = self.clientIDs[id]
+    def connect(self, clientID):
+        print("connecting " + clientID)
         datamanage = datamanager()
         datamanage.clear_default_account()
         datamanage.set_default_account_clientID(clientID)
@@ -738,7 +734,7 @@ class Login(Frame):
             if previous is None:
                 d_manager.add_entity(account)
                 d_manager.clear_default_account()
-                datamanager().set_default_account_clientID(account.clientID)
+                d_manager.set_default_account_clientID(account.clientID)
                 self.main.login.withdraw()
                 self.main.show_loading(1000)
             else:
