@@ -4,5 +4,4 @@ lib64
 bin/
 *.db
 *.pyc
-*.py
 *.yml
