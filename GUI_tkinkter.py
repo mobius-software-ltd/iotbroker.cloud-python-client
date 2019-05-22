@@ -241,6 +241,8 @@ class Main_screen(Frame):
         self.disconnectReceived()
         self.show_accounts()
 
+    def show_error_message(self, title, message):
+        messagebox.showinfo(title, message)
 
 class Loading(Frame):
     def __init__(self, master, main):
@@ -735,6 +737,10 @@ class Login(Frame):
                 d_manager.add_entity(account)
                 d_manager.clear_default_account()
                 d_manager.set_default_account_clientID(account.clientID)
+                try:
+                    self.certificate.delete(0, 'end')
+                except AttributeError:
+                    pass
                 self.main.login.withdraw()
                 self.main.show_loading(1000)
             else:
@@ -744,7 +750,7 @@ class Login(Frame):
             if account.keepAlive is '' or (int(account.keepAlive) <= 0 or int(account.keepAlive)) > 65535:
                 messagebox.showinfo("Warning", 'Wrong value for Keepalive')
             elif not client_protocol.is_message_length_valid(account.protocol, len(account.will)):
-                messagebox.showinfo("Warning", 'Will size/length is more than ' + client_protocol.get_max_message_length(account.protocol) + ' symbols')
+                messagebox.showinfo("Warning", 'Will size/length is more than ' + str(client_protocol.get_max_message_length(account.protocol)) + ' symbols')
             else:
                 messagebox.showinfo("Warning",
                                     'Please fill in all required fileds: Username, Password, ClientID, Host, Port')
@@ -879,10 +885,6 @@ class NoteForm(Frame):
 
         self.refresh_all()
 
-        self.bind("<Destroy>", self._destroy)
-        self.messagesCanvas.bind_all("<Button-4>", self._on_mousewheel)
-        self.messagesCanvas.bind_all("<Button-5>", self._on_mousewheel)
-
         if active == 0:
             self.note.add(self.tab1, image=self.main.topicsImgBlue)
         else:
@@ -1002,7 +1004,7 @@ class NoteForm(Frame):
         self.comboQos2.current(0)
         self.comboQos2.grid(row=0, column=2, sticky='e', pady=2)
 
-        if self.account.protocol != 3:
+        if client_protocol.publish_flags_enabled(self.account.protocol):
             self.varRetain = BooleanVar()
             self.varDuplicate = BooleanVar()
 
@@ -1254,6 +1256,10 @@ class NoteForm(Frame):
         self.messagesCanvas.create_window(0, 0, anchor='nw', window=messagesFrame)
         self.messagesCanvas.grid(row=1, column=0, sticky='eswn')
 
+        self.bind("<Destroy>", self._destroy)
+        self.messagesCanvas.bind_all("<Button-4>", self._on_mousewheel)
+        self.messagesCanvas.bind_all("<Button-5>", self._on_mousewheel)
+
     def format_context(self, text):
         data = textwrap.wrap(text, 32)
         result = ''
@@ -1268,13 +1274,11 @@ class NoteForm(Frame):
         self.main.client.unsubscribeFrom(topicName)
 
     def sendTopic(self):
-        datamanage = datamanager()
         content = str.encode(self.contentText.get())
         name = self.nameText2.get()
         qos = self.comboQos2.get()
-        retain = self.varRetain.get()
-        dup = self.varDuplicate.get()
-
+        retain = self.varRetain.get() if hasattr(self, "varRetain") else False
+        dup = self.varDuplicate.get() if hasattr(self, "varDuplicate") else False
         self.contentText.text = ''
         self.nameText2 = ''
         self.comboQos.current(0)

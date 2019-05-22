@@ -30,10 +30,10 @@ class TimerTask():
         self.status = None
         self.isTimeoutTask = False
         self.client = client
+        self.active = True
+        self.count = 5
         if self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             self.client.send(self.message)
-        self.count = 5
-        self.active = True
 
     def handle_function(self):
         if self.active:
@@ -57,16 +57,15 @@ class TimerTask():
             self.client.clientGUI.after(self.period * 1000, self.handle_function)
 
     def onTimedEvent(self):
-        if self.isTimeoutTask == True:
+        if self.isTimeoutTask:
             self.client.timeoutMethod()
 
         if self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
-            if self.status == True:
+            if self.status:
                 if isinstance(self.message, MQPublish):
                     self.message.dup = True
 
             self.client.send(self.message)
-            self.status = True
 
     def stop(self):
         self.active = False

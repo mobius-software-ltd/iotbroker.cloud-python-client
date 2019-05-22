@@ -30,6 +30,7 @@ from iot.timers.TimersMap import *
 import base64
 from twisted.internet import reactor
 
+
 class WSclient(IoTClient):
     def __init__(self, account, client):
         self.account = account
@@ -55,7 +56,7 @@ class WSclient(IoTClient):
 
     def goConnect(self):
         self.setState(ConnectionState.CONNECTING)
-        if self.account.willTopic and len(self.account.willTopic)>0 is not None:
+        if self.account.willTopic and len(self.account.willTopic) > 0 is not None:
             will = {"topic": {"name": self.account.willTopic, "qos": self.account.qos},
                     "content": base64.b64encode(self.account.will.encode()).decode("utf-8"),
                     "retain": self.account.isRetain}
@@ -67,7 +68,7 @@ class WSclient(IoTClient):
         if self.account.isSecure:
             url = 'wss://' + str(self.account.serverHost) + ':' + str(self.account.port) + '/ws'
             self.clientFactory = WSSocketClientFactory(url, self)
-            #self.clientFactory.setProtocolOptions(openHandshakeTimeout=10)
+            # self.clientFactory.setProtocolOptions(openHandshakeTimeout=10)
             ctx = CtxFactory(self.account.certificate, self.account.certPasw)
             connectWS(self.clientFactory, ctx, int(self.account.keepAlive) * 2)
         else:
@@ -75,19 +76,19 @@ class WSclient(IoTClient):
             self.clientFactory = WSSocketClientFactory(url, self)
             connectWS(self.clientFactory, None, int(self.account.keepAlive) * 2)
 
-        if self.account.username is not None and len(self.account.username)>0:
+        if self.account.username is not None and len(self.account.username) > 0:
             usernameFlag = True
         else:
             usernameFlag = False
 
-        if self.account.password is not None and len(self.account.password)>0:
+        if self.account.password is not None and len(self.account.password) > 0:
             passwordFlag = True
         else:
             passwordFlag = False
 
         connect = {"packet": 1, "protocolLevel": 4, "username": self.account.username, "password": self.account.password,
-             "clientID": self.account.clientID, "cleanSession": self.account.cleanSession, "keepalive": self.account.keepAlive, "will": will, "willFlag": willFlag,
-             "passwordFlag": passwordFlag, "usernameFlag": usernameFlag, "protocolName": "MQTT"}
+                   "clientID": self.account.clientID, "cleanSession": self.account.cleanSession, "keepalive": self.account.keepAlive, "will": will, "willFlag": willFlag,
+                   "passwordFlag": passwordFlag, "usernameFlag": usernameFlag, "protocolName": "MQTT"}
 
         if self.timers is not None:
             self.timers.stopAllTimers()
@@ -154,7 +155,7 @@ class WSclient(IoTClient):
         self.timers.stopAllTimers()
         self.clientGUI.timeout()
 
-    def PacketReceived(self,ProtocolMessage):
+    def PacketReceived(self, ProtocolMessage):
         ProtocolMessage.processBy()
 
     def ConnectionLost(self):
@@ -172,18 +173,24 @@ class WSclient(IoTClient):
     def connectFailed(self):
         self.setState(ConnectionState.CHANNEL_FAILED)
 
-#__________________________________________________________________________________________
 
-def processConnack(self,message):
+# __________________________________________________________________________________________
+
+def processConnack(self, message):
     self.timers.stopConnectTimer()
-    ping = {"packet":12}
-    self.timers.goPingTimer(ping, self.account.keepAlive)
-
-    if message['returnCode'] == 0: #MQ_ACCEPTED
+    if message['returnCode'] == 0:  # MQ_ACCEPTED
+        ping = {"packet": 12}
+        self.timers.goPingTimer(ping, self.account.keepAlive)
         self.setState(ConnectionState.CONNECTION_ESTABLISHED)
         self.clientGUI.connackReceived(message['returnCode'])
+    else:
+        self.clientFactory.ws.on_connect_error()
+        self.setState(ConnectionState.CONNECTION_FAILED)
+        self.timers.stopAllTimers()
+        self.clientGUI.errorReceived()
+        self.clientGUI.show_error_message("Connect Error", "ReturnCode: " + str(message['returnCode']))
 
-def processSuback(self,message):
+def processSuback(self, message):
     subscribe = self.timers.removeTimer(message['packetID'])
     if subscribe is not None:
         name = subscribe['topics'][0]['name']
@@ -191,12 +198,14 @@ def processSuback(self,message):
         topic = MQTopic(name, qos)
         self.clientGUI.subackReceived(topic, qos, 0)
 
-def processUnsuback(self,message):
+
+def processUnsuback(self, message):
     unsubscribe = self.timers.removeTimer(message['packetID'])
     if unsubscribe is not None:
-      self.clientGUI.unsubackReceived(unsubscribe['topics'])
+        self.clientGUI.unsubackReceived(unsubscribe['topics'])
 
-def processPublish(self,message):
+
+def processPublish(self, message):
     publisherQoS = message['topic']['qos']
 
     name = message['topic']['name']
@@ -205,22 +214,24 @@ def processPublish(self,message):
 
     if publisherQoS == 0:
         self.clientGUI.publishReceived(topic, qos, base64.b64decode(message['content']).decode("utf-8"), message['dup'], message['retain'])
-    if publisherQoS == 1:  #AT_LEAST_ONCE
-        puback = {"packet": 4,"packetID": message['packetID']}
+    if publisherQoS == 1:  # AT_LEAST_ONCE
+        puback = {"packet": 4, "packetID": message['packetID']}
         self.send(puback)
         self.clientGUI.publishReceived(topic, qos, base64.b64decode(message['content']).decode("utf-8"), message['dup'], message['retain'])
-    if publisherQoS == 2:  #EXACTLY_ONCE
+    if publisherQoS == 2:  # EXACTLY_ONCE
         pubrec = {"packet": 5, "packetID": message['packetID']}
         self.send(pubrec)
         self.publishPackets[message['packetID']] = message
 
-def processPuback(self,message):
+
+def processPuback(self, message):
     publish = self.timers.removeTimer(message['packetID'])
     if publish is not None:
         name = publish['topic']['name']
         qos = QoS(publish['topic']['qos'])
         topic = MQTopic(name, qos)
         self.clientGUI.pubackReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'], 0)
+
 
 def processPubrec(self, message):
     publish = self.timers.removeTimer(message['packetID'])
@@ -229,7 +240,8 @@ def processPubrec(self, message):
         self.timers.goMessageTimer(pubrel)
         self.publishPackets[publish['packetID']] = publish
 
-def processPubrel(self,message):
+
+def processPubrel(self, message):
     pubrec = self.timers.removeTimer(message['packetID'])
     if pubrec is not None:
         publish = self.publishPackets.get(message['packetID'])
@@ -241,7 +253,8 @@ def processPubrel(self,message):
         pubcomp = {"packet": 7, "packetID": message['packetID']}
         self.send(pubcomp)
 
-def processPubcomp(self,message):
+
+def processPubcomp(self, message):
     pubrel = self.timers.removeTimer(message['packetID'])
     if pubrel is not None:
         publish = self.publishPackets.get(message['packetID'])
@@ -249,26 +262,33 @@ def processPubcomp(self,message):
         qos = QoS(publish['topic']['qos'])
         topic = MQTopic(name, qos)
 
-        self.clientGUI.pubackReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'],0)
+        self.clientGUI.pubackReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'], 0)
 
-def processPingresp(self,message):
+
+def processPingresp(self, message):
     self.clientGUI.pingrespReceived(False)
 
-def processSubscribe(self,message):
+
+def processSubscribe(self, message):
     self.clientGUI.errorReceived('received invalid message subscribe')
 
-def processConnect(self,message):
+
+def processConnect(self, message):
     self.clientGUI.errorReceived('received invalid message connect')
 
-def processPingreq(self,message):
+
+def processPingreq(self, message):
     self.clientGUI.errorReceived('received invalid message pingreq')
 
-def processDisconnect(self,message):
+
+def processDisconnect(self, message):
     self.timers.stopAllTimers()
     self.clientGUI.disconnectReceived()
 
-def processUnsubscribe(self,message):
+
+def processUnsubscribe(self, message):
     raise ValueError('received invalid message unsubscribe')
+
 
 switcherProcess = {
     1: processConnect,
@@ -286,6 +306,7 @@ switcherProcess = {
     13: processPingresp,
     14: processDisconnect,
 }
+
 
 def process_messageType_method(self, argument, message):
     return switcherProcess[argument].__call__(self, message)

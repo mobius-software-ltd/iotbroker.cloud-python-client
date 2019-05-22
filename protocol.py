@@ -1,3 +1,6 @@
+import sys
+
+
 class MQTT:
 
     def __init__(self):
@@ -5,6 +8,7 @@ class MQTT:
         self.num = 1
         self.qos_list = ["0", "1", "2"]
         self.max_message_length = TCP_MAX_MESSAGE_LENGTH
+        self.publish_flags_enabled = True
 
     def is_tcp(self):
         return True
@@ -20,6 +24,7 @@ class MQTT_SN:
         self.num = 2
         self.qos_list = ["0", "1", "2"]
         self.max_message_length = UDP_MAX_MESSAGE_LENGTH
+        self.publish_flags_enabled = True
 
     def is_tcp(self):
         return False
@@ -35,6 +40,7 @@ class COAP:
         self.num = 3
         self.qos_list = ["0", "1"]
         self.max_message_length = UDP_MAX_MESSAGE_LENGTH
+        self.publish_flags_enabled = False
 
     def is_tcp(self):
         return False
@@ -50,6 +56,7 @@ class WEBSOCKET:
         self.num = 4
         self.qos_list = ["0", "1", "2"]
         self.max_message_length = TCP_MAX_MESSAGE_LENGTH
+        self.publish_flags_enabled = True
 
     def is_tcp(self):
         return True
@@ -65,6 +72,7 @@ class AMQP:
         self.num = 5
         self.qos_list = ["1"]
         self.max_message_length = TCP_MAX_MESSAGE_LENGTH
+        self.publish_flags_enabled = False
 
     def is_tcp(self):
         return True
@@ -73,7 +81,7 @@ class AMQP:
         return False
 
 
-TCP_MAX_MESSAGE_LENGTH = 1500
+TCP_MAX_MESSAGE_LENGTH = sys.maxsize
 UDP_MAX_MESSAGE_LENGTH = 1400
 __protocols = [MQTT(), MQTT_SN(), COAP(), WEBSOCKET(), AMQP()]
 
@@ -125,4 +133,11 @@ def get_max_message_length(protocol_val):
     for protocol in __protocols:
         if protocol.name == protocol_val or protocol.num == protocol_val:
             return protocol.max_message_length
+    raise ValueError("invalid protocol value: " + protocol_val)
+
+
+def publish_flags_enabled(protocol_val):
+    for protocol in __protocols:
+        if protocol.name == protocol_val or protocol.num == protocol_val:
+            return protocol.publish_flags_enabled
     raise ValueError("invalid protocol value: " + protocol_val)

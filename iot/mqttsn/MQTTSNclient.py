@@ -18,10 +18,6 @@
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
 import asyncio
-import ssl
-import tempfile
-from logging import basicConfig, DEBUG
-from socket import socket, AF_INET, SOCK_DGRAM
 
 from OpenSSL.crypto import X509
 from twisted.internet import reactor
@@ -102,29 +98,28 @@ class MQTTSNclient(IoTClient):
         if self.account.isSecure:
             self.loop = asyncio.get_event_loop()
 
-            if self.account.certificate:
+            addr = (self.account.serverHost, self.account.port)
+            if self.account.certificate and len(self.account.certificate) > 0:
                 fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
                 sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
+                sock_wrapped.connect(addr)
             else:
                 sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
+                sock_wrapped.connect(addr)
 
-            addr = (self.account.serverHost, self.account.port)
-
-            sock_wrapped.connect(addr)
             datagram = self.loop.create_datagram_endpoint(
                 lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=sock_wrapped)
-            fp.close()
+
             transport, protocol = self.loop.run_until_complete(datagram)
             self.udpClient = protocol
             self.setState(ConnectionState.CONNECTION_ESTABLISHED)
-        else:
-            self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
-            reactor.listenUDP(0, self.udpClient)
 
-        if self.account.isSecure:
             self.udpThread = Thread(target=self.loop.run_forever)
             self.udpThread.daemon = True
             self.udpThread.start()
+        else:
+            self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
+            reactor.listenUDP(0, self.udpClient)
 
         self.timers.goConnectTimer(connect)
 
@@ -380,7 +375,8 @@ def processPINGREQ(self, message):
 def processDISCONNECT(self, message):
     self.timers.stopAllTimers()
     reactor.callFromThread(self.clientGUI.disconnectReceived)
-
+    if hasattr(self, "loop") and hasattr(self.loop, "stop"):
+        self.loop.stop()
 
 def processWILL_TOPIC_UPD(self, message):
     raise ValueError('Packet Will topic upd did receive')

@@ -15,7 +15,7 @@ def validate(cert_content, cert_password):
         if cert_password is not None and len(cert_password) > 0:
             OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), cert_password.encode("utf-8"))
         else:
-            OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read())
+            OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), "")
         return True
     except:
         fp.close()

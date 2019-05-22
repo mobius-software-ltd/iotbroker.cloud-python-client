@@ -25,33 +25,40 @@ from iot.classes.ConnectionState import *
 import OpenSSL.crypto
 import tempfile
 
+
 class WebSocket(WebSocketClientProtocol):
-   def __init__(self,factory,client):
+    def __init__(self, factory, client):
         self.factory = factory
         self.client = client
         self.closeFlag = True
 
-   def onConnect(self, response):
-       print("Server connected")
-       self.client.setState(ConnectionState.CONNECTION_ESTABLISHED)
+    def onConnect(self, response):
+        print("Server connected")
+        self.client.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
-   def onMessage(self, msg, binary):
-      print("WebSocket Got echo: " + str(msg))
-      self.client.dataReceived(msg)
+    def on_connect_error(self):
+        self.closeFlag = False
 
-   def sendPacket(self, message):
-       print('WebSocket sendPacket ' + str(message))
-       self.sendMessage(bytes(json.dumps(message),'utf-8'))
+    def onMessage(self, msg, binary):
+        print("WebSocket Got echo: " + str(msg))
+        self.client.dataReceived(msg)
 
-   def connectionLost(self, reason):
+    def sendPacket(self, message):
+        print('WebSocket sendPacket ' + str(message))
+        if message.get("packet") == 14:
+            self.closeFlag = False
+        self.sendMessage(bytes(json.dumps(message), 'utf-8'))
+
+    def connectionLost(self, reason):
         self.client.setState(ConnectionState.CONNECTION_LOST)
         if self.closeFlag:
             self.client.goConnect()
 
+
 class WSSocketClientFactory(WebSocketClientFactory):
 
-    def __init__(self,url,client):
-        WebSocketClientFactory.__init__(self,url)
+    def __init__(self, url, client):
+        WebSocketClientFactory.__init__(self, url)
         self.client = client
         self.ws = WebSocket(self, self.client)
 
@@ -61,10 +68,11 @@ class WSSocketClientFactory(WebSocketClientFactory):
     def sendPacket(self, packet):
         self.ws.sendPacket(packet)
 
+
 class CtxFactory(ssl.ClientContextFactory):
     def __init__(self, certificate, password):
         self.certificate = certificate
-        if password is not None and len(password)>0:
+        if password is not None and len(password) > 0:
             self.password = password
         else:
             self.password = None
@@ -74,7 +82,7 @@ class CtxFactory(ssl.ClientContextFactory):
         ctx = ssl.ClientContextFactory.getContext(self)
         if self.certificate != '':
             fp = tempfile.NamedTemporaryFile()
-            fp.write(bytes(self.certificate,'utf-8'))
+            fp.write(bytes(self.certificate, 'utf-8'))
             fp.seek(0)
             ctx.use_certificate_chain_file(fp.name)
             fp.seek(0)

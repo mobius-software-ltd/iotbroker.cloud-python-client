@@ -17,26 +17,31 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from iot.classes.ConnectionState import *
-from iot.network.UDPClient import *
-from iot.network.pyDTLSClient import *
-from iot.classes.IoTClient import *
-from iot.coap.CoapParser import *
-from iot.coap.options.CoapOptionType import *
-from iot.coap.options.OptionParser import *
-from iot.timers.TimersMap import *
-from iot.coap.tlv.CoapTopic import *
+import asyncio
+
+from OpenSSL.crypto import X509
 from twisted.internet import reactor
 
-import asyncio
-import tempfile
-import ssl
-from socket import socket, AF_INET, SOCK_DGRAM
-from logging import basicConfig, DEBUG
+from iot.classes.IoTClient import *
+from iot.coap.CoapParser import *
+from iot.coap.options.OptionParser import *
+from iot.coap.tlv.CoapTopic import *
+from iot.network.UDPClient import *
+from iot.network.pyDTLSClient import *
+from iot.timers.TimersMap import *
+
 basicConfig(level=DEBUG)  # set now for dtls import code
 from dtls import do_patch, wrapper
+
 do_patch()
+import tkinter.messagebox as messagebox
 from threading import Thread
+import socket
+from socket import socket
+
+import OpenSSL.crypto
+import traceback
+
 
 class CoapClient(IoTClient):
     def __init__(self, account, client):
@@ -67,34 +72,59 @@ class CoapClient(IoTClient):
         option = self.parserOption.encode(CoapOptionType.NODE_ID, self.account.clientID)
         options = []
         options.append(option)
-        message = CoapMessage(self.Version,CoapType.CONFIRMABLE,CoapCode.PUT,0,None,options,None)
+        message = CoapMessage(self.Version, CoapType.CONFIRMABLE, CoapCode.PUT, 0, None, options, None)
 
         if self.account.isSecure:
-            self.loop = asyncio.get_event_loop()
 
-            fp = tempfile.NamedTemporaryFile()
-            fp.write(bytes(self.account.certificate, 'utf-8'))
-            fp.seek(0)
-            sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name,
-                                               ca_certs=fp.name)
+            #self.loop = asyncio.get_event_loop()
+            self.loop = asyncio.new_event_loop()
+
             addr = (self.account.serverHost, self.account.port)
-            sock_wrapped.connect(addr)
-            connect = self.loop.create_datagram_endpoint(
-                lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self,
-                                     self.loop), sock=sock_wrapped)
-            fp.close()
+            if self.account.certificate and len(self.account.certificate) > 0:
+                fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
+                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
+                sock_wrapped.connect(addr)
+            else:
+                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
+                sock_wrapped.connect(addr)
+
+            connect = self.loop.create_datagram_endpoint(lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=sock_wrapped)
+
             transport, protocol = self.loop.run_until_complete(connect)
             self.udpClient = protocol
             self.setState(ConnectionState.CONNECTION_ESTABLISHED)
+
+            self.udpThread = Thread(target=self.loop.run_forever)
+            self.udpThread.daemon = True
+            self.udpThread.start()
         else:
             self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
             reactor.listenUDP(0, self.udpClient)
 
-        if self.account.isSecure:
-            self.udpThread = Thread(target=self.loop.run_forever)
-            self.udpThread.daemon = True
-            self.udpThread.start()
         self.timers.goPingTimer(message, duration)
+
+    def get_certificate_file(self, cert_body, cert_pwd):
+
+        fp = tempfile.NamedTemporaryFile()
+        fp.write(bytes(cert_body, 'utf-8'))
+        fp.seek(0)
+
+        if cert_pwd is not None and len(cert_pwd) > 0:
+            try:
+                cert: X509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read())
+                fp.seek(0)
+                key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, fp.read(), cert_pwd.encode("utf-8"))
+                fp1 = tempfile.NamedTemporaryFile()
+                fp1.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
+                fp1.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+                fp1.seek(0)
+            except Exception as err:
+                fp.close()
+                raise err
+
+            return fp1
+        else:
+            return fp
 
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
@@ -113,12 +143,12 @@ class CoapClient(IoTClient):
             for option in message.getOptionsDecode():
                 if isinstance(option, CoapOption):
                     if CoapOptionType(option.getType()) == CoapOptionType.URI_PATH:
-                        topic = self.parserOption.decode(CoapOptionType(option.getType()),option)
+                        topic = self.parserOption.decode(CoapOptionType(option.getType()), option)
                         break
             for option in message.getOptionsDecode():
                 if isinstance(option, CoapOption):
                     if CoapOptionType(option.getType()) == CoapOptionType.ACCEPT:
-                        qosValue = self.parserOption.decode(CoapOptionType(option.getType()),option)
+                        qosValue = self.parserOption.decode(CoapOptionType(option.getType()), option)
                         break
             if len(topic) > 0:
                 content = message.getPayload()
@@ -132,7 +162,7 @@ class CoapClient(IoTClient):
                 options.append(option)
                 option = self.parserOption.encode(CoapOptionType.NODE_ID, self.account.clientID)
                 options.append(option)
-                ack = CoapMessage(self.Version,CoapType.ACKNOWLEDGEMENT,CoapCode.BAD_OPTION,message.getPacketID(),message.getToken(),options,None)
+                ack = CoapMessage(self.Version, CoapType.ACKNOWLEDGEMENT, CoapCode.BAD_OPTION, message.getPacketID(), message.getToken(), options, None)
                 self.send(ack)
         process_messageType_method(self, message.getType().value, message)
 
@@ -155,7 +185,7 @@ class CoapClient(IoTClient):
         message.setPacketID(packetID)
         self.forPublish[packetID] = message
 
-    def subscribeTo(self,topicName, qosValue):
+    def subscribeTo(self, topicName, qosValue):
         options = []
         option = self.parserOption.encode(CoapOptionType.OBSERVE, 0)
         options.append(option)
@@ -204,21 +234,24 @@ class CoapClient(IoTClient):
     def connectFailed(self):
         self.setState(ConnectionState.CHANNEL_FAILED)
 
-#__________________________________________________________________________________________
 
-def CONFIRMABLE(self,message):
-    if isinstance(message,CoapMessage):
+# __________________________________________________________________________________________
+
+def CONFIRMABLE(self, message):
+    if isinstance(message, CoapMessage):
         options = []
         option = self.parserOption.encode(CoapOptionType.NODE_ID, self.account.clientID)
         options.append(option)
-        ack = CoapMessage(self.Version,CoapType.ACKNOWLEDGEMENT,message.getCode(),message.getPacketID(),message.getToken(),options,None)
+        ack = CoapMessage(self.Version, CoapType.ACKNOWLEDGEMENT, message.getCode(), message.getPacketID(), message.getToken(), options, None)
         self.send(ack)
 
-def NONCONFIRMABLE(self,message):
+
+def NONCONFIRMABLE(self, message):
     if isinstance(message, CoapMessage):
         self.timers.removeTimer(int(message.getToken()))
 
-def ACKNOWLEDGEMENT(self,message):
+
+def ACKNOWLEDGEMENT(self, message):
     if isinstance(message, CoapMessage):
         ack = None
         topic = None
@@ -242,7 +275,7 @@ def ACKNOWLEDGEMENT(self,message):
                     topicResult = CoapTopic(topic, qos)
                     reactor.callFromThread(self.clientGUI.publishReceived, topicResult, qos, content, False, False)
         if ack is not None:
-            if isinstance(ack,CoapMessage):
+            if isinstance(ack, CoapMessage):
                 if ack.getCode() == CoapCode.GET:
                     observeValue = None
                     for option in ack.getOptionsDecode():
@@ -284,12 +317,14 @@ def ACKNOWLEDGEMENT(self,message):
                     reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, content, False, False, 0)
         else:
             if self.pingNum == 0:
-                self.pingNum +=1
+                self.pingNum += 1
                 reactor.callFromThread(self.clientGUI.pingrespReceived, True)
 
-def RESET(self,message):
+
+def RESET(self, message):
     if isinstance(message, CoapMessage):
         self.timers.removeTimer(int(message.getToken()))
+
 
 switcherProcess = {
     0: CONFIRMABLE,
@@ -298,7 +333,6 @@ switcherProcess = {
     3: RESET
 }
 
+
 def process_messageType_method(self, argument, message):
     return switcherProcess[argument].__call__(self, message)
-
-
