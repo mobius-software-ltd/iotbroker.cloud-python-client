@@ -130,7 +130,7 @@ class MQTTclient(IoTClient):
     def ConnectionLost(self):
         if self.timers != None:
             self.timers.stopAllTimers()
-        self.clientGUI.errorReceived()
+        reactor.callFromThread(self.clientGUI.errorReceived)
 
 #_____________________________________________________________________________________
 
