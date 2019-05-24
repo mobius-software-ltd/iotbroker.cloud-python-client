@@ -28,6 +28,7 @@ from twisted.internet.protocol import Protocol, ReconnectingClientFactory
 import OpenSSL.crypto
 import tempfile
 
+
 class TCPClient(Protocol):
     def __init__(self, message, client):
         self.message = message
@@ -42,32 +43,33 @@ class TCPClient(Protocol):
             pass
 
     def dataReceived(self, data):
-        #print("Server said:", data)
         self.client.dataReceived(data)
 
     def sendMessage(self, message):
         self.message = message
         try:
             self.transport.write(bytes(self.message))
-            #print("was sended: " + str(bytes(self.message)))
-        except:
-            print('TCPClient sending message ERROR')
+        except Exception as ex:
+            print('TCPClient sending message ERROR ' + str(ex))
 
     def connectionLost(self, reason):
         # connector.connect()
         print("connection lost")
 
     def connectionClose(self):
-        reactor.stop()
+        pass
+        #reactor.stop()
 
     def getStatus(self):
         pass
+
 
 class ClientFactory(ReconnectingClientFactory):
     def __init__(self, message, client):
         self.message = message
         self.client = client
         self.tcp = TCPClient(self.message, self.client)
+        self.connection_was_closed = False
 
     def send(self, message):
         self.message = message
@@ -75,7 +77,7 @@ class ClientFactory(ReconnectingClientFactory):
 
     def buildProtocol(self, addr):
         print('Connected.')
-        #self.resetDelay()
+        # self.resetDelay()
         return self.tcp
 
     def startedConnecting(self, connector):
@@ -89,13 +91,17 @@ class ClientFactory(ReconnectingClientFactory):
     def clientConnectionLost(self, connector, reason):
         print("TCP connection lost - reconnect!")
 
-        #self.client.ConnectionLost()
-        #connector.connect()
+        # self.client.ConnectionLost()
+        # connector.connect()
+
+    def client_close_connection(self):
+        self.tcp.connectionClose()
+
 
 class CtxFactory(ssl.ClientContextFactory):
     def __init__(self, certificate, password):
         self.certificate = certificate
-        if password is not None and len(password)>0:
+        if password is not None and len(password) > 0:
             self.password = password
         else:
             self.password = None
@@ -105,7 +111,7 @@ class CtxFactory(ssl.ClientContextFactory):
         ctx = ssl.ClientContextFactory.getContext(self)
         if self.certificate != '':
             fp = tempfile.NamedTemporaryFile()
-            fp.write(bytes(self.certificate,'utf-8'))
+            fp.write(bytes(self.certificate, 'utf-8'))
             fp.seek(0)
             ctx.use_certificate_chain_file(fp.name)
             fp.seek(0)

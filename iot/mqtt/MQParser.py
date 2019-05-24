@@ -37,6 +37,7 @@ from iot.mqtt.mqtt_classes.Will import *
 
 import struct
 
+
 class MQParser(object):
     def __init__(self, message):
         if message is not None:
@@ -46,24 +47,37 @@ class MQParser(object):
         if message is not None:
             self.message = message
 
-    def next(self, data):
-
-        fixedHeader = data[0:1]
-        messageType = ((fixedHeader >> 4) & 0xf)
-        if messageType == 0 :
+    def next(self, data, curr_index):
+        self.buffer = bytearray(data)
+        firtsByte = struct.unpack('B', self.buffer[0:1])
+        messageType = (firtsByte[0] >> 4) & 0xf
+        if messageType == 0:
             return None
 
         if messageType == 12 | messageType == 13 | messageType == 14:
             return data[2:len(data)]
         else:
-            length = len(data)
-            if length == 0:
-                return None
-            result = length.length + length.size() + 1
-            if result > len(data):
-                raise ValueError('Next. invalid length decoding')
+            index = 0
+            length = 0
+            multiplier = 1
+            bytes_used = 0
+            enc = b'\x00'
 
-        return data[result,len(data)]
+            self.buffer = bytearray(data)
+            while True:
+                if multiplier > 128 * 128 * 128:
+                    return None
+                index += 1
+                print("length=" + str(length))
+                enc = struct.unpack('B', self.buffer[index:index + 1])[0]
+                length += (enc & 0x7F) * multiplier
+                multiplier *= 128
+                bytes_used += 1
+                print("check:" + str(enc & 0x80))
+                if (enc & 0x80) != 0:
+                    break
+
+        return data[curr_index, length.getLength() + length.getSize() + 1]
 
     def encode(self):
         messageType = self.message.getType()
@@ -72,7 +86,7 @@ class MQParser(object):
 
     def decode(self, data):
         self.buffer = bytearray(data)
-        firtsByte = struct.unpack('B',self.buffer[0:1])
+        firtsByte = struct.unpack('B', self.buffer[0:1])
         messageType = (firtsByte[0] >> 4) & 0xf
         messageReturn = decode_messageType_method(self, messageType)
         return messageReturn
@@ -91,15 +105,15 @@ class MQParser(object):
                 break
         return data
 
-def MQ_CONNECT(self, message):
 
+def MQ_CONNECT(self, message):
     data = bytearray()
 
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
 
     protocolName = 'MQTT'
-    nameData = struct.pack('h',len(protocolName))
+    nameData = struct.pack('h', len(protocolName))
     data += nameData[::-1]
 
     for ch in protocolName:
@@ -170,6 +184,7 @@ def MQ_CONNECT(self, message):
 
     return data
 
+
 def MQ_CONNACK(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
@@ -178,6 +193,7 @@ def MQ_CONNACK(self, message):
     data.append(message.returnCode)
 
     return data
+
 
 def MQ_PUBLISH(self, message):
     data = bytearray()
@@ -195,26 +211,27 @@ def MQ_PUBLISH(self, message):
 
     data += self.getBufferByLength()
     name = message.topic.name
-    nameData = struct.pack('h',len(name))
+    nameData = struct.pack('h', len(name))
     data += nameData[::-1]
 
     for ch in name:
-        ch = bytes(ch, encoding = 'utf-8')
+        ch = bytes(ch, encoding='utf-8')
         data += struct.pack('c', ch)
 
     qos = int(message.topic.getQoS().getValue())
-    if qos == 0: # AT_MOST_ONCE
+    if qos == 0:  # AT_MOST_ONCE
         if message.packetID != 0:
             raise ValueError('Encode. Publish. Publish qos-0 must not contain packetID')
-    if qos in [1,2]: # AT_LEAST_ONCE, EXACTLY_ONCE
+    if qos in [1, 2]:  # AT_LEAST_ONCE, EXACTLY_ONCE
         packetIDdata = struct.pack('h', message.packetID)
         data += packetIDdata[::-1]
 
     content = message.content
     for ch in content:
-        ch = bytes(ch, encoding = 'utf-8')
+        ch = bytes(ch, encoding='utf-8')
         data += struct.pack('c', ch)
     return data
+
 
 def MQ_PUBACK(self, message):
     data = bytearray()
@@ -227,7 +244,8 @@ def MQ_PUBACK(self, message):
     data += packetIDdata[::-1]
     return data
 
-def MQ_PUBREC(self,message):
+
+def MQ_PUBREC(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
@@ -238,7 +256,8 @@ def MQ_PUBREC(self,message):
     data += packetIDdata[::-1]
     return data
 
-def MQ_PUBREL(self,message):
+
+def MQ_PUBREL(self, message):
     data = bytearray()
     data.append(message.getType() << 4 | 0x2)
     data += self.getBufferByLength()
@@ -249,7 +268,8 @@ def MQ_PUBREL(self,message):
     data += packetIDdata[::-1]
     return data
 
-def MQ_PUBCOMP(self,message):
+
+def MQ_PUBCOMP(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
@@ -260,7 +280,8 @@ def MQ_PUBCOMP(self,message):
     data += packetIDdata[::-1]
     return data
 
-def MQ_SUBSCRIBE(self,message):
+
+def MQ_SUBSCRIBE(self, message):
     data = bytearray()
     data.append(message.getType() << 4 | 0x2)
     data += self.getBufferByLength()
@@ -281,7 +302,8 @@ def MQ_SUBSCRIBE(self,message):
             data.append(topic.qos.getValue())
     return data
 
-def MQ_SUBACK(self,message):
+
+def MQ_SUBACK(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
@@ -292,12 +314,13 @@ def MQ_SUBACK(self,message):
     packetIDdata = struct.pack('h', message.packetID)
     data += packetIDdata[::-1]
 
-    for code in message.listCodes:# list ReturnCodes, SubackCodes
+    for code in message.listCodes:  # list ReturnCodes, SubackCodes
         item = int(code)
         data.append(item)
     return data
 
-def MQ_UNSUBSCRIBE(self,message):
+
+def MQ_UNSUBSCRIBE(self, message):
     data = bytearray()
     data.append(message.getType() << 4 | 0x2)
     data += self.getBufferByLength()
@@ -309,14 +332,15 @@ def MQ_UNSUBSCRIBE(self,message):
     data += packetIDdata[::-1]
 
     for name in message.listTopics:
-                nameData = struct.pack('h', len(name))
-                data += nameData[::-1]
-                for ch in name:
-                    ch = bytes(ch, encoding='utf_8')
-                    data += struct.pack('c', ch)
+        nameData = struct.pack('h', len(name))
+        data += nameData[::-1]
+        for ch in name:
+            ch = bytes(ch, encoding='utf_8')
+            data += struct.pack('c', ch)
     return data
 
-def MQ_UNSUBACK(self,message):
+
+def MQ_UNSUBACK(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
@@ -328,57 +352,62 @@ def MQ_UNSUBACK(self,message):
     data += packetIDdata[::-1]
     return data
 
-def MQ_PINGREQ(self,message):
+
+def MQ_PINGREQ(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
     return data
 
-def MQ_PINGRESP(self,message):
+
+def MQ_PINGRESP(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
 
     return data
 
-def MQ_DISCONNECT(self,message):
+
+def MQ_DISCONNECT(self, message):
     data = bytearray()
     data.append(message.getType() << 4)
     data += self.getBufferByLength()
     return data
+
 
 switcherEncode = {
-        1: MQ_CONNECT,
-        2: MQ_CONNACK,
-        3: MQ_PUBLISH,
-        4: MQ_PUBACK,
-        5: MQ_PUBREC,
-        6: MQ_PUBREL,
-        7: MQ_PUBCOMP,
-        8: MQ_SUBSCRIBE,
-        9: MQ_SUBACK,
-        10: MQ_UNSUBSCRIBE,
-        11: MQ_UNSUBACK,
-        12: MQ_PINGREQ,
-        13: MQ_PINGRESP,
-        14: MQ_DISCONNECT
-    }
+    1: MQ_CONNECT,
+    2: MQ_CONNACK,
+    3: MQ_PUBLISH,
+    4: MQ_PUBACK,
+    5: MQ_PUBREC,
+    6: MQ_PUBREL,
+    7: MQ_PUBCOMP,
+    8: MQ_SUBSCRIBE,
+    9: MQ_SUBACK,
+    10: MQ_UNSUBSCRIBE,
+    11: MQ_UNSUBACK,
+    12: MQ_PINGREQ,
+    13: MQ_PINGRESP,
+    14: MQ_DISCONNECT
+}
+
 
 def encode_messageType_method(self, argument, message):
     return switcherEncode[argument].__call__(self, message)
 
-def MQ_CONNECT_DECODE(self):
 
+def MQ_CONNECT_DECODE(self):
     data = bytearray(self.buffer)
 
     protocolName = data[4:8].decode('utf8')
     if protocolName != 'mqtt':
         raise ValueError('Decode. Connect. Protocol name is wrong')
 
-    protocolLevelTuple = struct.unpack('B',data[8:9])
+    protocolLevelTuple = struct.unpack('B', data[8:9])
     protocolLevel = protocolLevelTuple[0]
 
-    contentFlagsTuple = struct.unpack('B',data[9:10])
+    contentFlagsTuple = struct.unpack('B', data[9:10])
     contentFlags = contentFlagsTuple[0]
 
     userNameFlag = (((contentFlags >> 7) & 1)) == 1
@@ -407,44 +436,44 @@ def MQ_CONNECT_DECODE(self):
     clientIDlenData = data[12:14]
     clientIDlenTuple = struct.unpack('h', clientIDlenData[::-1])
     clientIDlen = clientIDlenTuple[0]
-    clientID = data[14:14+clientIDlen].decode('utf8')
+    clientID = data[14:14 + clientIDlen].decode('utf8')
 
     index = 14 + clientIDlen
     will = None
 
     if willFlag is not None:
-        willtopicNamelenData =  data[index:index+2]
+        willtopicNamelenData = data[index:index + 2]
         willtopicNamelenTuple = struct.unpack('h', willtopicNamelenData[::-1])
         willtopicNamelen = willtopicNamelenTuple[0]
         index += 2
 
-        willtopicName = data[index:index+willtopicNamelen].decode('utf8')
+        willtopicName = data[index:index + willtopicNamelen].decode('utf8')
         index += willtopicNamelen
 
-        willMessageStrlenData = data[index:index+1]
+        willMessageStrlenData = data[index:index + 1]
         willMessageStrlenTuple = struct.unpack('B', willMessageStrlenData)
         willMessageStrlen = willMessageStrlenTuple[0]
         index += 1
 
-        willMessageStr = data[index:index+willMessageStrlen].decode('utf8')
+        willMessageStr = data[index:index + willMessageStrlen].decode('utf8')
         index += willMessageStrlen
 
         if len(willtopicName) == 0:
             raise ValueError('Decode. Connect. Will topic contains invalid will encoding')
-        topic = MQTopic(willtopicName,qos)
-        will = Will(topic,willMessageStr,willRetainFlag)
+        topic = MQTopic(willtopicName, qos)
+        will = Will(topic, willMessageStr, willRetainFlag)
 
         if not will.valid():
             raise ValueError('Decode. Connect. Will contains invalid will encoding')
 
     username = None
     if userNameFlag == True:
-        userNamelenDatalen = data[index:index+2]
+        userNamelenDatalen = data[index:index + 2]
         userNamelenDataTuple = struct.unpack('h', userNamelenDatalen[::-1])
         userNamelenDatalen = userNamelenDataTuple[0]
         index += 2
 
-        username = data[index:index+userNamelenDatalen].decode('utf8')
+        username = data[index:index + userNamelenDatalen].decode('utf8')
         index += userNamelenDatalen
 
     password = None
@@ -454,25 +483,25 @@ def MQ_CONNECT_DECODE(self):
         passwordlenDatalen = passwordlenDataTuple[0]
         index += 2
 
-        password = data[index:index+passwordlenDatalen].decode('utf8')
+        password = data[index:index + passwordlenDatalen].decode('utf8')
 
-    message = MQConnect(username,password,clientID,cleanSessionFlag,keepAlive,will)
+    message = MQConnect(username, password, clientID, cleanSessionFlag, keepAlive, will)
 
     if protocolLevel != 4:
         message.setProtocolLevel = protocolLevel
     return message
 
-def MQ_CONNACK_DECODE(self):
 
+def MQ_CONNACK_DECODE(self):
     data = bytearray(self.buffer)
 
     sessionPresentdata = data[2:3]
-    sessionPresent = struct.unpack('B',sessionPresentdata)
+    sessionPresent = struct.unpack('B', sessionPresentdata)
     if sessionPresent[0] < 0 | sessionPresent[0] > 1:
         raise ValueError('Decode. Connack. Session-present set to ' + str(sessionPresent[0]))
 
     connectReturnCodeData = data[3:4]
-    connectReturnCode = struct.unpack('B',connectReturnCodeData)
+    connectReturnCode = struct.unpack('B', connectReturnCodeData)
 
     if MQConnack.isValidReturnCode(connectReturnCode[0]) != True:
         raise ValueError('Decode. Connack. Invalid connack code')
@@ -480,15 +509,15 @@ def MQ_CONNACK_DECODE(self):
     message = MQConnack(sessionPresent[0], connectReturnCode[0])
     return message
 
-def MQ_PUBLISH_DECODE(self):
 
+def MQ_PUBLISH_DECODE(self):
     data = bytearray(self.buffer)
     fixedHeaderTuple = struct.unpack('B', data[0:1])
     fixedHeader = fixedHeaderTuple[0]
 
     dataLengthGet = struct.unpack('h', data[1:3])
     dataLength = dataLengthGet[0]
-    #print('dataLength= ' + str(dataLength))
+    # print('dataLength= ' + str(dataLength))
     fixedHeader &= 0xf
     dup = ((fixedHeader >> 3) & 1) == 1
 
@@ -496,7 +525,7 @@ def MQ_PUBLISH_DECODE(self):
 
     if qos.getValue() == 3:
         raise ValueError('Decode. Publish. Invalid QoS value')
-    if (bool(dup) == True) & (qos.getValue() == 0): #AT_MOST_ONCE
+    if (bool(dup) == True) & (qos.getValue() == 0):  # AT_MOST_ONCE
         raise ValueError('Decode. Publish. QoS-0 dup flag present')
 
     retain = (fixedHeader & 1) == 1
@@ -506,18 +535,18 @@ def MQ_PUBLISH_DECODE(self):
     else:
         index = 2
 
-    topicNameData = data[index:index+2]
+    topicNameData = data[index:index + 2]
     index += 2
-    topicNameLenTuple = struct.unpack('h',topicNameData[::-1])
+    topicNameLenTuple = struct.unpack('h', topicNameData[::-1])
     topicNameLen = topicNameLenTuple[0]
-    #print('topicNameLen= ' + str(topicNameLen))
-    topicName = data[index:index+topicNameLen].decode(encoding= 'utf-8')
-    #print('topicName= ' + str(topicName))
+    # print('topicNameLen= ' + str(topicNameLen))
+    topicName = data[index:index + topicNameLen].decode(encoding='utf-8')
+    # print('topicName= ' + str(topicName))
     packetID = 0
 
     index += topicNameLen
     if qos.getValue() != 0:
-        packetIDdata = data[index:index+2]
+        packetIDdata = data[index:index + 2]
         packetIDTuple = struct.unpack('h', packetIDdata[::-1])
         packetID = packetIDTuple[0]
         if (packetID < 0) | (packetID > 65535):
@@ -527,12 +556,13 @@ def MQ_PUBLISH_DECODE(self):
 
     content = None
     if dataLength > 0:
-        content = data[index:index+dataLength].decode('utf8')
+        content = data[index:index + dataLength].decode('utf8')
 
     topic = MQTopic(topicName, qos)
 
     message = MQPublish(packetID, topic, content, bool(retain), bool(dup))
     return message
+
 
 def MQ_PUBACK_DECODE(self):
     data = bytearray(self.buffer)
@@ -543,6 +573,7 @@ def MQ_PUBACK_DECODE(self):
     message = MQPuback(packetID)
     return message
 
+
 def MQ_PUBREC_DECODE(self):
     data = bytearray(self.buffer)
     packetIDdata = data[2:4]
@@ -551,6 +582,7 @@ def MQ_PUBREC_DECODE(self):
 
     message = MQPubrec(packetID)
     return message
+
 
 def MQ_PUBREL_DECODE(self):
     data = bytearray(self.buffer)
@@ -561,6 +593,7 @@ def MQ_PUBREL_DECODE(self):
     message = MQPubrel(packetID)
     return message
 
+
 def MQ_PUBCOMP_DECODE(self):
     data = bytearray(self.buffer)
     packetIDdata = data[2:4]
@@ -569,6 +602,7 @@ def MQ_PUBCOMP_DECODE(self):
 
     message = MQPubcomp(packetID)
     return message
+
 
 def MQ_SUBSCRIBE_DECODE(self):
     data = bytearray(self.buffer)
@@ -579,30 +613,31 @@ def MQ_SUBSCRIBE_DECODE(self):
 
     listMQTopics = []
     index = 4
-    while index <= len(data)-1:
+    while index <= len(data) - 1:
 
-        lsbData = data[index:index+2]
+        lsbData = data[index:index + 2]
         lsbTuple = struct.unpack('h', lsbData[::-1])
         lsb = lsbTuple[0]
 
         index += 2
 
-        topicName = data[index:index+lsb].decode('utf8')
+        topicName = data[index:index + lsb].decode('utf8')
         index += lsb
 
-        qosValue = struct.unpack('B',data[index:index+1])
+        qosValue = struct.unpack('B', data[index:index + 1])
         qos = QoS(qosValue[0])
         if (qos.getValue() < 0) | (qos.getValue() > 2):
             raise ValueError('Subscribe qos must be in range from 0 to 2:' + str(qos.getValue()))
 
-        topic = MQTopic(topicName,qos)  # type: MQTopic
+        topic = MQTopic(topicName, qos)  # type: MQTopic
         listMQTopics.append(topic)
         index += 1
 
     if len(listMQTopics) == 0:
         raise ValueError('Subscribe with 0 topics')
-    message = MQSubscribe(packetID,listMQTopics)
+    message = MQSubscribe(packetID, listMQTopics)
     return message
+
 
 def MQ_SUBACK_DECODE(self):
     data = bytearray(self.buffer)
@@ -613,16 +648,17 @@ def MQ_SUBACK_DECODE(self):
 
     listCodes = []
     index = 4
-    while index <= len(data)-1:
-        codeTuple = struct.unpack('B',data[index:index+1])
+    while index <= len(data) - 1:
+        codeTuple = struct.unpack('B', data[index:index + 1])
         code = codeTuple[0]
-        if code not in [0,1,2,128]:
+        if code not in [0, 1, 2, 128]:
             raise ValueError('Invalid suback code: ' + str(code))
         listCodes.append(code)
         index += 1
 
-    message = MQSuback(packetID,listCodes)
+    message = MQSuback(packetID, listCodes)
     return message
+
 
 def MQ_UNSUBSCRIBE_DECODE(self):
     data = bytearray(self.buffer)
@@ -633,8 +669,7 @@ def MQ_UNSUBSCRIBE_DECODE(self):
 
     listTopicNames = []
     index = 4
-    while index <= len(data)-1:
-
+    while index <= len(data) - 1:
         lsbData = data[index:index + 2]
         lsbTuple = struct.unpack('h', lsbData[::-1])
         lsb = lsbTuple[0]
@@ -648,8 +683,9 @@ def MQ_UNSUBSCRIBE_DECODE(self):
     if len(listTopicNames) == 0:
         raise ValueError('Unsubscribe with 0 topics')
 
-    message = MQUnsubscribe(packetID,listTopicNames)
+    message = MQUnsubscribe(packetID, listTopicNames)
     return message
+
 
 def MQ_UNSUBACK_DECODE(self):
     data = bytearray(self.buffer)
@@ -661,34 +697,39 @@ def MQ_UNSUBACK_DECODE(self):
     message = MQUnsuback(packetID)
     return message
 
+
 def MQ_PINGREQ_DECODE(self):
     message = MQPingreq()
     return message
+
 
 def MQ_PINGRESP_DECODE(self):
     message = MQPingresp()
     return message
 
+
 def MQ_DISCONNECT_DECODE(self):
     message = MQDisconnect()
     return message
 
+
 switcherDecode = {
-        1: MQ_CONNECT_DECODE,
-        2: MQ_CONNACK_DECODE,
-        3: MQ_PUBLISH_DECODE,
-        4: MQ_PUBACK_DECODE,
-        5: MQ_PUBREC_DECODE,
-        6: MQ_PUBREL_DECODE,
-        7: MQ_PUBCOMP_DECODE,
-        8: MQ_SUBSCRIBE_DECODE,
-        9: MQ_SUBACK_DECODE,
-        10: MQ_UNSUBSCRIBE_DECODE,
-        11: MQ_UNSUBACK_DECODE,
-        12: MQ_PINGREQ_DECODE,
-        13: MQ_PINGRESP_DECODE,
-        14: MQ_DISCONNECT_DECODE
-    }
+    1: MQ_CONNECT_DECODE,
+    2: MQ_CONNACK_DECODE,
+    3: MQ_PUBLISH_DECODE,
+    4: MQ_PUBACK_DECODE,
+    5: MQ_PUBREC_DECODE,
+    6: MQ_PUBREL_DECODE,
+    7: MQ_PUBCOMP_DECODE,
+    8: MQ_SUBSCRIBE_DECODE,
+    9: MQ_SUBACK_DECODE,
+    10: MQ_UNSUBSCRIBE_DECODE,
+    11: MQ_UNSUBACK_DECODE,
+    12: MQ_PINGREQ_DECODE,
+    13: MQ_PINGRESP_DECODE,
+    14: MQ_DISCONNECT_DECODE
+}
+
 
 def decode_messageType_method(self, argument):
     return switcherDecode[argument].__call__(self)

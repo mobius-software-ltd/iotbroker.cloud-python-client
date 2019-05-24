@@ -159,7 +159,7 @@ class AMQPWrapper(object):
             code = AMQPType.BINARY_32
         else:
             code = AMQPType.BINARY_8
-        return TLVFixed(code, bt)
+        return TLVVariable(code, bt)
 
     def wrapUuid(self, uuid):
         if uuid is None:

@@ -26,7 +26,6 @@ import sys
 import logging
 import protocol as client_protocol
 import iot.network.certificate_validator as certificate_validator
-import time
 
 # for Custom Font Usage
 font_bold = "fonts/ClearSans-Bold.ttf"
@@ -718,6 +717,12 @@ class Login(Frame):
         enabled = self.varEnabled.get()
         certificate = self.certificate.get()
         certPasw = self.secPaswText.get()
+
+        if certificate is not None and len(certificate) > 0:
+            curr_certificate_account = datamanager().get_account_certificate(certificate)
+            if curr_certificate_account is not None:
+                messagebox.showinfo("Warning", "certificate already exists for account: " + curr_certificate_account.clientID)
+                return
 
         if not certificate_validator.validate(certificate, certPasw):
             messagebox.showinfo("Warning", "certificate/password pair is invalid")

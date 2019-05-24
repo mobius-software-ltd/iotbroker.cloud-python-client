@@ -78,14 +78,20 @@ class AMQPclient(IoTClient):
             return False
 
     def dataReceived(self, data):
+
         received = bytearray()
+        messages = []
+
         while len(received) < len(data):
             index = 0
             part = self.parser.next(data, index)
+            message = self.parser.decode(part)
+            messages.append(message)
             index += len(part)
             received += part
             data = data[index:]
-            message = self.parser.decode(part)
+
+        for message in messages:
             process_messageType_method(self, message.getCode().value, message)
 
     def goConnect(self):
@@ -241,7 +247,6 @@ def processOutcome(self, message):
 
 
 def processOpen(self, message):
-    self.clientGUI.connackReceived(0)
     self.timeout = message.getIdleTimeout()
     if isinstance(message, AMQPOpen):
         begin = AMQPBegin(None, None, None, self.channel, None, np.int64(0), np.int64(2147483647), np.int64(0), None, None, None, None)
@@ -249,7 +254,7 @@ def processOpen(self, message):
 
 
 def processBegin(self, message):
-
+    self.clientGUI.connackReceived(0)
     ping = AMQPPing()
     if self.timeout is None:
         self.timers.goPingTimer(ping, 50)
@@ -269,6 +274,10 @@ def processClose(self, message):
     self.timers.stopAllTimers()
     self.isSASLConfirm = False
     self.connectionState == ConnectionState.CONNECTION_LOST
+
+    if message.error is not None and message.error.description is not None:
+        messagebox.showinfo("Connect Error", message.error.description)
+        self.clientGUI.errorReceived()
 
 
 def processAttach(self, message):
@@ -304,18 +313,22 @@ def processAttach(self, message):
 
 def processTransfer(self, message):
     if isinstance(message, AMQPTransfer):
-        data = message.getData()
+
         qos = QoS(1)
         if message.getSettled() is not None and message.getSettled():
             qos = QoS(0)
+            print("qos 0")
         else:
             state = AMQPAccepted()
-            disposition = AMQPDisposition(None, None, None, self.channel, RoleCode.RECEIVER, np.int64(message.getDeliveryId()), np.int64(message.getDeliveryId()), True, state, None)
+            disposition = AMQPDisposition(None, None, None, self.channel, RoleCode.RECEIVER, np.int64(message.getDeliveryId()), np.int64(message.getDeliveryId()), True, AMQPAccepted(), None)
+            print("sending disposition")
             self.send(disposition)
+            print("disposition sent")
+
         handle = message.getHandle()
         if handle is not None and (handle in self.usedMappings):
             topic = self.usedMappings[handle]
-            self.clientGUI.publishReceived(topic, qos, data.getData(), False, False)
+            self.clientGUI.publishReceived(topic, qos, message.getData().getData(), False, False)
 
 
 def processDetach(self, message):

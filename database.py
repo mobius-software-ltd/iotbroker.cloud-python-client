@@ -188,6 +188,14 @@ class datamanager():
         result = session.query(AccountEntity).filter(AccountEntity.clientID == id).first()
         return result
 
+    def get_account_certificate(self, certificate):
+        engine = create_engine(self.path)
+        Base.metadata.bind = engine
+        DBSession = sessionmaker(bind=engine, expire_on_commit=False)
+        session = DBSession()
+        result = session.query(AccountEntity).filter(AccountEntity.certificate == certificate).first()
+        return result
+
     def get_default_account(self):
         engine = create_engine(self.path)
         Base.metadata.bind = engine

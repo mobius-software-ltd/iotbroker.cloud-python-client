@@ -42,6 +42,7 @@ from iot.mqtt.MQParser import MQParser
 from iot.timers.TimersMap import *
 from twisted.internet import ssl, reactor
 
+
 class MQTTclient(IoTClient):
     def __init__(self, account, client):
         self.account = account
@@ -65,6 +66,21 @@ class MQTTclient(IoTClient):
         message = self.parser.decode(data)
         process_messageType_method(self, message.getType(), message)
 
+        #received = bytearray()
+        #messages = []
+        #index = 0
+        #print("data received...")
+        #while index == 0 or len(received) < index:
+        #    print("index=" + str(index))
+        #    part = self.parser.next(data, index)
+        #    message = self.parser.decode(part)
+        #   messages.append(message)
+        #   received += part
+        #    index += len(part)
+
+        #for message in messages:
+        #    process_messageType_method(self, message.getType(), message)
+
     def setState(self, ConnectionState):
         self.connectionState = ConnectionState
 
@@ -72,7 +88,7 @@ class MQTTclient(IoTClient):
         return self.connectionState == ConnectionState.CONNECTION_ESTABLISHED
 
     def closeChannel(self):
-        if self.client != None:
+        if self.client is not None:
             self.client.stop()
 
     def goConnect(self):
@@ -83,7 +99,7 @@ class MQTTclient(IoTClient):
         else:
             will = None
 
-        connect = MQConnect(self.account.username, self.account.password, self.account.clientID, self.account.cleanSession,self.account.keepAlive, will)
+        connect = MQConnect(self.account.username, self.account.password, self.account.clientID, self.account.cleanSession, self.account.keepAlive, will)
         if self.timers is not None:
             self.timers.stopAllTimers()
         self.timers.goConnectTimer(connect)
@@ -98,10 +114,10 @@ class MQTTclient(IoTClient):
     def publish(self, name, qos, content, retain, dup):
         topic = MQTopic(name, qos)
         publish = MQPublish(0, topic, content, retain, dup)
-        if(qos == 0):
+        if (qos == 0):
             self.send(publish)
         else:
-            if(qos in [1,2]):
+            if (qos in [1, 2]):
                 self.timers.goMessageTimer(publish)
 
     def unsubscribeFrom(self, topicName):
@@ -113,7 +129,7 @@ class MQTTclient(IoTClient):
     def subscribeTo(self, name, qos):
         topic = MQTopic(name, qos)
         listMQTopics = [topic]
-        subscribe = MQSubscribe(0,listMQTopics)
+        subscribe = MQSubscribe(0, listMQTopics)
         self.timers.goMessageTimer(subscribe)
 
     def pingreq(self):
@@ -122,6 +138,7 @@ class MQTTclient(IoTClient):
     def disconnectWith(self, duration):
         self.send(MQDisconnect())
         self.timers.stopAllTimers()
+        self.clientFactory.client_close_connection()
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
@@ -132,11 +149,12 @@ class MQTTclient(IoTClient):
             self.timers.stopAllTimers()
         reactor.callFromThread(self.clientGUI.errorReceived)
 
-#_____________________________________________________________________________________
+
+# _____________________________________________________________________________________
 
 def processConnack(self, message):
     self.timers.stopConnectTimer()
-    if message.returnCode == 0: #MQ_ACCEPTED
+    if message.returnCode == 0:  # MQ_ACCEPTED
         self.setState(ConnectionState.CONNECTION_ESTABLISHED)
         self.timers.goPingTimer(MQPingreq(), self.account.keepAlive)
         self.clientGUI.connackReceived(message.returnCode)
@@ -144,36 +162,42 @@ def processConnack(self, message):
         messagebox.showinfo("Connect error", MQConnackCode(message.returnCode).readable_name())
         self.clientGUI.errorReceived()
 
-def processSuback(self,message):
+
+def processSuback(self, message):
     subscribe = self.timers.removeTimer(message.packetID)
     if subscribe is not None:
         size = len(subscribe.listMQTopics)
-        topic = subscribe.listMQTopics[size-1]
+        topic = subscribe.listMQTopics[size - 1]
         qos = topic.getQoS()
         self.clientGUI.subackReceived(topic, qos, 0)
 
-def processUnsuback(self,message):
+
+def processUnsuback(self, message):
     unsubscribe = self.timers.removeTimer(message.packetID)
     if unsubscribe is not None:
         self.clientGUI.unsubackReceived(unsubscribe.listTopics)
 
-def processPublish(self,message):
+
+def processPublish(self, message):
+    print("processing publish")
     publisherQoS = message.topic.qos.getValue()
     if publisherQoS.getValue() == 0:
         self.clientGUI.publishReceived(message.topic, publisherQoS, message.content, message.dup, message.retain)
-    if publisherQoS.getValue() == 1:  #AT_LEAST_ONCE
+    if publisherQoS.getValue() == 1:  # AT_LEAST_ONCE
         puback = MQPuback(message.packetID)
         self.send(puback)
         self.clientGUI.publishReceived(message.topic, publisherQoS, message.content, message.dup, message.retain)
-    if publisherQoS.getValue() == 2:  #EXACTLY_ONCE
+    if publisherQoS.getValue() == 2:  # EXACTLY_ONCE
         pubrec = MQPubrec(message.packetID)
         self.send(pubrec)
         self.publishPackets[message.packetID] = message
 
-def processPuback(self,message):
+
+def processPuback(self, message):
     publish = self.timers.removeTimer(message.packetID)
     if publish is not None:
         self.clientGUI.pubackReceived(publish.topic, publish.topic.getQoS(), publish.content, publish.dup, publish.retain, 0)
+
 
 def processPubrec(self, message):
     publish = self.timers.removeTimer(message.packetID)
@@ -181,35 +205,44 @@ def processPubrec(self, message):
         self.timers.goMessageTimer(MQPubrel(publish.packetID))
         self.publishPackets[publish.packetID] = publish
 
+
 def processPubrel(self, message):
     publish = self.publishPackets.get(message.packetID)
     self.clientGUI.publishReceived(publish.topic, publish.topic.getQoS().getValue(), publish.content, publish.dup, publish.retain)
     self.send(MQPubcomp(message.packetID))
 
-def processPubcomp(self,message):
+
+def processPubcomp(self, message):
     pubrel = self.timers.removeTimer(message.packetID)
     if pubrel is not None:
         publish = self.publishPackets.get(message.packetID)
-        self.clientGUI.pubackReceived(publish.topic, publish.topic.getQoS(), publish.content, publish.dup, publish.retain,0)
+        self.clientGUI.pubackReceived(publish.topic, publish.topic.getQoS(), publish.content, publish.dup, publish.retain, 0)
 
-def processPingresp(self,message):
+
+def processPingresp(self, message):
     self.clientGUI.pingrespReceived(False)
 
-def processSubscribe(self,message):
+
+def processSubscribe(self, message):
     self.clientGUI.errorReceived('received invalid message subscribe')
 
-def processConnect(self,message):
+
+def processConnect(self, message):
     self.clientGUI.errorReceived('received invalid message connect')
 
-def processPingreq(self,message):
+
+def processPingreq(self, message):
     self.clientGUI.errorReceived('received invalid message pingreq')
 
-def processDisconnect(self,message):
+
+def processDisconnect(self, message):
     self.timers.stopAllTimers()
     self.clientGUI.disconnectReceived()
 
-def processUnsubscribe(self,message):
+
+def processUnsubscribe(self, message):
     raise ValueError('received invalid message unsubscribe')
+
 
 switcherProcess = {
     1: processConnect,
@@ -228,7 +261,6 @@ switcherProcess = {
     14: processDisconnect,
 }
 
+
 def process_messageType_method(self, argument, message):
     return switcherProcess[argument].__call__(self, message)
-
-

@@ -227,6 +227,8 @@ def processCONNACK(self, message):
     self.setState(ConnectionState.CONNECTION_ESTABLISHED)
     self.timers.stopConnectTimer()
 
+    print(message)
+
     reactor.callFromThread(self.clientGUI.connackReceived, message.getCode())
     reactor.callFromThread(self.timers.goPingTimer, SNPingreq(self.account.clientID), self.account.keepAlive)
 

@@ -22,6 +22,7 @@ from iot.mqtt.mqtt_messages.MQPublish import *
 from iot.mqtt.mqtt_messages.MQPingreq import *
 from iot.mqttsn.mqttsn_messages.SNPingreq import *
 from iot.amqp.header.impl.AMQPPing import *
+from iot.coap.tlv.CoapMessage import CoapMessage
 
 class TimerTask():
     def __init__(self, message, period, client):
@@ -31,7 +32,7 @@ class TimerTask():
         self.isTimeoutTask = False
         self.client = client
         self.active = True
-        self.count = 5
+        self.count = 3
         if self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             self.client.send(self.message)
 

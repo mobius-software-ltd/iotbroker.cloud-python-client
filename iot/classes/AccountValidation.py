@@ -21,7 +21,6 @@ import protocol as client_protocol
 
 
 def validate_message_length(protocol_value, msg):
-    print("msg length=" + str(len(msg)))
     return client_protocol.is_message_length_valid(protocol_value, len(msg))
 
 

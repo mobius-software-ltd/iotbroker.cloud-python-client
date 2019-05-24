@@ -60,6 +60,7 @@ class CoapClient(IoTClient):
         self.forUnsubscribe = {}
         self.pingNum = 0
         self.udpThread = None
+        self.ping_timer_started = False
 
     def goConnect(self):
         self.setState(ConnectionState.CONNECTING)
@@ -101,7 +102,7 @@ class CoapClient(IoTClient):
             self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
             reactor.listenUDP(0, self.udpClient)
 
-        self.timers.goPingTimer(message, duration)
+        self.timers.goConnectTimer(message)
 
     def get_certificate_file(self, cert_body, cert_pwd):
 
@@ -133,37 +134,52 @@ class CoapClient(IoTClient):
         else:
             return False
 
+    def refresh_ping_timer(self):
+        option = self.parserOption.encode(CoapOptionType.NODE_ID, self.account.clientID)
+        options = []
+        options.append(option)
+        message = CoapMessage(self.Version, CoapType.CONFIRMABLE, CoapCode.PUT, 0, None, options, None)
+        reactor.callFromThread(self.timers.goPingTimer, message, self.account.keepAlive)
+
     def dataReceived(self, data):
         message = self.parser.decode(data)
+
         type = message.getType()
         code = message.getCode()
-        if (code == CoapCode.POST or code == CoapCode.PUT) and type != CoapType.ACKNOWLEDGEMENT:
-            topic = None
-            qosValue = None
-            for option in message.getOptionsDecode():
-                if isinstance(option, CoapOption):
-                    if CoapOptionType(option.getType()) == CoapOptionType.URI_PATH:
-                        topic = self.parserOption.decode(CoapOptionType(option.getType()), option)
-                        break
-            for option in message.getOptionsDecode():
-                if isinstance(option, CoapOption):
-                    if CoapOptionType(option.getType()) == CoapOptionType.ACCEPT:
-                        qosValue = self.parserOption.decode(CoapOptionType(option.getType()), option)
-                        break
-            if len(topic) > 0:
-                content = message.getPayload()
-                qos = QoS(qosValue)
-                topicResult = CoapTopic(topic, qos)
-                reactor.callFromThread(self.clientGUI.publishReceived, topicResult, qos, content, False, False)
+        if code == CoapCode.POST or code == CoapCode.PUT:
+            if type != CoapType.ACKNOWLEDGEMENT:
+                topic = None
+                qosValue = None
+                for option in message.getOptionsDecode():
+                    if isinstance(option, CoapOption):
+                        if CoapOptionType(option.getType()) == CoapOptionType.URI_PATH:
+                            topic = self.parserOption.decode(CoapOptionType(option.getType()), option)
+                            break
+                for option in message.getOptionsDecode():
+                    if isinstance(option, CoapOption):
+                        if CoapOptionType(option.getType()) == CoapOptionType.ACCEPT:
+                            qosValue = self.parserOption.decode(CoapOptionType(option.getType()), option)
+                            break
+                if len(topic) > 0:
+                    content = message.getPayload()
+                    qos = QoS(qosValue)
+                    topicResult = CoapTopic(topic, qos)
+                    reactor.callFromThread(self.clientGUI.publishReceived, topicResult, qos, content, False, False)
+                else:
+                    textFormat = "text/plain"
+                    options = []
+                    option = self.parserOption.encode(CoapOptionType.CONTENT_FORMAT, textFormat)
+                    options.append(option)
+                    option = self.parserOption.encode(CoapOptionType.NODE_ID, self.account.clientID)
+                    options.append(option)
+                    ack = CoapMessage(self.Version, CoapType.ACKNOWLEDGEMENT, CoapCode.BAD_OPTION, message.getPacketID(), message.getToken(), options, None)
+                    self.send(ack)
             else:
-                textFormat = "text/plain"
-                options = []
-                option = self.parserOption.encode(CoapOptionType.CONTENT_FORMAT, textFormat)
-                options.append(option)
-                option = self.parserOption.encode(CoapOptionType.NODE_ID, self.account.clientID)
-                options.append(option)
-                ack = CoapMessage(self.Version, CoapType.ACKNOWLEDGEMENT, CoapCode.BAD_OPTION, message.getPacketID(), message.getToken(), options, None)
-                self.send(ack)
+                if not self.ping_timer_started:
+                    self.timers.stopConnectTimer()
+                    self.ping_timer_started = True
+                    self.refresh_ping_timer()
+
         process_messageType_method(self, message.getType().value, message)
 
     def setState(self, ConnectionState):
@@ -223,6 +239,7 @@ class CoapClient(IoTClient):
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
+        messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
         reactor.callFromThread(self.clientGUI.timeout)
 
     def ConnectionLost(self):

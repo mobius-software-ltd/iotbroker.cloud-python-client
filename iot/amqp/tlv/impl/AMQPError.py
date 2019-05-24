@@ -32,6 +32,9 @@ class AMQPError(Parsable):
         self.description = description
         self.info = info
 
+    def __str__(self):
+        return "condition=" + str(self.condition) + " description=" + str(self.description) + " info=" + str(self.info)
+
     def toArgumentsList(self):
         wrapper = AMQPWrapper()
         list = TLVList(None,None)
@@ -51,16 +54,16 @@ class AMQPError(Parsable):
         if isinstance(list, TLVList):
             if len(list.getList()) > 0 :
                 element = list.getList()[0]
-                if element is not None:
+                if element is not None and not unwrapper.check_is_null(element):
                     self.condition = ErrorCode(unwrapper.unwrapSymbol(element).getValue())
                     print('AMQPError ERROR OCCURED condition= ' + str(ErrorCode(unwrapper.unwrapSymbol(element).getValue())))
             if len(list.getList()) > 1 :
                 element = list.getList()[1]
-                if element is not None:
+                if element is not None and not unwrapper.check_is_null(element):
                     self.description = unwrapper.unwrapString(element)
             if len(list.getList()) > 2 :
                 element = list.getList()[2]
-                if element is not None:
+                if element is not None and not unwrapper.check_is_null(element):
                     self.info = unwrapper.unwrapMap(element)
 
     def toString(self):

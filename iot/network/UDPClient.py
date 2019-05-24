@@ -40,7 +40,8 @@ class UDPClient(DatagramProtocol):
 
     def sendMessage(self, message):
         print("we send: " + str(message))
-        self.transport.write(message)
+        if self.transport is not None:
+            self.transport.write(message)
 
     def datagramReceived(self, data, addr):
         print("received %r from %s:%d" % (data, self.host, self.port))

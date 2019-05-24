@@ -27,6 +27,7 @@ from iot.amqp.wrappers.AMQPSymbol import *
 from iot.classes.NumericUtil import NumericUtil as util
 import uuid
 
+
 class AMQPUnwrapper(object):
     def __init__(self):
         pass
@@ -58,7 +59,7 @@ class AMQPUnwrapper(object):
     def unwrapUInt(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.UINT,AMQPType.SMALL_UINT,AMQPType.UINT_0):
+            if code not in (AMQPType.UINT, AMQPType.SMALL_UINT, AMQPType.UINT_0):
                 raise ValueError('Error trying to parse UINT: received ' + str(tlv.getCode()))
             value = bytes(tlv.getValue())
             if len(value) == 0:
@@ -71,7 +72,7 @@ class AMQPUnwrapper(object):
     def unwrapInt(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.INT,AMQPType.SMALL_INT):
+            if code not in (AMQPType.INT, AMQPType.SMALL_INT):
                 raise ValueError('Error trying to parse INT: received ' + str(tlv.getCode()))
             value = bytes(tlv.getValue())
             if len(value) == 0:
@@ -81,7 +82,7 @@ class AMQPUnwrapper(object):
     def unwrapULong(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.ULONG,AMQPType.SMALL_ULONG,AMQPType.ULONG_0):
+            if code not in (AMQPType.ULONG, AMQPType.SMALL_ULONG, AMQPType.ULONG_0):
                 raise ValueError('Error trying to parse ULONG: received ' + str(tlv.getCode()))
             value = bytes(tlv.getValue())
             if len(value) == 0:
@@ -91,7 +92,7 @@ class AMQPUnwrapper(object):
     def unwrapLong(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.LONG,AMQPType.SMALL_LONG):
+            if code not in (AMQPType.LONG, AMQPType.SMALL_LONG):
                 raise ValueError('Error trying to parse LONG: received ' + str(tlv.getCode()))
             value = bytes(tlv.getValue())
             if len(value) == 0:
@@ -101,7 +102,7 @@ class AMQPUnwrapper(object):
     def unwrapBool(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code  == AMQPType.BOOLEAN:
+            if code == AMQPType.BOOLEAN:
                 val = tlv.getValue()
                 if val == 0:
                     return False
@@ -140,7 +141,7 @@ class AMQPUnwrapper(object):
     def unwrapDecimal(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.DECIMAL_32,AMQPType.DECIMAL_64,AMQPType.DECIMAL_128):
+            if code not in (AMQPType.DECIMAL_32, AMQPType.DECIMAL_64, AMQPType.DECIMAL_128):
                 raise ValueError('Error trying to parse DECIMAL: received ' + str(tlv.getCode()))
             return AMQPDecimal(tlv.getValue())
 
@@ -154,21 +155,21 @@ class AMQPUnwrapper(object):
     def unwrapString(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.STRING_8,AMQPType.STRING_32):
+            if code not in (AMQPType.STRING_8, AMQPType.STRING_32):
                 raise ValueError('Error trying to parse STRING: received ' + str(tlv.getCode()))
             return str(util.getString(tlv.getValue()))
 
     def unwrapSymbol(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.SYMBOL_8,AMQPType.SYMBOL_32):
+            if code not in (AMQPType.SYMBOL_8, AMQPType.SYMBOL_32):
                 raise ValueError('Error trying to parse SYMBOL: received ' + str(tlv.getCode()))
             return AMQPSymbol(str(util.getString(tlv.getValue())))
 
     def unwrapBinary(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.BINARY_8,AMQPType.BINARY_32):
+            if code not in (AMQPType.BINARY_8, AMQPType.BINARY_32):
                 raise ValueError('Error trying to parse BINARY: received ' + str(tlv.getCode()))
             return tlv.getValue()
 
@@ -182,7 +183,7 @@ class AMQPUnwrapper(object):
     def unwrapList(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
+            if code not in (AMQPType.LIST_0, AMQPType.LIST_8, AMQPType.LIST_32):
                 raise ValueError('Error trying to parse LIST: received ' + str(tlv.getCode()))
             result = []
             if isinstance(tlv, TLVList):
@@ -193,7 +194,7 @@ class AMQPUnwrapper(object):
     def unwrapMap(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.MAP_8,AMQPType.MAP_32):
+            if code not in (AMQPType.MAP_8, AMQPType.MAP_32):
                 raise ValueError('Error trying to parse MAP: received ' + str(tlv.getCode()))
             result = {}
             if isinstance(tlv, TLVMap):
@@ -206,7 +207,7 @@ class AMQPUnwrapper(object):
     def unwrapArray(self, tlv):
         if isinstance(tlv, TLVAmqp):
             code = tlv.getCode()
-            if code not in (AMQPType.ARRAY_8,AMQPType.ARRAY_32):
+            if code not in (AMQPType.ARRAY_8, AMQPType.ARRAY_32):
                 raise ValueError('Error trying to parse ARRAY: received ' + str(code))
             result = []
             if isinstance(tlv, TLVArray):
@@ -219,13 +220,13 @@ class AMQPUnwrapper(object):
             code = value.getCode()
             if code == AMQPType.NULL:
                 return None
-            if code in(AMQPType.ARRAY_8,AMQPType.ARRAY_32):
+            if code in (AMQPType.ARRAY_8, AMQPType.ARRAY_32):
                 return self.unwrapArray(value)
-            if code in(AMQPType.BINARY_8,AMQPType.BINARY_32):
+            if code in (AMQPType.BINARY_8, AMQPType.BINARY_32):
                 return self.unwrapBinary(value)
             if code == AMQPType.UBYTE:
                 return self.unwrapUByte(value)
-            if code in(AMQPType.BOOLEAN,AMQPType.BOOLEAN_TRUE,AMQPType.BOOLEAN_FALSE):
+            if code in (AMQPType.BOOLEAN, AMQPType.BOOLEAN_TRUE, AMQPType.BOOLEAN_FALSE):
                 return self.unwrapBool(value)
             if code == AMQPType.BYTE:
                 return self.unwrapByte(value)
@@ -235,9 +236,9 @@ class AMQPUnwrapper(object):
                 return self.unwrapDouble(value)
             if code == AMQPType.FLOAT:
                 return self.unwrapFloat(value)
-            if code in (AMQPType.INT,AMQPType.SMALL_INT):
+            if code in (AMQPType.INT, AMQPType.SMALL_INT):
                 return self.unwrapInt(value)
-            if code in(AMQPType.LIST_0,AMQPType.LIST_8,AMQPType.LIST_32):
+            if code in (AMQPType.LIST_0, AMQPType.LIST_8, AMQPType.LIST_32):
                 return self.unwrapList(value)
             if code in (AMQPType.LONG, AMQPType.SMALL_LONG):
                 return self.unwrapLong(value)
@@ -251,7 +252,7 @@ class AMQPUnwrapper(object):
                 return self.unwrapSymbol(value)
             if code == AMQPType.TIMESTAMP:
                 return self.unwrapTimastamp(value)
-            if code in(AMQPType.UINT,AMQPType.SMALL_UINT,AMQPType.UINT_0):
+            if code in (AMQPType.UINT, AMQPType.SMALL_UINT, AMQPType.UINT_0):
                 return self.unwrapUInt(value)
             if code in (AMQPType.ULONG, AMQPType.SMALL_ULONG, AMQPType.ULONG_0):
                 return self.unwrapULong(value)
@@ -262,3 +263,8 @@ class AMQPUnwrapper(object):
             if code in (AMQPType.DECIMAL_32, AMQPType.DECIMAL_64, AMQPType.DECIMAL_128):
                 return self.unwrapDecimal(value)
             raise ValueError('Error received unrecognized type ' + str(code))
+
+    def check_is_null(self, tlv):
+        if isinstance(tlv, TLVAmqp):
+            return tlv.getCode() == AMQPType.NULL;
+        return False
