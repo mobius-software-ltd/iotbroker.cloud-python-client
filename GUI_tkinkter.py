@@ -419,7 +419,6 @@ class Accounts(Frame):
             self.fill_accounts()
 
     def connect(self, clientID):
-        print("connecting " + clientID)
         datamanage = datamanager()
         datamanage.clear_default_account()
         datamanage.set_default_account_clientID(clientID)

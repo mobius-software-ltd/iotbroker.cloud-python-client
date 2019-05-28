@@ -17,30 +17,22 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from iot.mqtt.mqtt_messages.MQConnect import *
-from iot.mqtt.mqtt_messages.MQConnack import *
-from iot.mqtt.mqtt_messages.MQDisconnect import *
-from iot.mqtt.mqtt_messages.MQPingreq import *
-from iot.mqtt.mqtt_messages.MQPingresp import *
-from iot.mqtt.mqtt_messages.MQPuback import *
-from iot.mqtt.mqtt_messages.MQPubcomp import *
-from iot.mqtt.mqtt_messages.MQPublish import *
-from iot.mqtt.mqtt_messages.MQPubrec import *
-from iot.mqtt.mqtt_messages.MQPubrel import *
-from iot.mqtt.mqtt_messages.MQSuback import *
-from iot.mqtt.mqtt_messages.MQSubscribe import *
-from iot.mqtt.mqtt_messages.MQUnsuback import *
-from iot.mqtt.mqtt_messages.MQUnsubscribe import *
-from iot.classes.ConnectionState import *
-from iot.mqtt.mqtt_classes.MQConnackCode import *
-from iot.mqtt.mqtt_classes.MQSubackCode import *
-from iot.mqtt.mqtt_classes.Will import *
-from iot.mqtt.mqtt_classes.MQTopic import *
-from iot.network.TCPClient import *
+
 from iot.classes.IoTClient import *
 from iot.mqtt.MQParser import MQParser
+from iot.mqtt.mqtt_classes.MQConnackCode import *
+from iot.mqtt.mqtt_classes.MQTopic import *
+from iot.mqtt.mqtt_classes.Will import *
+from iot.mqtt.mqtt_messages.MQConnect import *
+from iot.mqtt.mqtt_messages.MQDisconnect import *
+from iot.mqtt.mqtt_messages.MQPuback import *
+from iot.mqtt.mqtt_messages.MQPubcomp import *
+from iot.mqtt.mqtt_messages.MQPubrec import *
+from iot.mqtt.mqtt_messages.MQPubrel import *
+from iot.mqtt.mqtt_messages.MQSubscribe import *
+from iot.mqtt.mqtt_messages.MQUnsubscribe import *
+from iot.network.TCPClient import *
 from iot.timers.TimersMap import *
-from twisted.internet import ssl, reactor
 
 
 class MQTTclient(IoTClient):
@@ -63,23 +55,19 @@ class MQTTclient(IoTClient):
             return False
 
     def dataReceived(self, data):
-        message = self.parser.decode(data)
-        process_messageType_method(self, message.getType(), message)
+        messages = []
+        index = 1
+        while len(data) - index > 0:
+            length = self.parser.next(data, index)
+            if length < 0:
+                break
+            part = data[index - 1:index + length]
+            message = self.parser.decode(part)
+            messages.append(message)
+            index += length
 
-        #received = bytearray()
-        #messages = []
-        #index = 0
-        #print("data received...")
-        #while index == 0 or len(received) < index:
-        #    print("index=" + str(index))
-        #    part = self.parser.next(data, index)
-        #    message = self.parser.decode(part)
-        #   messages.append(message)
-        #   received += part
-        #    index += len(part)
-
-        #for message in messages:
-        #    process_messageType_method(self, message.getType(), message)
+        for message in messages:
+            process_messageType_method(self, message.getType(), message)
 
     def setState(self, ConnectionState):
         self.connectionState = ConnectionState

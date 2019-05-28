@@ -101,6 +101,7 @@ class MQTTSNclient(IoTClient):
             addr = (self.account.serverHost, self.account.port)
             if self.account.certificate and len(self.account.certificate) > 0:
                 fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
+
                 sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
                 sock_wrapped.connect(addr)
             else:
@@ -226,12 +227,12 @@ def processCONNECT(self, message):
 def processCONNACK(self, message):
     self.setState(ConnectionState.CONNECTION_ESTABLISHED)
     self.timers.stopConnectTimer()
-
-    print(message)
-
-    reactor.callFromThread(self.clientGUI.connackReceived, message.getCode())
-    reactor.callFromThread(self.timers.goPingTimer, SNPingreq(self.account.clientID), self.account.keepAlive)
-
+    if message.getCode() == 0:
+        reactor.callFromThread(self.clientGUI.connackReceived, message.getCode())
+        reactor.callFromThread(self.timers.goPingTimer, SNPingreq(self.account.clientID), self.account.keepAlive)
+    else:
+        reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "ReturnCode: " + str(ReturnCode(message.getCode()).name))
+        reactor.callFromThread(self.clientGUI.errorReceived)
 
 def processWILL_TOPIC_REQ(self, message):
     qos = QoS(self.account.qos)

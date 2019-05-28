@@ -36,7 +36,7 @@ from iot.mqtt.mqtt_classes.MQTopic import *
 from iot.mqtt.mqtt_classes.Will import *
 
 import struct
-
+import binascii
 
 class MQParser(object):
     def __init__(self, message):
@@ -47,37 +47,28 @@ class MQParser(object):
         if message is not None:
             self.message = message
 
-    def next(self, data, curr_index):
-        self.buffer = bytearray(data)
-        firtsByte = struct.unpack('B', self.buffer[0:1])
-        messageType = (firtsByte[0] >> 4) & 0xf
-        if messageType == 0:
-            return None
+    def next(self, data, index):
 
-        if messageType == 12 | messageType == 13 | messageType == 14:
-            return data[2:len(data)]
-        else:
-            index = 0
-            length = 0
-            multiplier = 1
-            bytes_used = 0
-            enc = b'\x00'
+        length = 0
+        multiplier = 1
+        bytes_used = 0
+        while(True):
 
-            self.buffer = bytearray(data)
-            while True:
-                if multiplier > 128 * 128 * 128:
-                    return None
-                index += 1
-                print("length=" + str(length))
-                enc = struct.unpack('B', self.buffer[index:index + 1])[0]
-                length += (enc & 0x7F) * multiplier
-                multiplier *= 128
-                bytes_used += 1
-                print("check:" + str(enc & 0x80))
-                if (enc & 0x80) != 0:
-                    break
+            if multiplier > 128 * 128 * 128:
+                return -1
 
-        return data[curr_index, length.getLength() + length.getSize() + 1]
+            if len(data) < index + 1:
+                return -1
+
+            enc = data[index]
+            length += (enc & 0x7f) * multiplier
+            multiplier *= 128
+            bytes_used += 1
+
+            if (enc & 0x80) == 0:
+                break
+
+        return length + bytes_used + 1
 
     def encode(self):
         messageType = self.message.getType()
