@@ -18,13 +18,13 @@
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
 from iot.classes.ConnectionState import *
-from iot.mqtt.mqtt_messages.MQConnect import *
 from iot.mqtt.mqtt_messages.MQPublish import *
 from iot.mqtt.mqtt_messages.MQPingreq import *
 from iot.mqttsn.mqttsn_messages.SNPingreq import *
 from iot.amqp.header.impl.AMQPPing import *
-from iot.coap.tlv.CoapMessage import CoapMessage
 from twisted.internet import reactor
+from iot.coap.CoapParser import *
+
 
 class TimerTask():
     def __init__(self, message, period, client, is_connect_timer):
@@ -44,7 +44,10 @@ class TimerTask():
             self.onTimedEvent()
             self.client.clientGUI.after(self.period * 1000, self.handle_function)
             self.count -= 1
-            if self.count == 0 and isinstance(self.message, MQPingreq)!=True and isinstance(self.message, SNPingreq)!=True and isinstance(self.message,AMQPPing)!=True:
+
+            is_coap_ping = isinstance(self.message, CoapMessage) and self.message.getType() == CoapType.CONFIRMABLE and self.message.getCode() == CoapCode.PUT and self.message.getPacketID() == 0
+            if self.count == 0 and isinstance(self.message, MQPingreq) != True and isinstance(self.message, SNPingreq) != True and isinstance(self.message, AMQPPing) != True and not is_coap_ping:
+
                 if self.is_connect_timer:
                     self.client.connectTimeoutMethod()
                 else:
