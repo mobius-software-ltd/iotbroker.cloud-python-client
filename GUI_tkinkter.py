@@ -304,7 +304,7 @@ class Loading(Frame):
                     self.main.client.goConnect()
             except Exception as err:
                 datamanager().clear_default_account()
-                messagebox.showinfo("Connect Error", str(err))
+                messagebox.showinfo("Connect Error", "Connection failed")
                 self.main.errorReceived()
         else:
             self.main.loading.withdraw()
@@ -1304,7 +1304,8 @@ class NoteForm(Frame):
             if account.protocol != 3:
                 message = MessageEntity(content=content, qos=int(qos), topicName=name, incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
                 datamanage.add_entity(message)
-            self.main.app.refresh_messages()
+            if isinstance(self.main.app, Login):
+                self.main.app.refresh_messages()
 
     def createTopic(self):
         name = self.nameText.get()

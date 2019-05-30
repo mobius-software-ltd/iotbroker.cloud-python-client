@@ -68,6 +68,7 @@ class SNParser(object):
             self.message = message
 
     def encode(self):
+        print(str(type(self.message)))
         messageType = self.message.getType()
         buffer = encode_messageType_method(self, messageType, self.message)
         return buffer

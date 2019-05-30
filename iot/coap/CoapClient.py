@@ -20,7 +20,6 @@
 import asyncio
 
 from OpenSSL.crypto import X509
-from twisted.internet import reactor
 
 from iot.classes.IoTClient import *
 from iot.coap.CoapParser import *
@@ -38,9 +37,9 @@ import tkinter.messagebox as messagebox
 from threading import Thread
 import socket
 from socket import socket
+from twisted.internet import reactor
 
 import OpenSSL.crypto
-import traceback
 
 
 class CoapClient(IoTClient):
@@ -77,32 +76,52 @@ class CoapClient(IoTClient):
 
         if self.account.isSecure:
 
-            #self.loop = asyncio.get_event_loop()
             self.loop = asyncio.new_event_loop()
 
             addr = (self.account.serverHost, self.account.port)
             if self.account.certificate and len(self.account.certificate) > 0:
                 fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
-                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
-                sock_wrapped.connect(addr)
+
+                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
+                self.sock_wrapped.connect(addr)
             else:
-                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
-                sock_wrapped.connect(addr)
+                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
+                self.sock_wrapped.connect(addr)
 
-            connect = self.loop.create_datagram_endpoint(lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=sock_wrapped)
+            datagram_endpoint = self.loop.create_datagram_endpoint(lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=self.sock_wrapped)
 
-            transport, protocol = self.loop.run_until_complete(connect)
+            self.transport, protocol = self.loop.run_until_complete(datagram_endpoint)
             self.udpClient = protocol
             self.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
-            self.udpThread = Thread(target=self.loop.run_forever)
+            self.udpThread = Thread(target=self.init_loop)
             self.udpThread.daemon = True
             self.udpThread.start()
         else:
             self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
-            reactor.listenUDP(0, self.udpClient)
+            self.udp_listener = reactor.listenUDP(0, self.udpClient)
 
         self.timers.goConnectTimer(message)
+
+    def init_loop(self):
+        self.loop.run_forever()
+        self.transport.close()
+        self.loop.close()
+        self.udpClient.connection_lost(None)
+        try:
+            self.sock_wrapped._sock.close()
+        except:
+            pass
+
+    def stop_udp_listener(self):
+        if hasattr(self, "loop") and self.loop is not None:
+            self.loop.stop()
+            try:
+                self.sock_wrapped._sock.close()
+            except Exception as ex:
+                pass
+        elif hasattr(self, "udp_listener"):
+            self.udp_listener.stopListening()
 
     def get_certificate_file(self, cert_body, cert_pwd):
 
@@ -236,25 +255,30 @@ class CoapClient(IoTClient):
 
     def disconnectWith(self, duration):
         self.timers.stopAllTimers()
+        self.stop_udp_listener()
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
+        self.stop_udp_listener()
         messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
         reactor.callFromThread(self.clientGUI.timeout)
 
     def connectTimeoutMethod(self):
         self.timers.stopAllTimers()
-        self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
-        self.clientGUI.timeout()
+        self.stop_udp_listener()
+        reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "Connection Timeout")
+        reactor.callFromThread(self.clientGUI.timeout)
 
     def ConnectionLost(self):
         self.setState(ConnectionState.CONNECTION_LOST)
+        self.stop_udp_listener()
 
     def connected(self):
         self.setState(ConnectionState.CHANNEL_ESTABLISHED)
 
     def connectFailed(self):
         self.setState(ConnectionState.CHANNEL_FAILED)
+        self.stop_udp_listener()
 
 
 # __________________________________________________________________________________________

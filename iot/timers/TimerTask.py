@@ -24,6 +24,7 @@ from iot.mqtt.mqtt_messages.MQPingreq import *
 from iot.mqttsn.mqttsn_messages.SNPingreq import *
 from iot.amqp.header.impl.AMQPPing import *
 from iot.coap.tlv.CoapMessage import CoapMessage
+from twisted.internet import reactor
 
 class TimerTask():
     def __init__(self, message, period, client, is_connect_timer):
@@ -60,7 +61,7 @@ class TimerTask():
 
     def start(self):
         if self.active:
-            self.client.clientGUI.after(self.period * 1000, self.handle_function)
+            reactor.callFromThread(self.client.clientGUI.after, self.period * 1000, self.handle_function)
 
     def onTimedEvent(self):
         if self.isTimeoutTask:

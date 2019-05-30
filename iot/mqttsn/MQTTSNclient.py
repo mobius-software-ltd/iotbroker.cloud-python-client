@@ -20,7 +20,6 @@
 import asyncio
 
 from OpenSSL.crypto import X509
-from twisted.internet import reactor
 
 from iot.classes.IoTClient import *
 from iot.mqttsn.SNParser import *
@@ -39,6 +38,7 @@ import socket
 from socket import socket
 
 import OpenSSL.crypto
+from twisted.internet import reactor
 
 
 class MQTTSNclient(IoTClient):
@@ -96,33 +96,54 @@ class MQTTSNclient(IoTClient):
         message = self.parser.encode()
 
         if self.account.isSecure:
-            self.loop = asyncio.get_event_loop()
+
+            self.loop = asyncio.new_event_loop()
 
             addr = (self.account.serverHost, self.account.port)
             if self.account.certificate and len(self.account.certificate) > 0:
                 fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
 
-                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
-                sock_wrapped.connect(addr)
+                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
+                self.sock_wrapped.connect(addr)
             else:
-                sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
-                sock_wrapped.connect(addr)
+                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
+                self.sock_wrapped.connect(addr)
 
-            datagram = self.loop.create_datagram_endpoint(
-                lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=sock_wrapped)
+            datagram_endpoint = self.loop.create_datagram_endpoint(lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=self.sock_wrapped)
 
-            transport, protocol = self.loop.run_until_complete(datagram)
+            self.transport, protocol = self.loop.run_until_complete(asyncio.wait_for(datagram_endpoint, 3))
+            if self.transport is None:
+                print("IS NONE")
+            else:
+                print("CONNECTED")
+
             self.udpClient = protocol
             self.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
-            self.udpThread = Thread(target=self.loop.run_forever)
+            self.udpThread = Thread(target=self.init_loop)
             self.udpThread.daemon = True
             self.udpThread.start()
         else:
             self.udpClient = UDPClient(self.account.serverHost, self.account.port, self)
-            reactor.listenUDP(0, self.udpClient)
+            self.udp_listener = reactor.listenUDP(0, self.udpClient)
 
         self.timers.goConnectTimer(connect)
+
+    def init_loop(self):
+        self.loop.run_forever()
+        self.transport.close()
+        self.loop.close()
+        self.udpClient.connection_lost(None)
+        try:
+            self.sock_wrapped._sock.close()
+        except:
+            pass
+
+    def stop_udp_listener(self):
+        if hasattr(self, "loop") and self.loop is not None:
+            self.loop.stop()
+        elif hasattr(self, "udp_listener"):
+            self.udp_listener.stopListening()
 
     def get_certificate_file(self, cert_body, cert_pwd):
 
@@ -179,13 +200,15 @@ class MQTTSNclient(IoTClient):
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
+        self.stop_udp_listener()
         messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
         reactor.callFromThread(self.clientGUI.timeout)
 
     def connectTimeoutMethod(self):
         self.timers.stopAllTimers()
-        self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
-        self.clientGUI.timeout()
+        self.stop_udp_listener()
+        reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "Connection Timeout")
+        reactor.callFromThread(self.clientGUI.timeout)
 
     def PacketReceived(self, ProtocolMessage):
         ProtocolMessage.processBy()
@@ -198,18 +221,19 @@ class MQTTSNclient(IoTClient):
         if self.client != None:
             self.client.stop()
             self.setState(ConnectionState.CONNECTION_LOST)
-        self.loop.close()
         if self.account.isSecure:
             self.udpThread.join()
+
+        self.stop_udp_listener()
 
     def connected(self):
         self.setState(ConnectionState.CHANNEL_ESTABLISHED)
 
     def connectFailed(self):
         self.setState(ConnectionState.CHANNEL_FAILED)
-        self.loop.close()
         if self.account.isSecure:
             self.udpThread.join()
+        self.stop_udp_listener()
 
 
 # __________________________________________________________________________________________
@@ -238,6 +262,7 @@ def processCONNACK(self, message):
     else:
         reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "ReturnCode: " + str(ReturnCode(message.getCode()).name))
         reactor.callFromThread(self.clientGUI.errorReceived)
+
 
 def processWILL_TOPIC_REQ(self, message):
     qos = QoS(self.account.qos)
@@ -383,8 +408,8 @@ def processPINGREQ(self, message):
 def processDISCONNECT(self, message):
     self.timers.stopAllTimers()
     reactor.callFromThread(self.clientGUI.disconnectReceived)
-    if hasattr(self, "loop") and hasattr(self.loop, "stop"):
-        self.loop.stop()
+    self.stop_udp_listener()
+
 
 def processWILL_TOPIC_UPD(self, message):
     raise ValueError('Packet Will topic upd did receive')
