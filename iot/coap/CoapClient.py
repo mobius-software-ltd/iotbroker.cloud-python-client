@@ -242,6 +242,11 @@ class CoapClient(IoTClient):
         messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
         reactor.callFromThread(self.clientGUI.timeout)
 
+    def connectTimeoutMethod(self):
+        self.timers.stopAllTimers()
+        self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
+        self.clientGUI.timeout()
+
     def ConnectionLost(self):
         self.setState(ConnectionState.CONNECTION_LOST)
 

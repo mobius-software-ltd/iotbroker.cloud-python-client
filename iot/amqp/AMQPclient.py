@@ -183,6 +183,11 @@ class AMQPclient(IoTClient):
         self.timers.stopAllTimers()
         self.clientGUI.timeout()
 
+    def connectTimeoutMethod(self):
+        self.timers.stopAllTimers()
+        self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
+        self.clientGUI.timeout()
+
     def setTopics(self, topics):
         pass
 

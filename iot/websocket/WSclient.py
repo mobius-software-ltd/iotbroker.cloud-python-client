@@ -17,18 +17,14 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from iot.classes.ConnectionState import *
-from iot.mqtt.mqtt_classes.MQConnackCode import *
-from iot.mqtt.mqtt_classes.MQSubackCode import *
-from iot.mqtt.mqtt_classes.Will import *
+import base64
+
+from autobahn.twisted.websocket import connectWS
+
+from iot.classes.IoTClient import *
 from iot.mqtt.mqtt_classes.MQTopic import *
 from iot.network.WebSocket import *
-from autobahn.twisted.websocket import connectWS
-from iot.classes.IoTClient import *
-from iot.mqtt.MQParser import MQParser
 from iot.timers.TimersMap import *
-import base64
-from twisted.internet import reactor
 
 
 class WSclient(IoTClient):
@@ -40,6 +36,7 @@ class WSclient(IoTClient):
         self.data = None
         self.timers = TimersMap(self)
         self.publishPackets = {}
+        self.publishPacketsOut = {}
 
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
@@ -70,11 +67,11 @@ class WSclient(IoTClient):
             self.clientFactory = WSSocketClientFactory(url, self)
             # self.clientFactory.setProtocolOptions(openHandshakeTimeout=10)
             ctx = CtxFactory(self.account.certificate, self.account.certPasw)
-            connectWS(self.clientFactory, ctx, int(self.account.keepAlive) * 2)
+            self.connector = connectWS(self.clientFactory, ctx, int(self.account.keepAlive) * 2)
         else:
             url = 'ws://' + str(self.account.serverHost) + ':' + str(self.account.port) + '/ws'
             self.clientFactory = WSSocketClientFactory(url, self)
-            connectWS(self.clientFactory, None, int(self.account.keepAlive) * 2)
+            self.connector = connectWS(self.clientFactory, None, int(self.account.keepAlive) * 2)
 
         if self.account.username is not None and len(self.account.username) > 0:
             usernameFlag = True
@@ -112,7 +109,9 @@ class WSclient(IoTClient):
             self.send(publish)
         else:
             if (qos in [1, 2]):
-                self.timers.goMessageTimer(publish);
+                packetID = self.timers.goMessageTimer(publish)
+                if qos == 2:
+                    self.publishPacketsOut[packetID] = publish
 
     def unsubscribeFrom(self, topicName):
         listTopics = []
@@ -150,9 +149,15 @@ class WSclient(IoTClient):
         disconnect = {"packet": 14}
         self.send(disconnect)
         self.timers.stopAllTimers()
+        self.connector.disconnect()
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
+        self.clientGUI.timeout()
+
+    def connectTimeoutMethod(self):
+        self.timers.stopAllTimers()
+        self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
         self.clientGUI.timeout()
 
     def PacketReceived(self, ProtocolMessage):
@@ -190,6 +195,7 @@ def processConnack(self, message):
         self.clientGUI.errorReceived()
         self.clientGUI.show_error_message("Connect Error", "ReturnCode: " + str(message['returnCode']))
 
+
 def processSuback(self, message):
     subscribe = self.timers.removeTimer(message['packetID'])
     if subscribe is not None:
@@ -206,6 +212,7 @@ def processUnsuback(self, message):
 
 
 def processPublish(self, message):
+
     publisherQoS = message['topic']['qos']
 
     name = message['topic']['name']
@@ -214,11 +221,11 @@ def processPublish(self, message):
 
     if publisherQoS == 0:
         self.clientGUI.publishReceived(topic, qos, base64.b64decode(message['content']).decode("utf-8"), message['dup'], message['retain'])
-    if publisherQoS == 1:  # AT_LEAST_ONCE
+    elif publisherQoS == 1:  # AT_LEAST_ONCE
         puback = {"packet": 4, "packetID": message['packetID']}
         self.send(puback)
         self.clientGUI.publishReceived(topic, qos, base64.b64decode(message['content']).decode("utf-8"), message['dup'], message['retain'])
-    if publisherQoS == 2:  # EXACTLY_ONCE
+    elif publisherQoS == 2:  # EXACTLY_ONCE
         pubrec = {"packet": 5, "packetID": message['packetID']}
         self.send(pubrec)
         self.publishPackets[message['packetID']] = message
@@ -234,11 +241,9 @@ def processPuback(self, message):
 
 
 def processPubrec(self, message):
-    publish = self.timers.removeTimer(message['packetID'])
-    if publish is not None:
-        pubrel = {"packet": 6, "packetID": message['packetID']}
-        self.timers.goMessageTimer(pubrel)
-        self.publishPackets[publish['packetID']] = publish
+    pubrel = {"packet": 6, "packetID": message['packetID']}
+    self.timers.removeTimer(message['packetID'])
+    self.timers.goMessageTimer(pubrel)
 
 
 def processPubrel(self, message):
@@ -250,19 +255,19 @@ def processPubrel(self, message):
         topic = MQTopic(name, qos)
 
         self.clientGUI.publishReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'])
-        pubcomp = {"packet": 7, "packetID": message['packetID']}
-        self.send(pubcomp)
+    pubcomp = {"packet": 7, "packetID": message['packetID']}
+    self.send(pubcomp)
 
 
 def processPubcomp(self, message):
     pubrel = self.timers.removeTimer(message['packetID'])
     if pubrel is not None:
-        publish = self.publishPackets.get(message['packetID'])
-        name = publish['topic']['name']
-        qos = QoS(publish['topic']['qos'])
-        topic = MQTopic(name, qos)
-
-        self.clientGUI.pubackReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'], 0)
+        publish = self.publishPacketsOut.get(message['packetID'])
+        if publish is not None:
+            name = publish['topic']['name']
+            qos = QoS(publish['topic']['qos'])
+            topic = MQTopic(name, qos)
+            self.clientGUI.pubackReceived(topic, qos, base64.b64decode(publish['content']).decode("utf-8"), publish['dup'], publish['retain'], 0)
 
 
 def processPingresp(self, message):

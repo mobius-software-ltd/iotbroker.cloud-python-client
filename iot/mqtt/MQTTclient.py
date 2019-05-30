@@ -95,9 +95,9 @@ class MQTTclient(IoTClient):
         self.clientFactory = ClientFactory(self.parser.encode(), self)
         if self.account.isSecure:
             ctx = CtxFactory(self.account.certificate, self.account.certPasw)
-            reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
+            self.connector = reactor.connectSSL(self.account.serverHost, self.account.port, self.clientFactory, ctx)
         else:
-            reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
+            self.connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
 
     def publish(self, name, qos, content, retain, dup):
         topic = MQTopic(name, qos)
@@ -130,6 +130,11 @@ class MQTTclient(IoTClient):
 
     def timeoutMethod(self):
         self.timers.stopAllTimers()
+        reactor.callFromThread(self.clientGUI.timeout)
+
+    def connectTimeoutMethod(self):
+        self.timers.stopAllTimers()
+        reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "Connection timeout")
         reactor.callFromThread(self.clientGUI.timeout)
 
     def ConnectionLost(self):
@@ -167,7 +172,6 @@ def processUnsuback(self, message):
 
 
 def processPublish(self, message):
-    print("processing publish")
     publisherQoS = message.topic.qos.getValue()
     if publisherQoS.getValue() == 0:
         self.clientGUI.publishReceived(message.topic, publisherQoS, message.content, message.dup, message.retain)
@@ -196,7 +200,8 @@ def processPubrec(self, message):
 
 def processPubrel(self, message):
     publish = self.publishPackets.get(message.packetID)
-    self.clientGUI.publishReceived(publish.topic, publish.topic.getQoS().getValue(), publish.content, publish.dup, publish.retain)
+    if publish is not None:
+        self.clientGUI.publishReceived(publish.topic, publish.topic.getQoS().getValue(), publish.content, publish.dup, publish.retain)
     self.send(MQPubcomp(message.packetID))
 
 

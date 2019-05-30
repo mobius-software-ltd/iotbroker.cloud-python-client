@@ -18,6 +18,7 @@
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
 from iot.classes.ConnectionState import *
+from iot.mqtt.mqtt_messages.MQConnect import *
 from iot.mqtt.mqtt_messages.MQPublish import *
 from iot.mqtt.mqtt_messages.MQPingreq import *
 from iot.mqttsn.mqttsn_messages.SNPingreq import *
@@ -25,14 +26,15 @@ from iot.amqp.header.impl.AMQPPing import *
 from iot.coap.tlv.CoapMessage import CoapMessage
 
 class TimerTask():
-    def __init__(self, message, period, client):
+    def __init__(self, message, period, client, is_connect_timer):
         self.message = message
         self.period = period
         self.status = None
         self.isTimeoutTask = False
         self.client = client
         self.active = True
-        self.count = 3
+        self.count = 2
+        self.is_connect_timer = is_connect_timer
         if self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             self.client.send(self.message)
 
@@ -42,7 +44,10 @@ class TimerTask():
             self.client.clientGUI.after(self.period * 1000, self.handle_function)
             self.count -= 1
             if self.count == 0 and isinstance(self.message, MQPingreq)!=True and isinstance(self.message, SNPingreq)!=True and isinstance(self.message,AMQPPing)!=True:
-                self.client.timeoutMethod()
+                if self.is_connect_timer:
+                    self.client.connectTimeoutMethod()
+                else:
+                    self.client.timeoutMethod()
 
     def getPeriod(self):
         return self.period

@@ -33,6 +33,7 @@ class TCPClient(Protocol):
     def __init__(self, message, client):
         self.message = message
         self.client = client
+        self.protocol = Protocol
 
     def connectionMade(self):
         print("Server connected")
@@ -53,12 +54,11 @@ class TCPClient(Protocol):
             print('TCPClient sending message ERROR ' + str(ex))
 
     def connectionLost(self, reason):
-        # connector.connect()
         print("connection lost")
 
     def connectionClose(self):
-        pass
-        #reactor.stop()
+        if hasattr(self.client, "connector"):
+            self.client.connector.disconnect()
 
     def getStatus(self):
         pass
@@ -84,15 +84,11 @@ class ClientFactory(ReconnectingClientFactory):
         print('Started to connect.')
 
     def clientConnectionFailed(self, connector, reason):
-        messagebox.showinfo("Warning", 'TCP connection failed')
-        print("TCP connection failed - goodbye!")
+        # messagebox.showinfo("Warning", 'TCP connection failed')
         self.client.ConnectionLost()
 
     def clientConnectionLost(self, connector, reason):
-        print("TCP connection lost - reconnect!")
-
-        # self.client.ConnectionLost()
-        # connector.connect()
+        pass
 
     def client_close_connection(self):
         self.tcp.connectionClose()
