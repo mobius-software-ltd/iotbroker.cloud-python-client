@@ -38,5 +38,5 @@ class pyDTLSClient:
 
     def connection_lost(self, exc):
         print("Connection closed")
-        #self.loop.stop()
         self.on_con_lost.set_result(True)
+        self.client.process_connection_closed()

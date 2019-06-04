@@ -74,7 +74,7 @@ class AMQPEnd(AMQPHeader):
                     self.error = AMQPError(None,None,None)
                     self.error.fromArgumentsList(element)
 
-    def toString(self):
+    def __str__(self):
         return "AMQPEnd [error=" + str(self.error) + ", code=" + str(self.code) + ", doff=" + str(self.doff) + ", type=" + str(self.type) + ", channel=" + str(self.channel) + "]"
 
     def setError(self, error):

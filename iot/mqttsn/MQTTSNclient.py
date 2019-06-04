@@ -32,7 +32,6 @@ basicConfig(level=DEBUG)  # set now for dtls import code
 from dtls import do_patch, wrapper
 
 do_patch()
-import tkinter.messagebox as messagebox
 from threading import Thread
 import socket
 from socket import socket
@@ -57,6 +56,7 @@ class MQTTSNclient(IoTClient):
         self.topics = {}
         self.loop = None
         self.udpThread = None
+        self.disconnected = False
 
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
@@ -100,23 +100,20 @@ class MQTTSNclient(IoTClient):
             self.loop = asyncio.new_event_loop()
 
             addr = (self.account.serverHost, self.account.port)
+            sock = socket(AF_INET, SOCK_DGRAM)
+            sock.settimeout(5)
+            sock.setblocking(1)
             if self.account.certificate and len(self.account.certificate) > 0:
                 fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
-
-                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
-                self.sock_wrapped.connect(addr)
+                self.sock_wrapped = wrapper.wrap_client(sock, keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
             else:
-                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
-                self.sock_wrapped.connect(addr)
+                self.sock_wrapped = wrapper.wrap_client(sock)
+
+            self.sock_wrapped.connect(addr)
 
             datagram_endpoint = self.loop.create_datagram_endpoint(lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=self.sock_wrapped)
 
             self.transport, protocol = self.loop.run_until_complete(asyncio.wait_for(datagram_endpoint, 3))
-            if self.transport is None:
-                print("IS NONE")
-            else:
-                print("CONNECTED")
-
             self.udpClient = protocol
             self.setState(ConnectionState.CONNECTION_ESTABLISHED)
 
@@ -192,6 +189,7 @@ class MQTTSNclient(IoTClient):
         self.send(SNPingreq(self.account.clientID))
 
     def disconnectWith(self, duration):
+        self.disconnected = True
         if duration is not None and duration > 0:
             self.send(SNDisconnect(duration))
         else:
@@ -199,16 +197,24 @@ class MQTTSNclient(IoTClient):
         self.timers.stopAllTimers()
 
     def timeoutMethod(self):
+        self.error_occurred("Timeout was reached. Try to reconnect")
+
+    def process_connection_closed(self):
+        self.timers.stopAllTimers()
+        if not self.disconnected:
+            self.error_occurred("Connection closed by server")
+
+    def error_occurred(self, message):
         self.timers.stopAllTimers()
         self.stop_udp_listener()
-        messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
-        reactor.callFromThread(self.clientGUI.timeout)
+        reactor.callFromThread(self.clientGUI.show_error_message, "Warning", message)
+        reactor.callFromThread(self.clientGUI.errorReceived)
 
     def connectTimeoutMethod(self):
         self.timers.stopAllTimers()
         self.stop_udp_listener()
         reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "Connection Timeout")
-        reactor.callFromThread(self.clientGUI.timeout)
+        reactor.callFromThread(self.clientGUI.errorReceived)
 
     def PacketReceived(self, ProtocolMessage):
         ProtocolMessage.processBy()

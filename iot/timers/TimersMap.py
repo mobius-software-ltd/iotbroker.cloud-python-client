@@ -33,7 +33,7 @@ class TimersMap():
     def goConnectTimer(self, message):
         if self.connectTimer is not None:
             self.connectTimer.stop()
-        self.connectTimer = TimerTask(message, 3, self.client, True)
+        self.connectTimer = TimerTask(message, 3, self.client, True, False)
         self.connectTimer.start()
 
     def stopConnectTimer(self):
@@ -45,7 +45,7 @@ class TimersMap():
         if self.pingTimer is not None:
             self.pingTimer.stop()
 
-        self.pingTimer = TimerTask(message, keepalive, self.client, False)
+        self.pingTimer = TimerTask(message, keepalive, self.client, False, True)
         self.pingTimer.start()
 
     def stopPingTimer(self):
@@ -57,7 +57,7 @@ class TimersMap():
         if self.timeoutTimer is not None:
             self.timeoutTimer.stop()
 
-        self.timeoutTimer = TimerTask(None, 3, self.client, False)
+        self.timeoutTimer = TimerTask(None, 3, self.client, False, False)
         self.timeoutTimer.isTimeoutTask = True
         self.timeoutTimer.start()
 
@@ -66,13 +66,20 @@ class TimersMap():
             self.timeoutTimer.stop()
             self.timeoutTimer = None
 
+    def store_timer_stub(self, message):
+        if isinstance(message, AMQPTransfer):
+            message.setDeliveryId(np.int64(self.getNewPacketID()))
+            timer = TimerTask(message, 3, self.client, False, False)
+            self.timersMap[message.getDeliveryId()] = timer
+            return message.getDeliveryId()
+
     def goMessageTimer(self, message):
         if len(self.timersMap) == 1000:
             raise ValueError('TimersMap : Outgoing identifier overflow')
 
         if isinstance(message, AMQPTransfer):
             message.setDeliveryId(np.int64(self.getNewPacketID()))
-            timer = TimerTask(message, 3, self.client, False)
+            timer = TimerTask(message, 3, self.client, False, False)
             self.timersMap[message.getDeliveryId()] = timer
             timer.start()
             return message.getDeliveryId()
@@ -84,7 +91,7 @@ class TimersMap():
                     if isinstance(message, CoapMessage):
                         message.token = str(message.packetID)
 
-                timer = TimerTask(message, 5, self.client, False)
+                timer = TimerTask(message, 3, self.client, False, False)
                 self.timersMap[message.packetID] = timer
                 timer.start()
                 return message.packetID
@@ -92,7 +99,7 @@ class TimersMap():
                 if message['packetID'] == None:
                     message['packetID'] = self.getNewPacketID()
 
-                timer = TimerTask(message, 3, self.client, False)
+                timer = TimerTask(message, 3, self.client, False, False)
                 self.timersMap[message['packetID']] = timer
                 timer.start()
                 return message['packetID']

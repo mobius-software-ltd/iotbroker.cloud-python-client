@@ -12,7 +12,7 @@ except:
     import tkinter.messagebox as messagebox
     from PIL import Image, ImageFont, ImageDraw, ImageTk
 
-from database import AccountEntity, MessageEntity, datamanager
+from database import AccountEntity, MessageEntity, TopicEntity, datamanager
 from iot.classes.AccountValidation import *
 from iot.mqtt.MQTTclient import *
 from iot.mqttsn.MQTTSNclient import *
@@ -167,11 +167,9 @@ class Main_screen(Frame):
 
     def pingrespReceived(self, coapFlag):
         if coapFlag:
-            self.loading.withdraw()
             self.show_note(0, 4)
 
     def connackReceived(self, retCode):
-        self.loading.withdraw()
         self.show_note(0, 4)
 
     def subackReceived(self, topic, qos, returnCode):
@@ -209,7 +207,7 @@ class Main_screen(Frame):
 
         message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName, incoming=False, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
-        self.note_frame.refresh_messages()
+        self.note_frame.refresh_messages(account)
 
     def publishReceived(self, topic, qos, content, dup, retainFlag):
         datamanage = datamanager()
@@ -227,13 +225,14 @@ class Main_screen(Frame):
 
         message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName, incoming=True, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
-        self.note_frame.refresh_messages()
+        self.note_frame.refresh_messages(account)
 
     def disconnectReceived(self):
         self.loading.withdraw()
 
     def errorReceived(self):
         self.disconnectReceived()
+        self.note.withdraw()
         self.show_accounts()
 
     def timeout(self):
@@ -242,6 +241,11 @@ class Main_screen(Frame):
 
     def show_error_message(self, title, message):
         messagebox.showinfo(title, message)
+
+    def close_login(self):
+        self.note.withdraw()
+        self.show_accounts()
+
 
 class Loading(Frame):
     def __init__(self, master, main):
@@ -274,6 +278,8 @@ class Loading(Frame):
 
     def stop_progressbar(self):
         self.progress.stop()
+        self.main.loading.withdraw()
+
         account = datamanager().get_default_account()
 
         if account is not None:
@@ -302,12 +308,12 @@ class Loading(Frame):
                     topics = datamanager().get_topics_all_accountID(account.id)
                     self.main.client = AMQPclient(account, self.main, topics)
                     self.main.client.goConnect()
-            except Exception as err:
+            except Exception as ex:
+                print("error occurred during connect: " + str(ex))
                 datamanager().clear_default_account()
                 messagebox.showinfo("Connect Error", "Connection failed")
                 self.main.errorReceived()
         else:
-            self.main.loading.withdraw()
             self.main.show_accounts()
 
 
@@ -376,7 +382,6 @@ class Accounts(Frame):
                 height = 53 * len(accounts)
 
             for item in accounts:
-
                 userImg = Label(master=self.myframe, image=self.userPhoto, bd=0, height=50, width=50, bg=whitebg).grid(row=i + 1, column=0)
 
                 text = ' {} \n {} \n {}:{}'.format(client_protocol.get_protocol_name(item.protocol).upper(), item.clientID,
@@ -386,7 +391,8 @@ class Accounts(Frame):
                 txtButton = CustomFont_Button(self.myframe, text=text, font_path=font_medium, size=12, strings_number=4,
                                               background='white', highlightthickness=0, bd=0, height=50, width=width,
                                               command=lambda curr_client_id=item.clientID: self.connect(curr_client_id)).grid(row=i + 1, column=1)
-                delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda curr_client_id=item.clientID: self.delete(curr_client_id)).grid(row=i + 1, column=2)
+                delButton = ttk.Button(self.myframe, image=self.buttonPhoto, text="Del", style='My.TLabel', command=lambda curr_client_id=item.clientID: self.delete(curr_client_id)).grid(row=i + 1,
+                                                                                                                                                                                           column=2)
                 i += 1
 
         self.vbar.place(x=342, y=1, height=370)
@@ -764,7 +770,7 @@ class Certificate(Frame):
 
     def __init__(self, master, main):
         self.master = master
-        center_child(self.master, 360, 325)
+        center_child(self.master, 360, 396)
         self.master.resizable(False, False)
         master.title("Certificate")
         self.main = main
@@ -783,8 +789,8 @@ class Certificate(Frame):
         ScrollBar.pack(side=RIGHT, fill=Y)
         self.TextArea.pack(expand=YES, fill=BOTH)
 
-        canvasButton = tk.Canvas(self.master, width=52, height=4)
-        canvasButton.place(x=140, y=270)
+        canvasButton = tk.Canvas(self.master, width=52, height=6)
+        canvasButton.place(x=140, y=365)
         button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack()
 
         self.opened = True
@@ -805,7 +811,8 @@ class Will(Frame):
 
     def __init__(self, master, main):
         self.master = master
-        center_child(self.master, 360, 325)
+        center_child(self.master, 360, 396)
+
         self.master.resizable(False, False)
         master.title("Will")
         self.main = main
@@ -824,9 +831,9 @@ class Will(Frame):
         ScrollBar.pack(side=RIGHT, fill=Y)
         self.TextArea.pack(expand=YES, fill=BOTH)
 
-        canvasButton = tk.Canvas(self.master, width=52, height=4)
-        canvasButton.place(x=140, y=270)
-        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack(pady=20)
+        canvasButton = tk.Canvas(self.master, width=52, height=6)
+        canvasButton.place(x=140, y=365)
+        button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack()
 
         self.opened = True
 
@@ -935,7 +942,7 @@ class NoteForm(Frame):
         self.master.title("iotbroker.cloud " + protocol_text)
         self.refresh_topics()
         self.refresh_send()
-        self.refresh_messages()
+        self.refresh_messages(self.account)
 
     def refresh_tabs(self):
         if self.active == 0:
@@ -1175,17 +1182,10 @@ class NoteForm(Frame):
                                    width=360, activeforeground=whitebg, activebackground=buttonColor,
                                    command=self.createTopic).grid(row=0, sticky='w')
 
-    def refresh_messages(self):
+    def refresh_messages(self, account):
         messages = CustomFont_Label(self.canvasTab3, text=" messages list:", font_path=font_bold, size=14).grid(row=0, sticky='w', pady=3)
         self.messagesCanvas = tk.Canvas(self.canvasTab3, width=359, height=510, bg=whitebg, highlightcolor=whitebg)
         messagesFrame = ttk.Frame(self.messagesCanvas, style='My.TFrame')
-
-        datamanage = datamanager()
-        account = datamanage.get_default_account()
-
-        messages = None
-        if account is not None:
-            messages = datamanage.get_messages_all_accountID(account.id)
 
         qosImg = Image.open('./resources/icon_in_qos_0_75.png')
         self.photo0in = ImageTk.PhotoImage(qosImg)
@@ -1200,6 +1200,8 @@ class NoteForm(Frame):
         self.photo1out = ImageTk.PhotoImage(qosImg)
         qosImg = Image.open('./resources/icon_out_qos_2_75.png')
         self.photo2out = ImageTk.PhotoImage(qosImg)
+
+        messages = datamanager().get_messages_all_accountID(account.id)
 
         height = 0
         i = 0
@@ -1359,7 +1361,7 @@ class Content(Frame):
 
     def __init__(self, master, main):
         self.master = master
-        center_child(self.master, 360, 325)
+        center_child(self.master, 360, 396)
         self.master.resizable(False, False)
         master.title("Content")
         self.main = main
@@ -1379,8 +1381,8 @@ class Content(Frame):
         ScrollBar.pack(side=RIGHT, fill=Y)
         self.TextArea.pack(expand=YES, fill=BOTH)
 
-        canvasButton = tk.Canvas(self.master, width=52, height=4)
-        canvasButton.place(x=140, y=270)
+        canvasButton = tk.Canvas(self.master, width=52, height=6)
+        canvasButton.place(x=140, y=365)
         button = Button(canvasButton, text="OK", font=font.Font(family='Sans', size=12, weight="bold"), height=1, width=5, command=self.close).pack()
 
         self.opened = True

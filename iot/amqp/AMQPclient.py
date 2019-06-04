@@ -17,37 +17,25 @@
  # Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  # 02110-1301 USA, or see the FSF site: http://www.fsf.org.
 """
-from iot.amqp.header.impl.AMQPProtoHeader import *
-from iot.amqp.header.impl.AMQPPing import *
-from iot.amqp.header.impl.AMQPOpen import *
-from iot.amqp.header.impl.SASLMechanisms import *
-from iot.amqp.header.impl.SASLInit import *
-from iot.amqp.header.impl.SASLOutcome import *
-from iot.amqp.header.impl.AMQPBegin import *
-from iot.amqp.header.impl.AMQPEnd import *
-from iot.amqp.header.impl.AMQPClose import *
-from iot.amqp.header.impl.AMQPTransfer import *
+from iot.amqp.AMQPParser import AMQPParser
 from iot.amqp.header.impl.AMQPAttach import *
-from iot.amqp.header.impl.AMQPDisposition import *
+from iot.amqp.header.impl.AMQPBegin import *
+from iot.amqp.header.impl.AMQPClose import *
 from iot.amqp.header.impl.AMQPDetach import *
+from iot.amqp.header.impl.AMQPDisposition import *
+from iot.amqp.header.impl.AMQPEnd import *
+from iot.amqp.header.impl.AMQPOpen import *
+from iot.amqp.header.impl.AMQPProtoHeader import *
+from iot.amqp.header.impl.SASLInit import *
+from iot.amqp.header.impl.SASLMechanisms import *
+from iot.amqp.header.impl.SASLOutcome import *
 from iot.amqp.sections.AMQPData import *
 from iot.amqp.terminus.AMQPSource import *
-from iot.amqp.wrappers.AMQPMessageFormat import *
-from iot.amqp.avps.OutcomeCode import *
-from iot.classes.NumericUtil import NumericUtil as util
-from iot.classes.ConnectionState import *
-from iot.mqtt.mqtt_classes.MQConnackCode import *
-from iot.mqtt.mqtt_classes.MQSubackCode import *
-from iot.mqtt.mqtt_classes.Will import *
+from iot.classes.IoTClient import *
 from iot.mqtt.mqtt_classes.MQTopic import *
 from iot.network.TCPClient import *
-from iot.classes.IoTClient import *
-from iot.amqp.AMQPParser import AMQPParser
 from iot.timers.TimersMap import *
-# import t.i.reactor only after installing wxreactor
-from twisted.internet import ssl, reactor
-import numpy as np
-from database import TopicEntity
+
 
 class AMQPclient(IoTClient):
     def __init__(self, account, client, topics):
@@ -68,6 +56,7 @@ class AMQPclient(IoTClient):
         for topic in topics:
             self.pending_topics[topic.topicName] = topic
         self.outstanding_attach_topics = {}
+        self.connect_failed = False
 
     def send(self, header):
 
@@ -92,7 +81,10 @@ class AMQPclient(IoTClient):
             data = data[index:]
 
         for message in messages:
-            process_messageType_method(self, message.getCode().value, message)
+            self.handle_next_message(message)
+
+    def handle_next_message(self, message):
+        reactor.callFromThread(process_messageType_method, self, message.getCode().value, message)
 
     def goConnect(self):
         self.setState(ConnectionState.CONNECTING)
@@ -106,6 +98,7 @@ class AMQPclient(IoTClient):
             connector = reactor.connectTCP(self.account.serverHost, self.account.port, self.clientFactory)
 
         self.setState(ConnectionState.CONNECTION_ESTABLISHED)
+        self.timers.goConnectTimer(None)
 
     def publish(self, name, qos, content, retain, dup):
 
@@ -121,11 +114,6 @@ class AMQPclient(IoTClient):
             handle = self.usedOutgoingMappings[name]
             transfer.setHandle(np.int64(handle))
             self.timers.goMessageTimer(transfer)
-            if transfer.getSettled() is not None:
-                settled = transfer.getSettled()
-                if settled:
-                    if transfer.getDeliveryId() is not None:
-                        self.timers.removeTimer(transfer.getDeliveryId())
         else:
             currentHandler = self.nextHandle
             self.nextHandle += 1
@@ -134,7 +122,7 @@ class AMQPclient(IoTClient):
             transfer.setHandle(np.int64(currentHandler))
             self.pendingMessages.append(transfer)
 
-            attach = AMQPAttach(None, None, None, self.channel, str(name), np.int64(currentHandler), RoleCode.SENDER, None, np.int16(ReceiveCode.FIRST.value), None, None, None, None, np.int64(0),
+            attach = AMQPAttach(None, None, None, self.channel, str(name), np.int64(currentHandler), RoleCode.SENDER, None, np.int16(ReceiveCode.SECOND.value), None, None, None, None, np.int64(0),
                                 None, None, None, None)
             source = AMQPSource(str(name), np.int64(TerminusDurability.NONE.value), None, np.int64(0), False, None, None, None, None, None, None)
             attach.setSource(source)
@@ -187,6 +175,7 @@ class AMQPclient(IoTClient):
         self.timers.stopAllTimers()
         self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
         self.clientGUI.timeout()
+        self.connect_failed = True
 
     def setTopics(self, topics):
         pass
@@ -195,14 +184,17 @@ class AMQPclient(IoTClient):
         self.connectionState = ConnectionState
 
     def ConnectionLost(self):
-        if self.timers != None:
-            self.timers.stopAllTimers()
-        self.clientGUI.errorReceived()
+        if not self.connect_failed:
+            if self.timers != None:
+                self.timers.stopAllTimers()
+            self.clientGUI.errorReceived()
 
 
 # __________________________________________________________________________________________
 
 def processProto(self, message):
+    self.timers.stopConnectTimer()
+
     if isinstance(message, AMQPProtoHeader):
         if self.isSASLConfirm and message.getProtocolId() == 0:
             open = AMQPOpen(None, None, None, message.getChannel(), self.account.clientID, self.account.serverHost, None, None, np.int64(50 * 1000), None, None, None, None, None)
@@ -262,7 +254,7 @@ def processBegin(self, message):
     self.clientGUI.connackReceived(0)
     ping = AMQPPing()
     if self.timeout is None:
-        self.timers.goPingTimer(ping, 50)
+        self.timers.goPingTimer(ping, 10)
     else:
         self.timers.goPingTimer(ping, self.timeout / 1000)
 
@@ -273,6 +265,11 @@ def processBegin(self, message):
 def processEnd(self, message):
     close = AMQPClose(None, None, None, self.channel, None)
     self.send(close)
+    if message.error is not None and message.error.description is not None and len(message.error.description) > 0:
+        self.timers.stopAllTimers()
+        self.connectionState == ConnectionState.CONNECTION_LOST
+        messagebox.showinfo("Server closed connection", message.error.description)
+        self.clientGUI.close_login()
 
 
 def processClose(self, message):
@@ -288,31 +285,32 @@ def processClose(self, message):
 def processAttach(self, message):
     if isinstance(message, AMQPAttach):
         if message.getRole() == RoleCode.RECEIVER:
+
+            pending_handle = self.usedOutgoingMappings[message.getName()];
             for pending in self.pendingMessages:
                 if isinstance(pending, AMQPTransfer):
                     h1 = pending.getHandle()
-                    h2 = message.getHandle()
-                if h1 == h2:
-                    self.pendingMessages.remove(pending)
-                    self.timers.goMessageTimer(pending)
-                    if pending.getSettled() is not None:
-                        settled = pending.getSettled()
-                        if settled:
-                            if pending.getDeliveryId() is not None:
-                                id = pending.getDeliveryId()
-                                self.timers.removeTimer(id)
+                    if h1 == pending_handle:
+                        self.pendingMessages.remove(pending)
+                        self.timers.store_timer_stub(pending)
         else:
             handle = message.getHandle()
             self.usedIncomingMappings[message.getName()] = handle
             self.usedMappings[handle] = message.getName()
 
-            try:
-                if self.outstanding_attach_topics.pop(handle) == message.getName():
-                    if self.pending_topics.pop(message.getName(), None) is None:
-                        topic = MQTopic(message.getName(), 1)
-                        qos = topic.getQoS()
-                        self.clientGUI.subackReceived(topic, qos, 0)
-            except:
+            if self.outstanding_attach_topics.pop(handle, None) == message.getName():
+                if self.pending_topics.pop(message.getName(), None) is None:
+                    topic = MQTopic(message.getName(), 1)
+                    qos = topic.getQoS()
+                    self.clientGUI.subackReceived(topic, qos, 0)
+            else:
+                attach_response = AMQPAttach(None, None, None, self.channel, str(message.getName()), np.int64(message.getHandle()), RoleCode.RECEIVER, np.int16(SendCode.MIXED.value),
+                                             np.int16(ReceiveCode.SECOND.value), None, None, None, None, None, None,
+                                             None,
+                                             None, None)
+                target = AMQPTarget(str(message.getName()), np.int64(TerminusDurability.NONE.value), None, np.int64(0), False, None, None)
+                attach_response.setTarget(target)
+                self.send(attach_response)
                 pass
 
 
@@ -322,18 +320,14 @@ def processTransfer(self, message):
         qos = QoS(1)
         if message.getSettled() is not None and message.getSettled():
             qos = QoS(0)
-            print("qos 0")
-        else:
-            state = AMQPAccepted()
-            disposition = AMQPDisposition(None, None, None, self.channel, RoleCode.RECEIVER, np.int64(message.getDeliveryId()), np.int64(message.getDeliveryId()), True, AMQPAccepted(), None)
-            print("sending disposition")
-            self.send(disposition)
-            print("disposition sent")
+
+        disposition = AMQPDisposition(None, None, None, self.channel, RoleCode.RECEIVER, np.int64(message.getDeliveryId()), None, True, AMQPAccepted(), None)
+        self.send(disposition)
 
         handle = message.getHandle()
-        if handle is not None and (handle in self.usedMappings):
+        if handle is not None and handle in self.usedMappings:
             topic = self.usedMappings[handle]
-            self.clientGUI.publishReceived(topic, qos, message.getData().getData(), False, False)
+            reactor.callFromThread(self.clientGUI.publishReceived, topic, qos, message.getData().getData(), False, False)
 
 
 def processDetach(self, message):
@@ -354,12 +348,11 @@ def processDisposition(self, message):
     if isinstance(message, AMQPDisposition):
         if message.getFirst() is not None:
             first = message.getFirst()
+            last = first
             if message.getLast() is not None:
                 last = message.getLast()
-                for i in range(first, last - 1):
-                    self.timers.removeTimer(i)
-            else:
-                transfer = self.timers.removeTimer(first)
+            for i in range(first, last + 1):
+                transfer = self.timers.removeTimer(i)
                 if transfer is not None:
                     handle = transfer.getHandle()
                     topic = self.usedMappings[handle]

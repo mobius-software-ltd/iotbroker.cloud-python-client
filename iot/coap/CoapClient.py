@@ -22,7 +22,6 @@ import asyncio
 from OpenSSL.crypto import X509
 
 from iot.classes.IoTClient import *
-from iot.coap.CoapParser import *
 from iot.coap.options.OptionParser import *
 from iot.coap.tlv.CoapTopic import *
 from iot.network.UDPClient import *
@@ -33,7 +32,6 @@ basicConfig(level=DEBUG)  # set now for dtls import code
 from dtls import do_patch, wrapper
 
 do_patch()
-import tkinter.messagebox as messagebox
 from threading import Thread
 import socket
 from socket import socket
@@ -60,6 +58,7 @@ class CoapClient(IoTClient):
         self.pingNum = 0
         self.udpThread = None
         self.ping_timer_started = False
+        self.disconnected = False
 
     def goConnect(self):
         self.setState(ConnectionState.CONNECTING)
@@ -79,14 +78,16 @@ class CoapClient(IoTClient):
             self.loop = asyncio.new_event_loop()
 
             addr = (self.account.serverHost, self.account.port)
+            sock = socket(AF_INET, SOCK_DGRAM)
+            sock.settimeout(5)
+            sock.setblocking(1)
             if self.account.certificate and len(self.account.certificate) > 0:
                 fp = self.get_certificate_file(self.account.certificate, self.account.certPasw)
-
-                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM), keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
-                self.sock_wrapped.connect(addr)
+                self.sock_wrapped = wrapper.wrap_client(sock, keyfile=fp.name, certfile=fp.name, ca_certs=fp.name)
             else:
-                self.sock_wrapped = wrapper.wrap_client(socket(AF_INET, SOCK_DGRAM))
-                self.sock_wrapped.connect(addr)
+                self.sock_wrapped = wrapper.wrap_client(sock)
+
+            self.sock_wrapped.connect(addr)
 
             datagram_endpoint = self.loop.create_datagram_endpoint(lambda: pyDTLSClient(self.account.serverHost, self.account.port, self.account.certificate, self, self.loop), sock=self.sock_wrapped)
 
@@ -254,20 +255,29 @@ class CoapClient(IoTClient):
         reactor.callFromThread(self.clientGUI.connackReceived, None)
 
     def disconnectWith(self, duration):
+        self.disconnected = True
         self.timers.stopAllTimers()
         self.stop_udp_listener()
 
     def timeoutMethod(self):
+        self.error_occured("Timeout was reached. Try to reconnect")
+
+    def process_connection_closed(self):
+        self.timers.stopAllTimers()
+        if not self.disconnected:
+            self.error_occurred("Connection closed by server")
+
+    def error_occurred(self, message):
         self.timers.stopAllTimers()
         self.stop_udp_listener()
-        messagebox.showinfo("Warning", 'Timeout was reached. Try to reconnect')
-        reactor.callFromThread(self.clientGUI.timeout)
+        reactor.callFromThread(self.clientGUI.show_error_message, "Warning", message)
+        reactor.callFromThread(self.clientGUI.errorReceived)
 
     def connectTimeoutMethod(self):
         self.timers.stopAllTimers()
         self.stop_udp_listener()
         reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "Connection Timeout")
-        reactor.callFromThread(self.clientGUI.timeout)
+        reactor.callFromThread(self.clientGUI.errorReceived)
 
     def ConnectionLost(self):
         self.setState(ConnectionState.CONNECTION_LOST)

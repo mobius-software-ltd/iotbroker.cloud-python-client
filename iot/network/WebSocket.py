@@ -31,6 +31,7 @@ class WebSocket(WebSocketClientProtocol):
         self.factory = factory
         self.client = client
         self.closeFlag = True
+        self.state = None
 
     def onConnect(self, response):
         print("Server connected")

@@ -27,16 +27,17 @@ from iot.coap.CoapParser import *
 
 
 class TimerTask():
-    def __init__(self, message, period, client, is_connect_timer):
+    def __init__(self, message, period, client, is_connect_timer, is_ping_timer):
         self.message = message
         self.period = period
         self.status = None
         self.isTimeoutTask = False
         self.client = client
         self.active = True
-        self.count = 2
+        self.count = 3
         self.is_connect_timer = is_connect_timer
-        if self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
+        self.is_ping_timer = is_ping_timer
+        if not is_ping_timer and self.message is not None and self.client.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
             self.client.send(self.message)
 
     def handle_function(self):
@@ -45,13 +46,9 @@ class TimerTask():
             self.client.clientGUI.after(self.period * 1000, self.handle_function)
             self.count -= 1
 
-            is_coap_ping = isinstance(self.message, CoapMessage) and self.message.getType() == CoapType.CONFIRMABLE and self.message.getCode() == CoapCode.PUT and self.message.getPacketID() == 0
-            if self.count == 0 and isinstance(self.message, MQPingreq) != True and isinstance(self.message, SNPingreq) != True and isinstance(self.message, AMQPPing) != True and not is_coap_ping:
-
-                if self.is_connect_timer:
-                    self.client.connectTimeoutMethod()
-                else:
-                    self.client.timeoutMethod()
+            if self.is_connect_timer and self.count <= 0:
+                self.active = False
+                self.client.connectTimeoutMethod()
 
     def getPeriod(self):
         return self.period
@@ -67,6 +64,10 @@ class TimerTask():
             reactor.callFromThread(self.client.clientGUI.after, self.period * 1000, self.handle_function)
 
     def onTimedEvent(self):
+
+        if self.message is None:
+            return
+
         if self.isTimeoutTask:
             self.client.timeoutMethod()
 

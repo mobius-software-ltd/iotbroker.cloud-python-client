@@ -61,6 +61,7 @@ class MQParser(object):
                 return -1
 
             enc = data[index]
+            index += 1
             length += (enc & 0x7f) * multiplier
             multiplier *= 128
             bytes_used += 1
