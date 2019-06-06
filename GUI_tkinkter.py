@@ -225,7 +225,8 @@ class Main_screen(Frame):
 
         message = MessageEntity(content=content, qos=qos.getValue(), topicName=topicName, incoming=True, isRetain=retainFlag, isDub=dup, accountentity_id=account.id)
         datamanage.add_entity(message)
-        self.note_frame.refresh_messages(account)
+        if hasattr(self, "note_frame"):
+            self.note_frame.refresh_messages(account)
 
     def disconnectReceived(self):
         self.loading.withdraw()
@@ -1306,8 +1307,8 @@ class NoteForm(Frame):
             if account.protocol != 3:
                 message = MessageEntity(content=content, qos=int(qos), topicName=name, incoming=False, isRetain=retain, isDub=dup, accountentity_id=account.id)
                 datamanage.add_entity(message)
-            if isinstance(self.main.app, Login):
-                self.main.app.refresh_messages()
+            if isinstance(self.main.app, NoteForm):
+                self.main.app.refresh_messages(account)
 
     def createTopic(self):
         name = self.nameText.get()
