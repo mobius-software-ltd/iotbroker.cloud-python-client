@@ -375,11 +375,6 @@ def processPUBREL(self, message):
         if publish is not None and isinstance(publish, SNPublish):
             pubComp = SNPubcomp(message.getPacketID())
             self.send(pubComp)
-            topic = publish.getTopic()
-            qos = QoS(topic.getQoS())
-            topicName = self.topics[int(topic.getValue())]
-            topicResult = FullTopic(topicName, qos)
-            reactor.callFromThread(self.clientGUI.pubackReceived, topicResult, qos, publish.getContent(), publish.isDup(), publish.isRetain(), 0)
 
 
 def processSUBSCRIBE(self, message):
