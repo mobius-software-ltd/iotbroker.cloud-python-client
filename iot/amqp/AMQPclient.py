@@ -53,9 +53,10 @@ class AMQPclient(IoTClient):
         self.pendingMessages = []
         self.timeout = 0
         self.pending_topics = {}
+        self.known_topics = {}
         for topic in topics:
-            self.pending_topics[topic.topicName] = topic
-        self.outstanding_attach_topics = {}
+            self.pending_topics[topic.topicName] = topic.qos
+            self.known_topics[topic.topicName] = topic.qos
         self.can_connect = True
 
     def send(self, header):
@@ -137,17 +138,18 @@ class AMQPclient(IoTClient):
             self.usedIncomingMappings[name] = currentHandler
             self.usedMappings[currentHandler] = name
 
+        self.pending_topics[name] = qos
+
         attach = AMQPAttach(None, None, None, self.channel, str(name), np.int64(currentHandler), RoleCode.RECEIVER, np.int16(SendCode.MIXED.value), None, None, None, None, None, None, None, None,
                             None, None)
         target = AMQPTarget(str(name), np.int64(TerminusDurability.NONE.value), None, np.int64(0), False, None, None)
         attach.setTarget(target)
 
-        self.outstanding_attach_topics[attach.handle] = name
-
         self.send(attach)
 
     def unsubscribeFrom(self, topicName):
         if topicName in self.usedIncomingMappings:
+            del self.known_topics[topicName]
             detach = AMQPDetach(None, None, None, self.channel, np.int64(self.usedIncomingMappings[topicName]), True, None)
             self.send(detach)
         else:
@@ -263,7 +265,8 @@ def processBegin(self, message):
         self.timers.goPingTimer(ping, self.timeout / 1000)
 
     for key, value in self.pending_topics.items():
-        self.subscribeTo(key, value.qos)
+        self.pending_topics[key]
+        self.subscribeTo(key, value)
 
 
 def processEnd(self, message):
@@ -299,15 +302,11 @@ def processAttach(self, message):
                         self.timers.store_timer_stub(pending)
         else:
             handle = message.getHandle()
-            self.usedIncomingMappings[message.getName()] = handle
-            self.usedMappings[handle] = message.getName()
+            if self.pending_topics.pop(message.getName(), None) is None:
 
-            if self.outstanding_attach_topics.pop(handle, None) == message.getName():
-                if self.pending_topics.pop(message.getName(), None) is None:
-                    topic = MQTopic(message.getName(), 1)
-                    qos = topic.getQoS()
-                    self.clientGUI.subackReceived(topic, qos, 0)
-            else:
+                self.usedIncomingMappings[message.getName()] = handle
+                self.usedMappings[handle] = message.getName()
+
                 attach_response = AMQPAttach(None, None, None, self.channel, str(message.getName()), np.int64(message.getHandle()), RoleCode.RECEIVER, np.int16(SendCode.MIXED.value),
                                              np.int16(ReceiveCode.SECOND.value), None, None, None, None, None, None,
                                              None,
@@ -315,7 +314,9 @@ def processAttach(self, message):
                 target = AMQPTarget(str(message.getName()), np.int64(TerminusDurability.NONE.value), None, np.int64(0), False, None, None)
                 attach_response.setTarget(target)
                 self.send(attach_response)
-                pass
+            elif message.getName() not in self.known_topics:
+                self.known_topics[message.getName()] = 1
+                reactor.callFromThread(self.clientGUI.subackReceived, message.getName(), QoS(1), None)
 
 
 def processTransfer(self, message):
@@ -343,6 +344,8 @@ def processDetach(self, message):
             if topicName in self.usedOutgoingMappings:
                 self.usedOutgoingMappings.pop(topicName)
 
+            del self.usedIncomingMappings[topicName]
+            
             listTopics = []
             listTopics.append(topicName)
             self.clientGUI.unsubackReceived(listTopics)

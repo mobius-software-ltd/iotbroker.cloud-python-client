@@ -56,7 +56,6 @@ class AMQPError(Parsable):
                 element = list.getList()[0]
                 if element is not None and not unwrapper.check_is_null(element):
                     self.condition = ErrorCode(unwrapper.unwrapSymbol(element).getValue())
-                    print('AMQPError ERROR OCCURED condition= ' + str(ErrorCode(unwrapper.unwrapSymbol(element).getValue())))
             if len(list.getList()) > 1 :
                 element = list.getList()[1]
                 if element is not None and not unwrapper.check_is_null(element):
