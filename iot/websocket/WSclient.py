@@ -37,6 +37,7 @@ class WSclient(IoTClient):
         self.timers = TimersMap(self)
         self.publishPackets = {}
         self.publishPacketsOut = {}
+        self.can_connect = True
 
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
@@ -152,25 +153,31 @@ class WSclient(IoTClient):
         self.connector.disconnect()
 
     def timeoutMethod(self):
-        self.timers.stopAllTimers()
-        self.clientGUI.timeout()
+        if self.can_connect:
+            self.can_connect = False
+            self.timers.stopAllTimers()
+            self.clientGUI.timeout()
 
     def connectTimeoutMethod(self):
-        self.timers.stopAllTimers()
-        self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
-        self.clientGUI.timeout()
+        if self.can_connect:
+            self.can_connect = False
+            self.timers.stopAllTimers()
+            self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
+            self.clientGUI.timeout()
 
     def PacketReceived(self, ProtocolMessage):
         ProtocolMessage.processBy()
 
     def ConnectionLost(self):
-        if self.isClean == True:
-            self.clearAccountTopics()
-        if self.timers != None:
-            self.timers.stopAllTimers()
-        if self.client != None:
-            self.client.stop()
-            self.setState(ConnectionState.CONNECTION_LOST)
+        if self.can_connect:
+            self.can_connect = False
+            if self.isClean == True:
+                self.clearAccountTopics()
+            if self.timers != None:
+                self.timers.stopAllTimers()
+            if self.client != None:
+                self.client.stop()
+                self.setState(ConnectionState.CONNECTION_LOST)
 
     def connected(self):
         self.setState(ConnectionState.CHANNEL_ESTABLISHED)

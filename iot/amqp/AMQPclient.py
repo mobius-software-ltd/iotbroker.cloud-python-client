@@ -56,7 +56,7 @@ class AMQPclient(IoTClient):
         for topic in topics:
             self.pending_topics[topic.topicName] = topic
         self.outstanding_attach_topics = {}
-        self.connect_failed = False
+        self.can_connect = True
 
     def send(self, header):
 
@@ -168,14 +168,17 @@ class AMQPclient(IoTClient):
         return AMQPPing()
 
     def timeoutMethod(self):
-        self.timers.stopAllTimers()
-        self.clientGUI.timeout()
+        if self.can_connect:
+            self.can_connect = False
+            self.timers.stopAllTimers()
+            self.clientGUI.timeout()
 
     def connectTimeoutMethod(self):
-        self.timers.stopAllTimers()
-        self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
-        self.clientGUI.timeout()
-        self.connect_failed = True
+        if self.can_connect:
+            self.can_connect = False
+            self.timers.stopAllTimers()
+            self.clientGUI.show_error_message("Connect Error", "Connection Timeout")
+            self.clientGUI.timeout()
 
     def setTopics(self, topics):
         pass
@@ -184,7 +187,8 @@ class AMQPclient(IoTClient):
         self.connectionState = ConnectionState
 
     def ConnectionLost(self):
-        if not self.connect_failed:
+        if self.can_connect:
+            self.can_connect = False
             if self.timers != None:
                 self.timers.stopAllTimers()
             self.clientGUI.errorReceived()

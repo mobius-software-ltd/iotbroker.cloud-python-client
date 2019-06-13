@@ -233,7 +233,10 @@ class Main_screen(Frame):
 
     def errorReceived(self):
         self.disconnectReceived()
-        self.note.withdraw()
+        try:
+            self.note.withdraw()
+        except:
+            pass
         self.show_accounts()
 
     def timeout(self):
@@ -1210,44 +1213,45 @@ class NoteForm(Frame):
         if messages is not None:
             if len(messages) > 0:
                 for item in messages:
-                    content = str(item.content.decode('utf-8'))
-                    if len(content) > 32:
-                        text = ' ' + str(item.topicName) + '\n ' + self.format_context(content)
-                    else:
-                        text = ' ' + str(item.topicName) + '\n ' + content
+                    if item.content is not None:
+                        content = str(item.content.decode('utf-8'))
+                        if len(content) > 32:
+                            text = ' ' + str(item.topicName) + '\n ' + self.format_context(content)
+                        else:
+                            text = ' ' + str(item.topicName) + '\n ' + content
 
-                    if item.incoming:
-                        if item.qos == 0:
-                            self.photo = self.photo0in
-                        if item.qos == 1:
-                            self.photo = self.photo1in
-                        if item.qos == 2:
-                            self.photo = self.photo2in
-                    else:
-                        if item.qos == 0:
-                            self.photo = self.photo0out
-                        if item.qos == 1:
-                            self.photo = self.photo1out
-                        if item.qos == 2:
-                            self.photo = self.photo2out
+                        if item.incoming:
+                            if item.qos == 0:
+                                self.photo = self.photo0in
+                            if item.qos == 1:
+                                self.photo = self.photo1in
+                            if item.qos == 2:
+                                self.photo = self.photo2in
+                        else:
+                            if item.qos == 0:
+                                self.photo = self.photo0out
+                            if item.qos == 1:
+                                self.photo = self.photo1out
+                            if item.qos == 2:
+                                self.photo = self.photo2out
 
-                    text = text + (200 - len(text)) * " "
-                    strings_number = len(content) // 32 + 3
-                    if strings_number > 3:
-                        strings_number += 6
-                        scroll_flag = True
-                    if (i % 2) == 0:
-                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
-                                         strings_number=strings_number, width=250, height=20 * strings_number,
-                                         bg=whitebg).grid(row=i, column=0)
-                        Label(master=messagesFrame, image=self.photo, bd=0, bg=whitebg).grid(row=i, column=1)
-                    else:
-                        CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
-                                         strings_number=strings_number, width=250, height=20 * strings_number,
-                                         bg=graybg).grid(row=i, column=0)
-                        Label(master=messagesFrame, image=self.photo, bd=0, bg=graybg, width=359 - 250, height=20 * strings_number + 2).grid(row=i, column=1)
-                    i += 1
-                    height += 20 * strings_number + 3
+                        text = text + (200 - len(text)) * " "
+                        strings_number = len(content) // 32 + 3
+                        if strings_number > 3:
+                            strings_number += 6
+                            scroll_flag = True
+                        if (i % 2) == 0:
+                            CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
+                                             strings_number=strings_number, width=250, height=20 * strings_number,
+                                             bg=whitebg).grid(row=i, column=0)
+                            Label(master=messagesFrame, image=self.photo, bd=0, bg=whitebg).grid(row=i, column=1)
+                        else:
+                            CustomFont_Label(messagesFrame, text=text, font_path=font_regular, size=16,
+                                             strings_number=strings_number, width=250, height=20 * strings_number,
+                                             bg=graybg).grid(row=i, column=0)
+                            Label(master=messagesFrame, image=self.photo, bd=0, bg=graybg, width=359 - 250, height=20 * strings_number + 2).grid(row=i, column=1)
+                        i += 1
+                        height += 20 * strings_number + 3
 
         if height == 0:
             height = 370

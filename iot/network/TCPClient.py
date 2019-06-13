@@ -84,8 +84,9 @@ class ClientFactory(ReconnectingClientFactory):
         print('Started to connect.')
 
     def clientConnectionFailed(self, connector, reason):
-        # messagebox.showinfo("Warning", 'TCP connection failed')
-        self.client.ConnectionLost()
+        if self.client.can_connect:
+            self.client.ConnectionLost()
+            messagebox.showinfo("Warning", 'TCP connection failed')
 
     def clientConnectionLost(self, connector, reason):
         pass

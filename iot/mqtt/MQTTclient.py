@@ -45,6 +45,7 @@ class MQTTclient(IoTClient):
         self.data = None
         self.timers = TimersMap(self)
         self.publishPackets = {}
+        self.can_connect = True
 
     def send(self, message):
         if self.connectionState == ConnectionState.CONNECTION_ESTABLISHED:
@@ -129,18 +130,26 @@ class MQTTclient(IoTClient):
         self.clientFactory.client_close_connection()
 
     def timeoutMethod(self):
-        self.timers.stopAllTimers()
-        reactor.callFromThread(self.clientGUI.timeout)
+        if self.can_connect:
+            self.can_connect = False
+            self.timers.stopAllTimers()
+            reactor.callFromThread(self.clientGUI.timeout)
 
     def connectTimeoutMethod(self):
-        self.timers.stopAllTimers()
-        reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "Connection timeout")
-        reactor.callFromThread(self.clientGUI.timeout)
+        if self.can_connect:
+            self.can_connect = False
+            self.timers.stopAllTimers()
+            reactor.callFromThread(self.clientGUI.show_error_message, "Connect Error", "Connection timeout")
+            reactor.callFromThread(self.clientGUI.timeout)
 
     def ConnectionLost(self):
-        if self.timers != None:
-            self.timers.stopAllTimers()
-        reactor.callFromThread(self.clientGUI.errorReceived)
+        if self.can_connect:
+            self.can_connect = False
+            if self.timers is not None:
+                self.timers.stopAllTimers()
+
+            self.connector.disconnect()
+            reactor.callFromThread(self.clientGUI.errorReceived)
 
 
 # _____________________________________________________________________________________

@@ -65,7 +65,7 @@ class TimerTask():
 
     def onTimedEvent(self):
 
-        if self.message is None:
+        if self.message is None or not self.active:
             return
 
         if self.isTimeoutTask:
